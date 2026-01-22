@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="description" content="Waarnemingen vastleggen voor ondermijningsaanpak">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>AP Straat</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+:root{--accent:#9b59b6;--success:#27ae60;--warning:#f39c12;--danger:#c0392b;--dark:#1a1a2e;--light:#f8f9fa;--gray:#6c757d;--safe-top:env(safe-area-inset-top,0);--safe-bottom:env(safe-area-inset-bottom,0)}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--light);color:var(--dark)}
+.hidden{display:none!important}
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--dark),#16213e);padding:20px}
+.auth-box{background:#fff;border-radius:20px;padding:40px 30px;width:100%;max-width:360px;text-align:center}
+.auth-logo{width:80px;height:80px;background:var(--accent);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2rem;color:#fff}
+.auth-box h1{font-size:1.5rem;margin-bottom:5px}
+.auth-box .sub{color:var(--gray);font-size:.9rem;margin-bottom:30px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:30px}
+.pin-dot{width:18px;height:18px;border-radius:50%;background:#e0e0e0;transition:.2s}
+.pin-dot.filled{background:var(--accent);transform:scale(1.2)}
+.pin-dot.err{background:var(--danger);animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:260px;margin:0 auto}
+.nkey{aspect-ratio:1;border:none;border-radius:50%;font-size:1.5rem;font-weight:600;background:var(--light);cursor:pointer}
+.nkey:active{background:var(--accent);color:#fff}
+.nkey.empty{background:transparent}
+.setup-form{text-align:left}
+.setup-form label{display:block;margin-bottom:6px;font-weight:600}
+.setup-form input{width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:12px;font-size:1rem;margin-bottom:15px}
+.setup-form input:focus{outline:none;border-color:var(--accent)}
+.app{display:none;flex-direction:column;height:100vh;height:100dvh}
+.app.active{display:flex}
+.header{background:linear-gradient(135deg,var(--dark),#16213e);color:#fff;padding:15px 20px;padding-top:calc(15px + var(--safe-top));display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:1.1rem;display:flex;align-items:center;gap:10px}
+.header h1 i{color:var(--accent)}
+.hbtn{width:40px;height:40px;border:none;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;font-size:1.1rem;cursor:pointer}
+.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.nav{background:#fff;border-top:1px solid #e0e0e0;display:flex;padding-bottom:var(--safe-bottom)}
+.nav-item{flex:1;padding:12px 5px;text-align:center;color:var(--gray);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.nav-item i{font-size:1.3rem}
+.nav-item span{font-size:.7rem;font-weight:500}
+.nav-item.active{color:var(--accent)}
+.page{display:none;padding:20px;padding-bottom:100px}
+.page.active{display:block}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:15px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.card h3{font-size:1rem;display:flex;align-items:center;gap:10px;margin-bottom:15px}
+.card h3 i{color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+.stat{background:#fff;border-radius:16px;padding:20px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.stat .ic{width:45px;height:45px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:1.2rem}
+.stat .ic.purple{background:rgba(155,89,182,.1);color:var(--accent)}
+.stat .ic.green{background:rgba(39,174,96,.1);color:var(--success)}
+.stat .ic.blue{background:rgba(52,152,219,.1);color:#3498db}
+.stat .ic.orange{background:rgba(230,126,34,.1);color:#e67e22}
+.stat .val{font-size:1.8rem;font-weight:700}
+.stat .lbl{font-size:.75rem;color:var(--gray)}
+.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+.qbtn{background:#fff;border-radius:16px;padding:20px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.05);cursor:pointer}
+.qbtn:active{transform:scale(.98)}
+.qbtn i{font-size:2rem;color:var(--accent);margin-bottom:10px;display:block}
+.qbtn span{font-weight:600;font-size:.9rem}
+.btn{padding:14px 24px;border:none;border-radius:12px;font-weight:600;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;width:100%}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--accent);color:#fff}
+.btn-s{background:var(--success);color:#fff}
+.btn-d{background:var(--danger);color:#fff}
+.btn-w{background:var(--warning);color:#000}
+.btn-o{background:#fff;color:var(--accent);border:2px solid var(--accent)}
+.btn-g{background:var(--gray);color:#fff}
+.fg{margin-bottom:20px}
+.fg label{display:block;margin-bottom:8px;font-weight:600;font-size:.9rem}
+.fg .req{color:var(--danger)}
+.fc{width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:12px;font-size:1rem}
+.fc:focus{outline:none;border-color:var(--accent)}
+textarea.fc{min-height:100px;resize:vertical}
+select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%236c757d' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:45px}
+.loc{background:var(--light);border-radius:12px;padding:15px;display:flex;align-items:center;gap:15px;margin-bottom:20px}
+.loc .ic{width:45px;height:45px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.loc .ic.ok{background:rgba(39,174,96,.1);color:var(--success)}
+.loc .ic.wait{background:rgba(243,156,18,.1);color:var(--warning)}
+.loc .ic.fail{background:rgba(192,57,43,.1);color:var(--danger)}
+.loc .coords{font-family:monospace;font-size:.85rem}
+.loc .acc{font-size:.75rem;color:var(--gray);margin-top:3px}
+.section{font-size:.8rem;text-transform:uppercase;color:var(--gray);letter-spacing:1px;margin:20px 0 12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--light);border:2px solid #e0e0e0;border-radius:20px;padding:8px 14px;font-size:.85rem;display:flex;align-items:center;gap:8px;cursor:pointer}
+.chip.sel{background:rgba(155,89,182,.1);border-color:var(--accent);color:var(--accent)}
+.chip .x{color:var(--danger);margin-left:4px}
+.add-btn{background:var(--light);border:2px dashed #ccc;border-radius:20px;padding:8px 14px;font-size:.85rem;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--gray)}
+.photos{border:3px dashed #e0e0e0;border-radius:16px;padding:30px;text-align:center;cursor:pointer;position:relative}
+.photos:active{border-color:var(--accent)}
+.photos i{font-size:2.5rem;color:var(--accent);margin-bottom:10px;display:block}
+.photos input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}
+.pthumb{aspect-ratio:1;border-radius:12px;overflow:hidden;position:relative;background:var(--light)}
+.pthumb img{width:100%;height:100%;object-fit:cover}
+.pthumb .del{position:absolute;top:5px;right:5px;width:24px;height:24px;background:var(--danger);color:#fff;border:none;border-radius:50%;font-size:.7rem;cursor:pointer}
+.item{background:#fff;border-radius:12px;padding:15px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);display:flex;align-items:flex-start;gap:15px}
+.item .iw{width:45px;height:45px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.item .iw.purple{background:rgba(155,89,182,.1);color:var(--accent)}
+.item .iw.green{background:rgba(39,174,96,.1);color:var(--success)}
+.item .iw.blue{background:rgba(52,152,219,.1);color:#3498db}
+.item .iw.orange{background:rgba(230,126,34,.1);color:#e67e22}
+.item .cnt{flex:1;min-width:0}
+.item .ttl{font-weight:600;margin-bottom:3px}
+.item .meta{font-size:.8rem;color:var(--gray)}
+.item .acts{display:flex;gap:8px}
+.item .abtn{width:36px;height:36px;border:none;border-radius:10px;background:var(--light);color:var(--gray);cursor:pointer}
+.item .abtn.del{color:var(--danger)}
+.empty{text-align:center;padding:40px 20px;color:var(--gray)}
+.empty i{font-size:3rem;margin-bottom:15px;opacity:.5}
+.search{position:relative;margin-bottom:15px}
+.search input{width:100%;padding:14px 14px 14px 45px;border:2px solid #e0e0e0;border-radius:12px;font-size:1rem}
+.search input:focus{outline:none;border-color:var(--accent)}
+.search i{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--gray)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;z-index:1000;opacity:0;visibility:hidden;transition:.3s}
+.modal.show{opacity:1;visibility:visible}
+.modal-box{background:#fff;border-radius:24px 24px 0 0;padding:25px;padding-bottom:calc(25px + var(--safe-bottom));width:100%;max-width:500px;max-height:85vh;overflow-y:auto;margin:0 auto;transform:translateY(100%);transition:.3s}
+.modal.show .modal-box{transform:translateY(0)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-head h3{font-size:1.2rem}
+.modal-close{width:36px;height:36px;border:none;border-radius:50%;background:var(--light);color:var(--gray);font-size:1.2rem;cursor:pointer}
+.tabs{display:flex;gap:5px;margin-bottom:20px;background:var(--light);padding:5px;border-radius:12px}
+.tab{flex:1;padding:10px;border:none;border-radius:10px;background:transparent;color:var(--gray);font-weight:600;font-size:.85rem;cursor:pointer}
+.tab.active{background:#fff;color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--dark);color:#fff;padding:14px 24px;border-radius:12px;font-size:.9rem;z-index:2000;opacity:0;transition:.3s}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.ok{background:var(--success)}
+.toast.err{background:var(--danger)}
+.fab{position:fixed;bottom:calc(80px + var(--safe-bottom));right:20px;width:60px;height:60px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:1.5rem;box-shadow:0 4px 20px rgba(155,89,182,.4);cursor:pointer;z-index:100}
+.fab:active{transform:scale(.95)}
+.voice-wrap{position:relative}
+.voice-wrap textarea{padding-right:60px}
+.voice-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;border-radius:50%;background:var(--light);color:var(--accent);font-size:1.2rem;cursor:pointer;transition:.2s}
+.voice-btn:active{background:var(--accent);color:#fff}
+.voice-btn.recording{background:var(--danger);color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.1)}}
+.voice-hint{font-size:.75rem;color:var(--gray);margin-top:8px;display:flex;align-items:center;gap:6px}
+.thema-witwassen{border-left:4px solid #9b59b6}
+.thema-drugshandel{border-left:4px solid #e74c3c}
+.thema-hennepteelt{border-left:4px solid #27ae60}
+.thema-drugslabs{border-left:4px solid #e67e22}
+.thema-malafide{border-left:4px solid #3498db}
+.thema-mensenhandel{border-left:4px solid #c0392b}
+.thema-vastgoed{border-left:4px solid #f39c12}
+.thema-gokken{border-left:4px solid #1abc9c}
+.thema-wapens{border-left:4px solid #34495e}
+.thema-overig{border-left:4px solid #95a5a6}
+.mt10{margin-top:10px}
+.mt20{margin-top:20px}
+.mb10{margin-bottom:10px}
+.mb20{margin-bottom:20px}
+.offline-banner{display:none;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 16px;text-align:center;font-size:.85rem;position:fixed;top:0;left:0;right:0;z-index:2001}
+.offline-banner.show{display:block}
+.install-banner{display:none;background:linear-gradient(135deg,var(--dark),#16213e);color:#fff;padding:14px 20px;text-align:center;font-size:.85rem;position:fixed;bottom:0;left:0;right:0;z-index:2001;padding-bottom:calc(14px + var(--safe-bottom))}
+.install-banner.show{display:flex;align-items:center;justify-content:center;gap:12px}
+.install-banner button{background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer}
+.install-banner .close{background:transparent;color:rgba(255,255,255,.7);padding:8px}
+.pwa-status{display:inline-flex;align-items:center;gap:6px;background:rgba(39,174,96,.15);color:var(--success);padding:4px 10px;border-radius:12px;font-size:.7rem;margin-left:10px}
+.pwa-status.offline{background:rgba(243,156,18,.15);color:var(--warning)}
+</style>
+</head>
+<body>
+
+<!-- Offline Banner -->
+<div id="offlineBanner" class="offline-banner">📴 Je bent offline — de app werkt gewoon door</div>
+
+<!-- Install Banner -->
+<div id="installBanner" class="install-banner">
+<span>📲 Installeer voor offline gebruik</span>
+<button onclick="installApp()">Installeren</button>
+<button class="close" onclick="hideInstall()">✕</button>
+</div>
+
+<!-- AUTH -->
+<div id="auth" class="auth-screen">
+<div class="auth-box">
+<div id="authLogin" class="hidden">
+<div class="auth-logo"><i class="fas fa-user-shield"></i></div>
+<h1>AP Straat</h1>
+<p class="sub">Medewerker Module</p>
+<div class="pin-dots"><div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div><div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div></div>
+<div class="numpad">
+<button class="nkey" onclick="A.digit('1')">1</button><button class="nkey" onclick="A.digit('2')">2</button><button class="nkey" onclick="A.digit('3')">3</button>
+<button class="nkey" onclick="A.digit('4')">4</button><button class="nkey" onclick="A.digit('5')">5</button><button class="nkey" onclick="A.digit('6')">6</button>
+<button class="nkey" onclick="A.digit('7')">7</button><button class="nkey" onclick="A.digit('8')">8</button><button class="nkey" onclick="A.digit('9')">9</button>
+<button class="nkey empty"></button><button class="nkey" onclick="A.digit('0')">0</button><button class="nkey" onclick="A.del()"><i class="fas fa-backspace"></i></button>
+</div>
+<p style="margin-top:20px;font-size:.75rem;color:var(--gray)">PIN vergeten? <a href="#" onclick="A.reset();return false" style="color:var(--accent)">Reset account</a></p>
+</div>
+<div id="authSetup" class="setup-form hidden">
+<div class="auth-logo"><i class="fas fa-user-shield"></i></div>
+<h1>Welkom</h1>
+<p class="sub">Stel je account in</p>
+<label>Je naam</label>
+<input type="text" id="setupName" placeholder="Voornaam Achternaam">
+<label>Kies 4-cijferige PIN</label>
+<input type="password" id="setupPin" maxlength="4" inputmode="numeric" placeholder="••••">
+<label>Bevestig PIN</label>
+<input type="password" id="setupPin2" maxlength="4" inputmode="numeric" placeholder="••••">
+<button class="btn btn-p" onclick="A.setup()"><i class="fas fa-check"></i> Activeren</button>
+</div>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app">
+<header class="header">
+<h1><i class="fas fa-user-shield"></i> <span id="userName">AP Straat</span><span class="pwa-status" id="pwaStatus">● Offline ready</span></h1>
+<div style="display:flex;gap:10px">
+<button class="hbtn" onclick="refreshLoc()"><i class="fas fa-location-crosshairs"></i></button>
+<button class="hbtn" onclick="showSettings()"><i class="fas fa-cog"></i></button>
+</div>
+</header>
+
+<main class="main">
+<!-- Dashboard -->
+<div id="pg-dash" class="page active">
+<div class="stats">
+<div class="stat"><div class="ic purple"><i class="fas fa-eye"></i></div><div class="val" id="sW">0</div><div class="lbl">Waarnemingen</div></div>
+<div class="stat"><div class="ic green"><i class="fas fa-users"></i></div><div class="val" id="sP">0</div><div class="lbl">Personen</div></div>
+<div class="stat"><div class="ic blue"><i class="fas fa-car"></i></div><div class="val" id="sV">0</div><div class="lbl">Voertuigen</div></div>
+<div class="stat"><div class="ic orange"><i class="fas fa-map-marker-alt"></i></div><div class="val" id="sA">0</div><div class="lbl">Adressen</div></div>
+</div>
+<div class="quick">
+<div class="qbtn" onclick="nav('nieuw')"><i class="fas fa-plus-circle"></i><span>Nieuwe Waarneming</span></div>
+<div class="qbtn" onclick="nav('export')"><i class="fas fa-file-export"></i><span>Export JSON</span></div>
+</div>
+<div class="card"><h3><i class="fas fa-clock"></i> Recent</h3><div id="recent"><div class="empty"><i class="fas fa-eye-slash"></i><p>Nog geen waarnemingen</p></div></div></div>
+</div>
+
+<!-- Nieuwe Waarneming -->
+<div id="pg-nieuw" class="page">
+<div class="card">
+<h3><i class="fas fa-plus-circle"></i> Nieuwe Waarneming</h3>
+<div class="section" style="margin-top:0">Locatie</div>
+<div class="loc" id="locBox"><div class="ic wait"><i class="fas fa-spinner fa-spin"></i></div><div><div class="coords">Locatie ophalen...</div><div class="acc"></div></div></div>
+<div class="section">Thema <span class="req">*</span></div>
+<div class="fg" style="margin-bottom:0">
+<select class="fc" id="wThema">
+<option value="">-- Selecteer thema --</option>
+<option value="witwassen">💰 Witwassen</option>
+<option value="drugshandel">💊 Drugshandel</option>
+<option value="hennepteelt">🌿 Hennepteelt</option>
+<option value="drugslabs">🧪 Drugslaboratoria</option>
+<option value="malafide">🏢 Malafide Bedrijven</option>
+<option value="mensenhandel">👥 Mensenhandel</option>
+<option value="vastgoed">🏠 Vastgoedfraude</option>
+<option value="gokken">🎰 Illegaal Gokken</option>
+<option value="wapens">🔫 Wapenhandel</option>
+<option value="overig">📋 Overig</option>
+</select>
+</div>
+<div class="section">Beschrijving <span class="req">*</span></div>
+<div class="fg voice-wrap" style="margin-bottom:0">
+<textarea class="fc" id="wBeschr" placeholder="Beschrijf je waarneming..."></textarea>
+<button class="voice-btn" id="voiceBtn" onclick="Voice.toggle()"><i class="fas fa-microphone"></i></button>
+</div>
+<div class="voice-hint"><i class="fas fa-info-circle"></i> Tik op de microfoon om in te spreken</div>
+<div class="section">Entiteiten <span class="req">*</span></div>
+<div id="selEnts" class="chips"><span style="color:var(--gray);font-size:.85rem">Geen geselecteerd</span></div>
+<div class="chips mt10">
+<button class="add-btn" onclick="Ent.show('person')"><i class="fas fa-user-plus"></i> Persoon</button>
+<button class="add-btn" onclick="Ent.show('vehicle')"><i class="fas fa-car"></i> Voertuig</button>
+<button class="add-btn" onclick="Ent.show('address')"><i class="fas fa-map-marker-alt"></i> Adres</button>
+</div>
+<div class="section">Foto's</div>
+<div class="photos"><i class="fas fa-camera"></i><p><strong>Tik om foto's te maken</strong></p><input type="file" accept="image/*" multiple capture="environment" onchange="Photo.add(this.files)"></div>
+<div class="pgrid" id="photoGrid"></div>
+<div class="mt20"><button class="btn btn-s" style="font-size:1.1rem;padding:18px" onclick="W.save()"><i class="fas fa-save"></i> Opslaan</button></div>
+</div>
+</div>
+
+<!-- Waarnemingen -->
+<div id="pg-waar" class="page">
+<div class="search"><i class="fas fa-search"></i><input type="text" placeholder="Zoek..." oninput="W.filter(this.value)"></div>
+<div id="waarList"></div>
+</div>
+
+<!-- Entiteiten -->
+<div id="pg-ent" class="page">
+<div class="search"><i class="fas fa-search"></i><input type="text" placeholder="Zoek..." oninput="DB.filter(this.value)"></div>
+<div class="section">Personen (<span id="cP">0</span>)</div><div id="listP"></div>
+<div class="section">Voertuigen (<span id="cV">0</span>)</div><div id="listV"></div>
+<div class="section">Adressen (<span id="cA">0</span>)</div><div id="listA"></div>
+</div>
+
+<!-- Export -->
+<div id="pg-export" class="page">
+<div class="card">
+<h3><i class="fas fa-file-export"></i> Export naar Analyst</h3>
+<p style="color:var(--gray);margin-bottom:20px">Genereer JSON voor import in de Analyst module.</p>
+<div class="stats mb20">
+<div class="stat"><div class="val" id="exW">0</div><div class="lbl">Waarnemingen</div></div>
+<div class="stat"><div class="val" id="exE">0</div><div class="lbl">Entiteiten</div></div>
+</div>
+<div class="fg"><label>Notities (optioneel)</label><textarea class="fc" id="exNotes" rows="2" placeholder="Aanvullende notities..."></textarea></div>
+<button class="btn btn-p mb10" onclick="Exp.download()"><i class="fas fa-download"></i> Download JSON</button>
+<button class="btn btn-o" onclick="Exp.preview()"><i class="fas fa-eye"></i> Preview</button>
+<div id="prevBox" class="hidden mt20"><div class="section">Preview</div><pre id="prevData" style="background:#f8f9fa;padding:15px;border-radius:12px;font-size:.75rem;max-height:200px;overflow:auto"></pre></div>
+</div>
+<div class="card">
+<h3><i class="fas fa-trash-alt"></i> Data Beheer</h3>
+<p style="color:var(--gray);margin-bottom:20px">Na export kun je lokale data wissen.</p>
+<button class="btn btn-d" onclick="clearAll()"><i class="fas fa-trash"></i> Alle Data Wissen</button>
+</div>
+</div>
+</main>
+
+<nav class="nav">
+<div class="nav-item active" onclick="nav('dash')"><i class="fas fa-home"></i><span>Home</span></div>
+<div class="nav-item" onclick="nav('waar')"><i class="fas fa-eye"></i><span>Waarnemingen</span></div>
+<div class="nav-item" onclick="nav('ent')"><i class="fas fa-database"></i><span>Entiteiten</span></div>
+<div class="nav-item" onclick="nav('export')"><i class="fas fa-file-export"></i><span>Export</span></div>
+</nav>
+<button class="fab" onclick="nav('nieuw')"><i class="fas fa-plus"></i></button>
+</div>
+
+<!-- Entity Modal -->
+<div id="entModal" class="modal">
+<div class="modal-box">
+<div class="modal-head"><h3 id="entTitle">Entiteit</h3><button class="modal-close" onclick="Ent.hide()"><i class="fas fa-times"></i></button></div>
+<div class="tabs"><button class="tab active" onclick="Ent.tab('existing')">Bestaand</button><button class="tab" onclick="Ent.tab('new')">Nieuw</button></div>
+<div id="tabExisting" class="tab-content active">
+<div class="search"><i class="fas fa-search"></i><input type="text" id="entSearch" placeholder="Zoek..." oninput="Ent.search(this.value)"></div>
+<div id="entResults" style="max-height:250px;overflow-y:auto"></div>
+</div>
+<div id="tabNew" class="tab-content">
+<div id="formPerson" class="hidden">
+<div class="fg"><label>Naam <span class="req">*</span></label><input class="fc" id="pNaam" placeholder="Volledige naam"></div>
+<div class="fg"><label>Geboortedatum</label><input type="date" class="fc" id="pGeb"></div>
+<div class="fg"><label>Rol</label><input class="fc" id="pRol" placeholder="Eigenaar, Bestuurder..."></div>
+<div class="fg"><label>Opmerkingen</label><textarea class="fc" id="pOpm" rows="2" placeholder="Signalement..."></textarea></div>
+</div>
+<div id="formVehicle" class="hidden">
+<div class="fg"><label>Kenteken <span class="req">*</span></label><input class="fc" id="vKent" placeholder="AB-123-CD" style="text-transform:uppercase"></div>
+<div class="fg"><label>Merk</label><input class="fc" id="vMerk" placeholder="BMW, Mercedes..."></div>
+<div class="fg"><label>Type</label><input class="fc" id="vType" placeholder="X5, E-Klasse..."></div>
+<div class="fg"><label>Kleur</label><input class="fc" id="vKleur" placeholder="Zwart, Wit..."></div>
+</div>
+<div id="formAddress" class="hidden">
+<div class="fg"><label>Straat <span class="req">*</span></label><input class="fc" id="aStraat" placeholder="Straatnaam"></div>
+<div class="fg"><label>Huisnummer</label><input class="fc" id="aHnr" placeholder="123"></div>
+<div class="fg"><label>Postcode</label><input class="fc" id="aPC" placeholder="1234 AB"></div>
+<div class="fg"><label>Plaats</label><input class="fc" id="aPlaats" placeholder="Amsterdam"></div>
+</div>
+<button class="btn btn-s" onclick="Ent.saveNew()"><i class="fas fa-plus"></i> Toevoegen</button>
+</div>
+</div>
+</div>
+
+<!-- Settings Modal -->
+<div id="setModal" class="modal">
+<div class="modal-box">
+<div class="modal-head"><h3>Instellingen</h3><button class="modal-close" onclick="hideSettings()"><i class="fas fa-times"></i></button></div>
+<div class="fg"><label>Je naam</label><input class="fc" id="setName"></div>
+<button class="btn btn-p mb10" onclick="saveSettings()"><i class="fas fa-save"></i> Opslaan</button>
+<hr style="margin:20px 0;border:none;border-top:1px solid #e0e0e0">
+<button class="btn btn-w mb10" onclick="A.changePin()"><i class="fas fa-key"></i> PIN Wijzigen</button>
+<button class="btn btn-d" onclick="A.logout()"><i class="fas fa-sign-out-alt"></i> Uitloggen</button>
+<p style="text-align:center;color:var(--gray);font-size:.75rem;margin-top:20px">AP Straat v1.1 PWA<br>© 2025 Knowledge by Data</p>
+</div>
+</div>
+
+<!-- Detail Modal -->
+<div id="detModal" class="modal">
+<div class="modal-box">
+<div class="modal-head"><h3 id="detTitle">Details</h3><button class="modal-close" onclick="hideDet()"><i class="fas fa-times"></i></button></div>
+<div id="detBody"></div>
+</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+const K={PIN:'ap_pin',USER:'ap_user',WAAR:'ap_waar',PERS:'ap_pers',VEHI:'ap_vehi',ADDR:'ap_addr'};
+const esc=t=>{if(!t)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML};
+const fmtDate=d=>new Date(d).toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const genId=()=>Date.now().toString(36)+Math.random().toString(36).substr(2,6);
+const toast=(m,t)=>{const el=document.getElementById('toast');el.textContent=m;el.className='toast show'+(t?' '+t:'');setTimeout(()=>el.classList.remove('show'),3000)};
+let curLoc=null,selEnts=[],photos=[];
+
+// AUTH
+const A={
+pin:'',
+storedPin:null,
+init(){
+this.storedPin=localStorage.getItem(K.PIN);
+const setupEl=document.getElementById('authSetup');
+const loginEl=document.getElementById('authLogin');
+if(this.storedPin){
+setupEl.classList.add('hidden');
+loginEl.classList.remove('hidden');
+}else{
+setupEl.classList.remove('hidden');
+loginEl.classList.add('hidden');
+}
+},
+digit(n){
+if(this.pin.length>=4)return;
+this.pin+=n;
+this.dots();
+if(this.pin.length===4){
+setTimeout(()=>this.verify(),300);
+}
+},
+del(){this.pin=this.pin.slice(0,-1);this.dots()},
+dots(){
+for(let i=0;i<4;i++){
+const d=document.getElementById('d'+i);
+if(d){
+d.classList.remove('filled','err');
+if(i<this.pin.length)d.classList.add('filled');
+}
+}
+},
+verify(){
+const stored=localStorage.getItem(K.PIN);
+if(this.pin===stored){
+this.login();
+}else{
+document.querySelectorAll('.pin-dot').forEach(d=>d.classList.add('err'));
+if(navigator.vibrate)navigator.vibrate(200);
+toast('Onjuiste PIN','err');
+setTimeout(()=>{this.pin='';this.dots()},600);
+}
+},
+setup(){
+const n=document.getElementById('setupName').value.trim();
+const p1=document.getElementById('setupPin').value;
+const p2=document.getElementById('setupPin2').value;
+if(!n){toast('Voer je naam in','err');return}
+if(!/^\d{4}$/.test(p1)){toast('PIN moet 4 cijfers zijn','err');return}
+if(p1!==p2){toast('PINs komen niet overeen','err');return}
+try{
+localStorage.setItem(K.PIN,p1);
+localStorage.setItem(K.USER,JSON.stringify({name:n}));
+this.storedPin=p1;
+toast('Account aangemaakt!','ok');
+this.login();
+}catch(e){
+toast('Opslaan mislukt: '+e.message,'err');
+}
+},
+login(){
+document.getElementById('auth').style.display='none';
+document.getElementById('app').classList.add('active');
+initApp();
+},
+logout(){
+if(confirm('Uitloggen?')){
+document.getElementById('app').classList.remove('active');
+document.getElementById('auth').style.display='flex';
+this.pin='';
+this.dots();
+}
+},
+reset(){
+if(confirm('Account resetten? Dit wist je PIN.')){
+localStorage.removeItem(K.PIN);
+localStorage.removeItem(K.USER);
+location.reload();
+}
+},
+changePin(){
+const p=prompt('Nieuwe 4-cijferige PIN:');
+if(p&&/^\d{4}$/.test(p)){
+localStorage.setItem(K.PIN,p);
+this.storedPin=p;
+toast('PIN gewijzigd','ok');
+hideSettings();
+}else if(p!==null){
+toast('PIN moet 4 cijfers zijn','err');
+}
+}
+};
+
+// VOICE
+const Voice={
+rec:null,active:false,
+init(){
+if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){document.getElementById('voiceBtn').style.display='none';return}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+this.rec=new SR();
+this.rec.lang='nl-NL';
+this.rec.continuous=true;
+this.rec.interimResults=true;
+this.rec.onresult=e=>{
+let final='',interim='';
+for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript}
+const ta=document.getElementById('wBeschr');
+if(final){ta.value=ta.value+(ta.value?' ':'')+final}
+};
+this.rec.onerror=e=>{console.log('Speech error',e);this.stop()};
+this.rec.onend=()=>{if(this.active)this.rec.start()};
+},
+toggle(){if(this.active)this.stop();else this.start()},
+start(){
+if(!this.rec){toast('Spraak niet ondersteund','err');return}
+this.active=true;
+document.getElementById('voiceBtn').classList.add('recording');
+document.getElementById('voiceBtn').innerHTML='<i class="fas fa-stop"></i>';
+this.rec.start();
+toast('Spreek nu...','ok');
+},
+stop(){
+this.active=false;
+document.getElementById('voiceBtn').classList.remove('recording');
+document.getElementById('voiceBtn').innerHTML='<i class="fas fa-microphone"></i>';
+if(this.rec)try{this.rec.stop()}catch(e){}
+}
+};
+
+// LOCATION
+function initLoc(){
+if(!navigator.geolocation){updLoc(null,'Niet beschikbaar');return}
+navigator.geolocation.watchPosition(p=>{
+curLoc={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,ts:new Date().toISOString()};
+updLoc(curLoc);
+},e=>updLoc(null,e.code===1?'Toegang geweigerd':'Fout'),{enableHighAccuracy:true,timeout:30000});
+}
+function updLoc(loc,err){
+const box=document.getElementById('locBox');
+if(err)box.innerHTML=`<div class="ic fail"><i class="fas fa-exclamation-triangle"></i></div><div><div class="coords">${esc(err)}</div><div class="acc">Tik 📍 om opnieuw te proberen</div></div>`;
+else if(loc)box.innerHTML=`<div class="ic ok"><i class="fas fa-map-marker-alt"></i></div><div><div class="coords">${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}</div><div class="acc">±${Math.round(loc.acc)}m</div></div>`;
+}
+function refreshLoc(){
+document.getElementById('locBox').innerHTML='<div class="ic wait"><i class="fas fa-spinner fa-spin"></i></div><div><div class="coords">Ophalen...</div></div>';
+navigator.geolocation.getCurrentPosition(p=>{curLoc={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,ts:new Date().toISOString()};updLoc(curLoc)},e=>updLoc(null,'Fout'),{enableHighAccuracy:true,timeout:15000});
+}
+
+// NAV
+function nav(pg){
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+document.getElementById('pg-'+pg).classList.add('active');
+const ni=document.querySelector(`.nav-item[onclick="nav('${pg}')"]`);if(ni)ni.classList.add('active');
+if(pg==='nieuw'){W.reset();refreshLoc()}
+if(pg==='export')Exp.stats();
+document.querySelector('.main').scrollTop=0;
+}
+
+// WAARNEMING
+const W={
+reset(){document.getElementById('wThema').value='';document.getElementById('wBeschr').value='';selEnts=[];photos=[];this.updEnts();this.updPhotos()},
+updEnts(){
+const c=document.getElementById('selEnts');
+if(!selEnts.length){c.innerHTML='<span style="color:var(--gray);font-size:.85rem">Geen geselecteerd</span>';return}
+const icons={person:'fa-user',vehicle:'fa-car',address:'fa-map-marker-alt'};
+c.innerHTML=selEnts.map(e=>`<div class="chip sel"><i class="fas ${icons[e.type]}"></i>${esc(e.label)}<i class="fas fa-times x" onclick="W.remEnt('${e.id}')"></i></div>`).join('');
+},
+addEnt(e){if(!selEnts.find(x=>x.id===e.id)){selEnts.push(e);this.updEnts()}},
+remEnt(id){selEnts=selEnts.filter(e=>e.id!==id);this.updEnts()},
+updPhotos(){
+const g=document.getElementById('photoGrid');
+g.innerHTML=photos.map((p,i)=>`<div class="pthumb"><img src="${p.data}"><button class="del" onclick="W.remPhoto(${i})"><i class="fas fa-times"></i></button></div>`).join('');
+},
+remPhoto(i){photos.splice(i,1);this.updPhotos()},
+save(){
+const thema=document.getElementById('wThema').value;
+const beschr=document.getElementById('wBeschr').value.trim();
+if(!thema){toast('Selecteer thema','err');return}
+if(!beschr){toast('Voer beschrijving in','err');return}
+if(!selEnts.length){toast('Voeg entiteit toe','err');return}
+if(!curLoc){toast('Wacht op locatie','err');return}
+const user=JSON.parse(localStorage.getItem(K.USER)||'{}');
+const w={id:genId(),datum:new Date().toISOString(),medewerker:user.name||'Onbekend',thema,beschrijving:beschr,locatie:{...curLoc},entiteiten:selEnts.map(e=>({id:e.id,type:e.type,label:e.label})),fotos:photos.length};
+const list=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+list.unshift(w);
+localStorage.setItem(K.WAAR,JSON.stringify(list));
+toast('Opgeslagen!','ok');
+Voice.stop();
+this.reset();
+updStats();
+this.updList();
+this.updRecent();
+nav('dash');
+},
+updList(){
+const list=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+const c=document.getElementById('waarList');
+if(!list.length){c.innerHTML='<div class="empty"><i class="fas fa-eye-slash"></i><p>Geen waarnemingen</p></div>';return}
+c.innerHTML=list.map(w=>this.renderItem(w)).join('');
+},
+updRecent(){
+const list=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+const c=document.getElementById('recent');
+if(!list.length){c.innerHTML='<div class="empty"><i class="fas fa-eye-slash"></i><p>Nog geen waarnemingen</p></div>';return}
+c.innerHTML=list.slice(0,5).map(w=>this.renderItem(w)).join('');
+},
+renderItem(w){
+const icons={'witwassen':'💰','drugshandel':'💊','hennepteelt':'🌿','drugslabs':'🧪','malafide':'🏢','mensenhandel':'👥','vastgoed':'🏠','gokken':'🎰','wapens':'🔫','overig':'📋'};
+return`<div class="item thema-${w.thema}" onclick="W.detail('${w.id}')"><div class="iw purple"><span style="font-size:1.3rem">${icons[w.thema]||'📋'}</span></div><div class="cnt"><div class="ttl">${esc(w.thema)}</div><div class="meta"><i class="fas fa-clock"></i> ${fmtDate(w.datum)}<br><i class="fas fa-map-marker-alt"></i> ${w.locatie.lat.toFixed(4)}, ${w.locatie.lng.toFixed(4)}${w.fotos?' • 📷'+w.fotos:''}</div></div><div class="acts"><button class="abtn del" onclick="event.stopPropagation();W.del('${w.id}')"><i class="fas fa-trash"></i></button></div></div>`;
+},
+detail(id){
+const list=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+const w=list.find(x=>x.id===id);if(!w)return;
+document.getElementById('detTitle').textContent='Waarneming';
+document.getElementById('detBody').innerHTML=`
+<p><strong>Thema:</strong> ${esc(w.thema)}</p>
+<p><strong>Datum:</strong> ${fmtDate(w.datum)}</p>
+<p><strong>Medewerker:</strong> ${esc(w.medewerker)}</p>
+<p><strong>Locatie:</strong> ${w.locatie.lat.toFixed(6)}, ${w.locatie.lng.toFixed(6)} (±${Math.round(w.locatie.acc)}m)</p>
+<div class="section">Beschrijving</div>
+<p>${esc(w.beschrijving)}</p>
+<div class="section">Entiteiten (${w.entiteiten.length})</div>
+<div class="chips">${w.entiteiten.map(e=>`<div class="chip"><i class="fas fa-${e.type==='person'?'user':e.type==='vehicle'?'car':'map-marker-alt'}"></i>${esc(e.label)}</div>`).join('')}</div>
+${w.fotos?`<div class="section">Foto's (${w.fotos})</div><p style="color:var(--gray);font-size:.85rem">Foto's blijven lokaal op het toestel.</p>`:''}
+`;
+document.getElementById('detModal').classList.add('show');
+},
+del(id){
+if(!confirm('Verwijderen?'))return;
+let list=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+list=list.filter(w=>w.id!==id);
+localStorage.setItem(K.WAAR,JSON.stringify(list));
+updStats();this.updList();this.updRecent();
+toast('Verwijderd','ok');
+},
+filter(q){
+const list=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+const c=document.getElementById('waarList');
+const ql=q.toLowerCase();
+const f=list.filter(w=>w.thema.includes(ql)||w.beschrijving.toLowerCase().includes(ql)||w.entiteiten.some(e=>e.label.toLowerCase().includes(ql)));
+if(!f.length){c.innerHTML='<div class="empty"><i class="fas fa-search"></i><p>Geen resultaten</p></div>';return}
+c.innerHTML=f.map(w=>this.renderItem(w)).join('');
+}
+};
+
+// PHOTO
+const Photo={
+add(files){
+if(photos.length+files.length>10){toast('Max 10 foto\'s','err');return}
+Array.from(files).forEach(f=>{
+if(!f.type.startsWith('image/'))return;
+const r=new FileReader();
+r.onload=e=>{photos.push({data:e.target.result});W.updPhotos()};
+r.readAsDataURL(f);
+});
+}
+};
+
+// ENTITY DB
+const DB={
+add(type,data){
+const key=type==='person'?K.PERS:type==='vehicle'?K.VEHI:K.ADDR;
+const list=JSON.parse(localStorage.getItem(key)||'[]');
+const ent={id:genId(),type,...data,created:new Date().toISOString()};
+list.push(ent);
+localStorage.setItem(key,JSON.stringify(list));
+return ent;
+},
+getAll(){
+return{
+persons:JSON.parse(localStorage.getItem(K.PERS)||'[]'),
+vehicles:JSON.parse(localStorage.getItem(K.VEHI)||'[]'),
+addresses:JSON.parse(localStorage.getItem(K.ADDR)||'[]')
+};
+},
+updLists(filter=''){
+const{persons,vehicles,addresses}=this.getAll();
+const fl=filter.toLowerCase();
+document.getElementById('cP').textContent=persons.length;
+document.getElementById('cV').textContent=vehicles.length;
+document.getElementById('cA').textContent=addresses.length;
+const fp=persons.filter(p=>!fl||p.naam.toLowerCase().includes(fl));
+const fv=vehicles.filter(v=>!fl||v.kenteken.toLowerCase().includes(fl)||(v.merk||'').toLowerCase().includes(fl));
+const fa=addresses.filter(a=>!fl||(a.straat||'').toLowerCase().includes(fl)||(a.plaats||'').toLowerCase().includes(fl));
+document.getElementById('listP').innerHTML=fp.length?fp.map(p=>`<div class="item"><div class="iw green"><i class="fas fa-user"></i></div><div class="cnt"><div class="ttl">${esc(p.naam)}</div><div class="meta">${esc(p.rol)||'Geen rol'}</div></div></div>`).join(''):'<div class="empty"><p>Geen personen</p></div>';
+document.getElementById('listV').innerHTML=fv.length?fv.map(v=>`<div class="item"><div class="iw blue"><i class="fas fa-car"></i></div><div class="cnt"><div class="ttl">${esc(v.kenteken)}</div><div class="meta">${[v.merk,v.type,v.kleur].filter(x=>x).join(' • ')||'Geen details'}</div></div></div>`).join(''):'<div class="empty"><p>Geen voertuigen</p></div>';
+document.getElementById('listA').innerHTML=fa.length?fa.map(a=>`<div class="item"><div class="iw orange"><i class="fas fa-map-marker-alt"></i></div><div class="cnt"><div class="ttl">${esc(a.straat)} ${esc(a.huisnummer)}</div><div class="meta">${[a.postcode,a.plaats].filter(x=>x).join(' ')||'Geen details'}</div></div></div>`).join(''):'<div class="empty"><p>Geen adressen</p></div>';
+},
+filter(q){this.updLists(q)}
+};
+
+// ENTITY MODAL
+const Ent={
+type:null,
+show(type){
+this.type=type;
+document.getElementById('entTitle').textContent=type==='person'?'Persoon':type==='vehicle'?'Voertuig':'Adres';
+document.querySelectorAll('.entity-form').forEach(f=>f.classList.add('hidden'));
+document.getElementById('form'+type.charAt(0).toUpperCase()+type.slice(1)).classList.remove('hidden');
+document.querySelectorAll('#entModal .tab').forEach((t,i)=>{t.classList.toggle('active',i===0)});
+document.querySelectorAll('#entModal .tab-content').forEach((c,i)=>{c.classList.toggle('active',i===0)});
+this.search('');
+document.getElementById('entModal').classList.add('show');
+},
+hide(){document.getElementById('entModal').classList.remove('show')},
+tab(t){
+document.querySelectorAll('#entModal .tab').forEach(tb=>tb.classList.toggle('active',tb.textContent.toLowerCase().includes(t==='existing'?'bestaand':'nieuw')));
+document.getElementById('tabExisting').classList.toggle('active',t==='existing');
+document.getElementById('tabNew').classList.toggle('active',t==='new');
+},
+search(q){
+const{persons,vehicles,addresses}=DB.getAll();
+let list=this.type==='person'?persons:this.type==='vehicle'?vehicles:addresses;
+const ql=q.toLowerCase();
+if(ql)list=list.filter(e=>{
+if(this.type==='person')return e.naam.toLowerCase().includes(ql);
+if(this.type==='vehicle')return e.kenteken.toLowerCase().includes(ql);
+return(e.straat||'').toLowerCase().includes(ql);
+});
+const c=document.getElementById('entResults');
+if(!list.length){c.innerHTML='<div class="empty"><p>Geen gevonden</p></div>';return}
+const icons={person:'fa-user',vehicle:'fa-car',address:'fa-map-marker-alt'};
+const colors={person:'green',vehicle:'blue',address:'orange'};
+c.innerHTML=list.map(e=>{
+const label=this.type==='person'?e.naam:this.type==='vehicle'?e.kenteken:`${e.straat} ${e.huisnummer||''}`;
+const already=selEnts.find(x=>x.id===e.id);
+return`<div class="item" style="cursor:pointer;${already?'opacity:.5':'\"'}" onclick="${already?'':`Ent.select('${e.id}','${this.type}','${esc(label.replace(/'/g,"\\'"))}')`}"><div class="iw ${colors[this.type]}"><i class="fas ${icons[this.type]}"></i></div><div class="cnt"><div class="ttl">${esc(label)}</div></div>${already?'<span style="color:var(--success)"><i class="fas fa-check"></i></span>':''}</div>`;
+}).join('');
+},
+select(id,type,label){
+W.addEnt({id,type,label});
+this.hide();
+toast('Toegevoegd','ok');
+},
+saveNew(){
+let ent,label;
+if(this.type==='person'){
+const naam=document.getElementById('pNaam').value.trim();
+if(!naam){toast('Voer naam in','err');return}
+ent=DB.add('person',{naam,geboortedatum:document.getElementById('pGeb').value,rol:document.getElementById('pRol').value.trim(),opmerkingen:document.getElementById('pOpm').value.trim()});
+label=naam;
+document.getElementById('pNaam').value='';document.getElementById('pGeb').value='';document.getElementById('pRol').value='';document.getElementById('pOpm').value='';
+}else if(this.type==='vehicle'){
+const kent=document.getElementById('vKent').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+if(!kent){toast('Voer kenteken in','err');return}
+ent=DB.add('vehicle',{kenteken:kent,merk:document.getElementById('vMerk').value.trim(),type:document.getElementById('vType').value.trim(),kleur:document.getElementById('vKleur').value.trim()});
+label=kent;
+document.getElementById('vKent').value='';document.getElementById('vMerk').value='';document.getElementById('vType').value='';document.getElementById('vKleur').value='';
+}else{
+const straat=document.getElementById('aStraat').value.trim();
+if(!straat){toast('Voer straat in','err');return}
+ent=DB.add('address',{straat,huisnummer:document.getElementById('aHnr').value.trim(),postcode:document.getElementById('aPC').value.trim(),plaats:document.getElementById('aPlaats').value.trim()});
+label=straat+' '+(document.getElementById('aHnr').value.trim()||'');
+document.getElementById('aStraat').value='';document.getElementById('aHnr').value='';document.getElementById('aPC').value='';document.getElementById('aPlaats').value='';
+}
+W.addEnt({id:ent.id,type:this.type,label:label.trim()});
+updStats();
+DB.updLists();
+this.hide();
+toast('Aangemaakt & toegevoegd','ok');
+}
+};
+
+// EXPORT
+const Exp={
+stats(){
+const waar=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+const{persons,vehicles,addresses}=DB.getAll();
+document.getElementById('exW').textContent=waar.length;
+document.getElementById('exE').textContent=persons.length+vehicles.length+addresses.length;
+},
+build(){
+const user=JSON.parse(localStorage.getItem(K.USER)||'{}');
+const waar=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+const{persons,vehicles,addresses}=DB.getAll();
+return{
+type:'medewerker_export',
+version:'1.0',
+generated:new Date().toISOString(),
+medewerker:user.name||'Onbekend',
+notes:document.getElementById('exNotes').value.trim(),
+waarnemingen:waar,
+entities:{persons,vehicles,addresses}
+};
+},
+preview(){
+const data=this.build();
+document.getElementById('prevData').textContent=JSON.stringify(data,null,2);
+document.getElementById('prevBox').classList.remove('hidden');
+},
+download(){
+const data=this.build();
+if(!data.waarnemingen.length&&!data.entities.persons.length&&!data.entities.vehicles.length){toast('Geen data om te exporteren','err');return}
+const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+const a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download=`APStraat_Export_${new Date().toISOString().split('T')[0]}_${data.medewerker.replace(/\s/g,'_')}.json`;
+a.click();
+toast('Export gedownload','ok');
+}
+};
+
+// SETTINGS
+function showSettings(){document.getElementById('setName').value=JSON.parse(localStorage.getItem(K.USER)||'{}').name||'';document.getElementById('setModal').classList.add('show')}
+function hideSettings(){document.getElementById('setModal').classList.remove('show')}
+function saveSettings(){
+const n=document.getElementById('setName').value.trim();
+if(n){localStorage.setItem(K.USER,JSON.stringify({name:n}));document.getElementById('userName').textContent=n;toast('Opgeslagen','ok');hideSettings()}
+}
+function hideDet(){document.getElementById('detModal').classList.remove('show')}
+function updStats(){
+const waar=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
+const{persons,vehicles,addresses}=DB.getAll();
+document.getElementById('sW').textContent=waar.length;
+document.getElementById('sP').textContent=persons.length;
+document.getElementById('sV').textContent=vehicles.length;
+document.getElementById('sA').textContent=addresses.length;
+}
+function clearAll(){
+if(!confirm('ALLE data wissen?'))return;
+if(!confirm('Dit kan niet ongedaan worden!'))return;
+localStorage.removeItem(K.WAAR);localStorage.removeItem(K.PERS);localStorage.removeItem(K.VEHI);localStorage.removeItem(K.ADDR);
+updStats();W.updList();W.updRecent();DB.updLists();
+toast('Alles gewist','ok');
+}
+function initApp(){
+const user=JSON.parse(localStorage.getItem(K.USER)||'{}');
+document.getElementById('userName').textContent=user.name||'AP Straat';
+Voice.init();
+initLoc();
+updStats();
+W.updList();
+W.updRecent();
+DB.updLists();
+}
+document.addEventListener('DOMContentLoaded',()=>A.init());
+
+// === PWA SETUP ===
+let deferredPrompt = null;
+
+// Service Worker registreren
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then((reg) => {
+        console.log('Service Worker geregistreerd:', reg.scope);
+      })
+      .catch((err) => {
+        console.log('Service Worker fout:', err);
+      });
+  });
+}
+
+// Install prompt opvangen
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Toon install banner als niet al geïnstalleerd
+  if (!window.matchMedia('(display-mode: standalone)').matches) {
+    setTimeout(() => {
+      document.getElementById('installBanner').classList.add('show');
+    }, 3000);
+  }
+});
+
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then((choice) => {
+    if (choice.outcome === 'accepted') {
+      console.log('App geïnstalleerd');
+      toast('App geïnstalleerd!', 'ok');
+    }
+    deferredPrompt = null;
+    hideInstall();
+  });
+}
+
+function hideInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+}
+
+// Online/Offline status
+function updateOnlineStatus() {
+  const banner = document.getElementById('offlineBanner');
+  const status = document.getElementById('pwaStatus');
+  if (navigator.onLine) {
+    banner.classList.remove('show');
+    if (status) {
+      status.textContent = '● Online';
+      status.classList.remove('offline');
+    }
+  } else {
+    banner.classList.add('show');
+    if (status) {
+      status.textContent = '● Offline';
+      status.classList.add('offline');
+    }
+  }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+window.addEventListener('load', updateOnlineStatus);
+</script>
+</body>
+</html>
