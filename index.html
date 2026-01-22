@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyst Pro - Knowledge by Data</title>
+    <meta name="description" content="Offline analyse tools voor ondermijningsaanpak">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+    <style>
+        :root {
+            --dark: #1a1a2e;
+            --accent: #9b59b6;
+            --accent-light: #a855f7;
+            --blue: #1a56db;
+            --gray: #6b7280;
+            --light: #f9fafb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: var(--accent);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 2.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .apps {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .app-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 24px;
+            text-decoration: none;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.2s;
+        }
+
+        .app-card:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .app-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .app-icon.purple {
+            background: rgba(155, 89, 182, 0.2);
+        }
+
+        .app-icon.blue {
+            background: rgba(26, 86, 219, 0.2);
+        }
+
+        .app-info {
+            text-align: left;
+            flex: 1;
+        }
+
+        .app-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .app-desc {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .app-arrow {
+            color: rgba(255,255,255,0.3);
+            font-size: 1.2rem;
+        }
+
+        .app-card:hover .app-arrow {
+            color: var(--accent);
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .feature-icon {
+            color: #10b981;
+        }
+
+        footer {
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        footer a {
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        footer a:hover {
+            color: var(--accent);
+        }
+
+        @media (min-width: 500px) {
+            .apps {
+                flex-direction: row;
+            }
+
+            .app-card {
+                flex: 1;
+                flex-direction: column;
+                text-align: center;
+                padding: 32px 24px;
+            }
+
+            .app-info {
+                text-align: center;
+            }
+
+            .app-arrow {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🛡️</div>
+        <h1>Analyst Pro</h1>
+        <p class="subtitle">Offline analyse tools voor ondermijningsaanpak</p>
+
+        <div class="apps">
+            <a href="./ap-straat-pwa/" class="app-card">
+                <div class="app-icon purple">👁️</div>
+                <div class="app-info">
+                    <div class="app-name">AP Straat</div>
+                    <div class="app-desc">Medewerker module voor waarnemingen op straat</div>
+                </div>
+                <div class="app-arrow">→</div>
+            </a>
+
+            <a href="./pwa-meldformulier/" class="app-card">
+                <div class="app-icon blue">📋</div>
+                <div class="app-info">
+                    <div class="app-name">Meldpunt</div>
+                    <div class="app-desc">Burgers melden verdachte situaties</div>
+                </div>
+                <div class="app-arrow">→</div>
+            </a>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <span class="feature-icon">✓</span>
+                <span>Werkt offline</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">✓</span>
+                <span>Zero-cloud</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">✓</span>
+                <span>Data blijft lokaal</span>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <a href="https://www.knowledgebydata.nl" target="_blank">© 2025 Knowledge by Data</a>
+    </footer>
+</body>
+</html>
