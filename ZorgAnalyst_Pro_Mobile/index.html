@@ -679,9 +679,275 @@ body {
 .hidden {
     display: none !important;
 }
+
+/* === LOGIN SCHERM === */
+.auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--dark), #16213e);
+    padding: 20px;
+}
+
+.auth-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 40px 30px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+}
+
+.auth-logo {
+    width: 80px;
+    height: 80px;
+    background: var(--accent);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 2rem;
+    color: #fff;
+}
+
+.auth-box h1 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    color: var(--dark);
+}
+
+.auth-box .sub {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 30px;
+}
+
+.pin-dots {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.pin-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    transition: 0.2s;
+}
+
+.pin-dot.filled {
+    background: var(--accent);
+    transform: scale(1.2);
+}
+
+.pin-dot.err {
+    background: var(--danger);
+    animation: authShake 0.3s;
+}
+
+@keyframes authShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    max-width: 260px;
+    margin: 0 auto;
+}
+
+.nkey {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: 600;
+    background: var(--light);
+    cursor: pointer;
+    color: var(--dark);
+}
+
+.nkey:active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.nkey.empty {
+    background: transparent;
+}
+
+.setup-form {
+    text-align: left;
+}
+
+.setup-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.setup-form input {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+.setup-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.setup-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.setup-btn:active {
+    transform: scale(0.98);
+}
+
+.welcome-msg {
+    font-size: 0.95rem;
+    color: var(--gray);
+    margin-bottom: 20px;
+}
+
+.logout-link {
+    margin-top: 20px;
+    font-size: 0.85rem;
+    color: var(--gray);
+    cursor: pointer;
+}
+
+.logout-link:hover {
+    color: var(--danger);
+}
+
+/* === SPEECH TO TEXT === */
+.voice-input-wrapper {
+    position: relative;
+}
+
+.voice-input-wrapper textarea {
+    padding-right: 55px;
+}
+
+.voice-btn {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--light);
+    color: var(--accent);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.voice-btn:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+.voice-btn.recording {
+    background: var(--danger);
+    color: #fff;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.voice-status {
+    font-size: 0.75rem;
+    color: var(--gray);
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.voice-status.recording {
+    color: var(--danger);
+}
 </style>
 </head>
 <body>
+
+<!-- === LOGIN SCHERM === -->
+<div class="auth-screen" id="authScreen">
+    <div class="auth-box">
+        <div class="auth-logo">🏥</div>
+        <h1>ZorgAnalyst Pro Mobile</h1>
+        
+        <!-- Setup formulier (eerste keer) -->
+        <div id="setupForm">
+            <p class="sub">Maak een account aan om te beginnen</p>
+            <div class="setup-form">
+                <label for="setupNaam">Uw naam</label>
+                <input type="text" id="setupNaam" placeholder="Vul uw naam in" autocomplete="name">
+                <label for="setupPin">Kies een pincode (4 cijfers)</label>
+                <input type="password" id="setupPin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                <label for="setupPinConfirm">Herhaal pincode</label>
+                <input type="password" id="setupPinConfirm" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                <button type="button" class="setup-btn" onclick="Auth.setupAccount()">Account aanmaken</button>
+            </div>
+        </div>
+
+        <!-- PIN invoer (terugkerende gebruiker) -->
+        <div id="pinForm" class="hidden">
+            <p class="welcome-msg">Welkom terug, <span id="welcomeNaam"></span></p>
+            <p class="sub">Voer uw pincode in</p>
+            <div class="pin-dots" id="pinDots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            <div class="numpad">
+                <button type="button" class="nkey" onclick="Auth.pinKey('1')">1</button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('2')">2</button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('3')">3</button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('4')">4</button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('5')">5</button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('6')">6</button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('7')">7</button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('8')">8</button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('9')">9</button>
+                <button type="button" class="nkey empty"></button>
+                <button type="button" class="nkey" onclick="Auth.pinKey('0')">0</button>
+                <button type="button" class="nkey" onclick="Auth.pinDelete()">⌫</button>
+            </div>
+            <p class="logout-link" onclick="Auth.resetAccount()">Andere gebruiker?</p>
+        </div>
+    </div>
+</div>
+
+<!-- === HOOFDAPP (verborgen tot ingelogd) === -->
+<div id="mainApp" class="hidden">
 
 <!-- Security Bar -->
 <div class="security-bar">
@@ -886,7 +1152,13 @@ body {
 
             <div class="form-group">
                 <label>Mutatie / Omschrijving</label>
-                <textarea id="melding-omschrijving" placeholder="Beschrijf hier de situatie, waarnemingen en relevante details..."></textarea>
+                <div class="voice-input-wrapper">
+                    <textarea id="melding-omschrijving" placeholder="Beschrijf hier de situatie, waarnemingen en relevante details..."></textarea>
+                    <button type="button" class="voice-btn" onclick="SpeechInput.toggle('melding-omschrijving', this)" title="Inspreken">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+                <div class="voice-status">🎤 Tik om in te spreken</div>
             </div>
 
         </div>
@@ -932,7 +1204,13 @@ body {
 
             <div class="form-group">
                 <label>Opmerkingen</label>
-                <textarea id="onderneming-opmerkingen" placeholder="Aanvullende informatie..."></textarea>
+                <div class="voice-input-wrapper">
+                    <textarea id="onderneming-opmerkingen" placeholder="Aanvullende informatie..."></textarea>
+                    <button type="button" class="voice-btn" onclick="SpeechInput.toggle('onderneming-opmerkingen', this)" title="Inspreken">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+                <div class="voice-status">🎤 Tik om in te spreken</div>
             </div>
 
         </div>
@@ -944,6 +1222,7 @@ body {
         </div>
     </div>
 </div>
+</div> <!-- /mainApp -->
 
 <!-- Toast -->
 <div id="toast" class="toast"></div>
@@ -1522,6 +1801,211 @@ if ('serviceWorker' in navigator) {
 // Console branding
 console.log('%c ZorgAnalyst Pro Mobile v1.0.0', 'font-size:16px;font-weight:bold;color:#0d6efd');
 console.log('%c © 2025 Knowledge by Data', 'font-size:12px;color:#20c997');
+
+// ============================================================================
+// AUTHENTICATION SYSTEM
+// ============================================================================
+const Auth = {
+    STORAGE_KEY: 'zorganalyst_mobile_user',
+    enteredPin: '',
+
+    init() {
+        const userData = localStorage.getItem(this.STORAGE_KEY);
+        if (userData) {
+            const user = JSON.parse(userData);
+            document.getElementById('welcomeNaam').textContent = user.naam;
+            document.getElementById('setupForm').classList.add('hidden');
+            document.getElementById('pinForm').classList.remove('hidden');
+        } else {
+            document.getElementById('setupForm').classList.remove('hidden');
+            document.getElementById('pinForm').classList.add('hidden');
+        }
+    },
+
+    setupAccount() {
+        const naam = document.getElementById('setupNaam').value.trim();
+        const pin = document.getElementById('setupPin').value;
+        const pinConfirm = document.getElementById('setupPinConfirm').value;
+
+        if (!naam) {
+            alert('Vul uw naam in');
+            return;
+        }
+        if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+            alert('Pincode moet 4 cijfers zijn');
+            return;
+        }
+        if (pin !== pinConfirm) {
+            alert('Pincodes komen niet overeen');
+            return;
+        }
+
+        const userData = { naam: naam, pin: pin };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(userData));
+        this.showApp();
+    },
+
+    pinKey(num) {
+        if (this.enteredPin.length >= 4) return;
+        this.enteredPin += num;
+        this.updatePinDots();
+
+        if (this.enteredPin.length === 4) {
+            setTimeout(() => this.checkPin(), 200);
+        }
+    },
+
+    pinDelete() {
+        this.enteredPin = this.enteredPin.slice(0, -1);
+        this.updatePinDots();
+    },
+
+    updatePinDots() {
+        const dots = document.querySelectorAll('#pinDots .pin-dot');
+        dots.forEach((dot, i) => {
+            dot.classList.toggle('filled', i < this.enteredPin.length);
+            dot.classList.remove('err');
+        });
+    },
+
+    checkPin() {
+        const userData = JSON.parse(localStorage.getItem(this.STORAGE_KEY));
+        if (this.enteredPin === userData.pin) {
+            this.showApp();
+        } else {
+            const dots = document.querySelectorAll('#pinDots .pin-dot');
+            dots.forEach(dot => dot.classList.add('err'));
+            setTimeout(() => {
+                this.enteredPin = '';
+                this.updatePinDots();
+            }, 500);
+        }
+    },
+
+    showApp() {
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+    },
+
+    resetAccount() {
+        if (confirm('Weet u zeker dat u wilt uitloggen? U kunt een nieuw account aanmaken.')) {
+            localStorage.removeItem(this.STORAGE_KEY);
+            this.enteredPin = '';
+            document.getElementById('setupNaam').value = '';
+            document.getElementById('setupPin').value = '';
+            document.getElementById('setupPinConfirm').value = '';
+            this.init();
+        }
+    }
+};
+
+// ============================================================================
+// SPEECH TO TEXT
+// ============================================================================
+const SpeechInput = {
+    recognition: null,
+    isRecording: false,
+    currentTarget: null,
+
+    init() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.recognition = new SpeechRecognition();
+            this.recognition.continuous = true;
+            this.recognition.interimResults = true;
+            this.recognition.lang = 'nl-NL';
+
+            this.recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript = transcript;
+                    }
+                }
+
+                if (this.currentTarget && finalTranscript) {
+                    const currentValue = this.currentTarget.value;
+                    this.currentTarget.value = currentValue + (currentValue ? ' ' : '') + finalTranscript;
+                }
+            };
+
+            this.recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                this.stop();
+            };
+
+            this.recognition.onend = () => {
+                if (this.isRecording) {
+                    // Herstart als we nog aan het opnemen zijn
+                    this.recognition.start();
+                }
+            };
+
+            return true;
+        }
+        return false;
+    },
+
+    toggle(targetId, buttonElement) {
+        if (!this.recognition) {
+            if (!this.init()) {
+                alert('Spraakherkenning wordt niet ondersteund in deze browser.');
+                return;
+            }
+        }
+
+        if (this.isRecording) {
+            this.stop();
+        } else {
+            this.start(targetId, buttonElement);
+        }
+    },
+
+    start(targetId, buttonElement) {
+        this.currentTarget = document.getElementById(targetId);
+        this.isRecording = true;
+        buttonElement.classList.add('recording');
+        
+        const statusEl = buttonElement.parentElement.querySelector('.voice-status');
+        if (statusEl) {
+            statusEl.textContent = '🔴 Opnemen... Spreek nu';
+            statusEl.classList.add('recording');
+        }
+
+        try {
+            this.recognition.start();
+        } catch(e) {
+            // Al gestart
+        }
+    },
+
+    stop() {
+        this.isRecording = false;
+        if (this.recognition) {
+            this.recognition.stop();
+        }
+        
+        document.querySelectorAll('.voice-btn.recording').forEach(btn => {
+            btn.classList.remove('recording');
+        });
+        
+        document.querySelectorAll('.voice-status').forEach(el => {
+            el.textContent = '🎤 Tik om in te spreken';
+            el.classList.remove('recording');
+        });
+    }
+};
+
+// Initialize auth on load
+document.addEventListener('DOMContentLoaded', () => {
+    Auth.init();
+    SpeechInput.init();
+});
 </script>
 </body>
 </html>

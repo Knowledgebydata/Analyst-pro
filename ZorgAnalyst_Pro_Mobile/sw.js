@@ -11,7 +11,7 @@
 
 'use strict';
 
-const CACHE_NAME = 'zorganalyst-pwa-v1.0.0';
+const CACHE_NAME = 'zorganalyst-pwa-v1.1.0';
 const OFFLINE_URL = './index.html';
 
 // Bestanden om te cachen bij installatie

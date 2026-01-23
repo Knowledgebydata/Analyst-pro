@@ -38,6 +38,7 @@
             --border: #e5e7eb;
             --succes: #059669;
             --fout: #dc2626;
+            --dark: #1a1a2e;
         }
 
         * {
@@ -54,6 +55,171 @@
             min-height: 100vh;
             -webkit-tap-highlight-color: transparent;
         }
+
+        .hidden { display: none !important; }
+
+        /* === LOGIN SCHERM === */
+        .auth-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--dark), #16213e);
+            padding: 20px;
+        }
+
+        .auth-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .auth-logo {
+            width: 80px;
+            height: 80px;
+            background: var(--gemeente-primair);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem;
+            color: #fff;
+        }
+
+        .auth-box h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            color: var(--tekst-primair);
+        }
+
+        .auth-box .sub {
+            color: var(--tekst-secundair);
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+
+        .pin-dots {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .pin-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            transition: 0.2s;
+        }
+
+        .pin-dot.filled {
+            background: var(--gemeente-primair);
+            transform: scale(1.2);
+        }
+
+        .pin-dot.err {
+            background: var(--fout);
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            max-width: 260px;
+            margin: 0 auto;
+        }
+
+        .nkey {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: var(--achtergrond);
+            cursor: pointer;
+            color: var(--tekst-primair);
+        }
+
+        .nkey:active {
+            background: var(--gemeente-primair);
+            color: #fff;
+        }
+
+        .nkey.empty {
+            background: transparent;
+        }
+
+        .setup-form {
+            text-align: left;
+        }
+
+        .setup-form label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--tekst-primair);
+        }
+
+        .setup-form input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .setup-form input:focus {
+            outline: none;
+            border-color: var(--gemeente-primair);
+        }
+
+        .setup-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: var(--gemeente-primair);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .setup-btn:active {
+            transform: scale(0.98);
+        }
+
+        .welcome-msg {
+            font-size: 0.95rem;
+            color: var(--tekst-secundair);
+            margin-bottom: 20px;
+        }
+
+        .logout-link {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: var(--tekst-secundair);
+            cursor: pointer;
+        }
+
+        .logout-link:hover {
+            color: var(--fout);
+        }
+
+        /* === EINDE LOGIN SCHERM === */
 
         .container {
             max-width: 700px;
@@ -528,6 +694,57 @@
     </style>
 </head>
 <body>
+    <!-- === LOGIN SCHERM === -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-box">
+            <div class="auth-logo">📋</div>
+            <h1>Meldpunt Ondermijning</h1>
+            
+            <!-- Setup formulier (eerste keer) -->
+            <div id="setupForm">
+                <p class="sub">Maak een account aan om te beginnen</p>
+                <div class="setup-form">
+                    <label for="setupNaam">Uw naam</label>
+                    <input type="text" id="setupNaam" placeholder="Vul uw naam in" autocomplete="name">
+                    <label for="setupPin">Kies een pincode (4 cijfers)</label>
+                    <input type="password" id="setupPin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                    <label for="setupPinConfirm">Herhaal pincode</label>
+                    <input type="password" id="setupPinConfirm" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                    <button type="button" class="setup-btn" onclick="setupAccount()">Account aanmaken</button>
+                </div>
+            </div>
+
+            <!-- PIN invoer (terugkerende gebruiker) -->
+            <div id="pinForm" class="hidden">
+                <p class="welcome-msg">Welkom terug, <span id="welcomeNaam"></span></p>
+                <p class="sub">Voer uw pincode in</p>
+                <div class="pin-dots" id="pinDots">
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                </div>
+                <div class="numpad">
+                    <button type="button" class="nkey" onclick="pinKey('1')">1</button>
+                    <button type="button" class="nkey" onclick="pinKey('2')">2</button>
+                    <button type="button" class="nkey" onclick="pinKey('3')">3</button>
+                    <button type="button" class="nkey" onclick="pinKey('4')">4</button>
+                    <button type="button" class="nkey" onclick="pinKey('5')">5</button>
+                    <button type="button" class="nkey" onclick="pinKey('6')">6</button>
+                    <button type="button" class="nkey" onclick="pinKey('7')">7</button>
+                    <button type="button" class="nkey" onclick="pinKey('8')">8</button>
+                    <button type="button" class="nkey" onclick="pinKey('9')">9</button>
+                    <button type="button" class="nkey empty"></button>
+                    <button type="button" class="nkey" onclick="pinKey('0')">0</button>
+                    <button type="button" class="nkey" onclick="pinDelete()">⌫</button>
+                </div>
+                <p class="logout-link" onclick="resetAccount()">Andere gebruiker?</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- === HOOFDAPP (verborgen tot ingelogd) === -->
+    <div id="mainApp" class="hidden">
     <div class="container">
         <!-- Offline indicator -->
         <div class="offline-banner" id="offlineBanner">
@@ -706,6 +923,7 @@
             Mogelijk gemaakt door <a href="https://www.knowledgebydata.nl" target="_blank">Knowledge by Data</a>
         </footer>
     </div>
+    </div> <!-- /mainApp -->
 
     <script>
         'use strict';
@@ -1110,13 +1328,109 @@
             const body = encodeURIComponent(
                 `Geachte,\n\n` +
                 `Hierbij stuur ik u een melding via het Meldpunt Ondermijning.\n\n` +
-                `Het meldingsbestand is bijgevoegd als JSON-bestand.\n\n` +
+                `Het meldingsbestand is bijgevoegd als PDF-bestand.\n\n` +
                 `Met vriendelijke groet`
             );
             
             const mailtoLink = `mailto:${CONFIG.emailAdres}?subject=${onderwerp}&body=${body}`;
             window.location.href = mailtoLink;
         }
+
+        // === LOGIN SYSTEEM ===
+        let enteredPin = '';
+        const STORAGE_KEY = 'meldpunt_user';
+
+        function checkAuth() {
+            const userData = localStorage.getItem(STORAGE_KEY);
+            if (userData) {
+                const user = JSON.parse(userData);
+                document.getElementById('welcomeNaam').textContent = user.naam;
+                document.getElementById('setupForm').classList.add('hidden');
+                document.getElementById('pinForm').classList.remove('hidden');
+            } else {
+                document.getElementById('setupForm').classList.remove('hidden');
+                document.getElementById('pinForm').classList.add('hidden');
+            }
+        }
+
+        function setupAccount() {
+            const naam = document.getElementById('setupNaam').value.trim();
+            const pin = document.getElementById('setupPin').value;
+            const pinConfirm = document.getElementById('setupPinConfirm').value;
+
+            if (!naam) {
+                alert('Vul uw naam in');
+                return;
+            }
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                alert('Pincode moet 4 cijfers zijn');
+                return;
+            }
+            if (pin !== pinConfirm) {
+                alert('Pincodes komen niet overeen');
+                return;
+            }
+
+            const userData = { naam: naam, pin: pin };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+            showApp();
+        }
+
+        function pinKey(num) {
+            if (enteredPin.length >= 4) return;
+            enteredPin += num;
+            updatePinDots();
+
+            if (enteredPin.length === 4) {
+                setTimeout(checkPin, 200);
+            }
+        }
+
+        function pinDelete() {
+            enteredPin = enteredPin.slice(0, -1);
+            updatePinDots();
+        }
+
+        function updatePinDots() {
+            const dots = document.querySelectorAll('#pinDots .pin-dot');
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('filled', i < enteredPin.length);
+                dot.classList.remove('err');
+            });
+        }
+
+        function checkPin() {
+            const userData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (enteredPin === userData.pin) {
+                showApp();
+            } else {
+                const dots = document.querySelectorAll('#pinDots .pin-dot');
+                dots.forEach(dot => dot.classList.add('err'));
+                setTimeout(() => {
+                    enteredPin = '';
+                    updatePinDots();
+                }, 500);
+            }
+        }
+
+        function showApp() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+        }
+
+        function resetAccount() {
+            if (confirm('Weet u zeker dat u wilt uitloggen? U kunt een nieuw account aanmaken.')) {
+                localStorage.removeItem(STORAGE_KEY);
+                enteredPin = '';
+                document.getElementById('setupNaam').value = '';
+                document.getElementById('setupPin').value = '';
+                document.getElementById('setupPinConfirm').value = '';
+                checkAuth();
+            }
+        }
+
+        // Initialiseer login check bij laden
+        document.addEventListener('DOMContentLoaded', checkAuth);
     </script>
 </body>
 </html>
