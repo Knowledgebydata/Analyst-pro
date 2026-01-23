@@ -13,6 +13,8 @@
             --accent: #9b59b6;
             --accent-light: #a855f7;
             --blue: #1a56db;
+            --green: #20c997;
+            --orange: #e67e22;
             --gray: #6b7280;
             --light: #f9fafb;
         }
@@ -36,7 +38,7 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 800px;
             width: 100%;
             text-align: center;
         }
@@ -65,10 +67,20 @@
             margin-bottom: 40px;
         }
 
+        .section-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
         .apps {
             display: flex;
             flex-direction: column;
             gap: 16px;
+            margin-bottom: 32px;
         }
 
         .app-card {
@@ -90,6 +102,14 @@
             transform: translateY(-2px);
         }
 
+        .app-card:hover.green-hover {
+            border-color: var(--green);
+        }
+
+        .app-card:hover.orange-hover {
+            border-color: var(--orange);
+        }
+
         .app-icon {
             width: 56px;
             height: 56px;
@@ -107,6 +127,14 @@
 
         .app-icon.blue {
             background: rgba(26, 86, 219, 0.2);
+        }
+
+        .app-icon.green {
+            background: rgba(32, 201, 151, 0.2);
+        }
+
+        .app-icon.orange {
+            background: rgba(230, 126, 34, 0.2);
         }
 
         .app-info {
@@ -132,6 +160,14 @@
 
         .app-card:hover .app-arrow {
             color: var(--accent);
+        }
+
+        .app-card.green-hover:hover .app-arrow {
+            color: var(--green);
+        }
+
+        .app-card.orange-hover:hover .app-arrow {
+            color: var(--orange);
         }
 
         .features {
@@ -169,13 +205,14 @@
             color: var(--accent);
         }
 
-        @media (min-width: 500px) {
+        @media (min-width: 600px) {
             .apps {
-                flex-direction: row;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
             }
 
             .app-card {
-                flex: 1;
                 flex-direction: column;
                 text-align: center;
                 padding: 32px 24px;
@@ -197,6 +234,7 @@
         <h1>Analyst Pro</h1>
         <p class="subtitle">Offline analyse tools voor ondermijningsaanpak</p>
 
+        <p class="section-title">Ondermijning</p>
         <div class="apps">
             <a href="./ap-straat-pwa/" class="app-card">
                 <div class="app-icon purple">👁️</div>
@@ -212,6 +250,27 @@
                 <div class="app-info">
                     <div class="app-name">Meldpunt</div>
                     <div class="app-desc">Burgers melden verdachte situaties</div>
+                </div>
+                <div class="app-arrow">→</div>
+            </a>
+        </div>
+
+        <p class="section-title">Zorg & BIBOB</p>
+        <div class="apps">
+            <a href="./ZorgAnalyst_Pro_Mobile.html" class="app-card green-hover">
+                <div class="app-icon green">🏥</div>
+                <div class="app-info">
+                    <div class="app-name">ZorgAnalyst Pro Mobile</div>
+                    <div class="app-desc">Zorgmeldingen in het veld met GPS-locatie</div>
+                </div>
+                <div class="app-arrow">→</div>
+            </a>
+
+            <a href="./BIBOB_Interview_Pro.html" class="app-card orange-hover">
+                <div class="app-icon orange">🎙️</div>
+                <div class="app-info">
+                    <div class="app-name">BIBOB Interview Pro</div>
+                    <div class="app-desc">Interview transcriptie met spraakherkenning</div>
                 </div>
                 <div class="app-arrow">→</div>
             </a>

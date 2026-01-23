@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<!--
+================================================================================
+BIBOB Interview Pro - Progressieve Webapp voor Interview Transcriptie
+Versie: 1.0.0 PWA | Knowledge by Data
+================================================================================
+
+Copyright (c) 2025 L.P. Antenbrink, CEO/Founder Knowledge by Data. Alle rechten voorbehouden.
+
+MOBIELE INTERVIEW APPLICATIE - VOOR BIBOB ONDERZOEKEN
+Functies:
+- Real-time speech-to-text transcriptie
+- Interview metadata registratie
+- Personen beheer (geïnterviewden, aanwezigen)
+- Export naar BIBOB Analyst Pro formaat
+
+VERTROUWELIJK - UITSLUITEND VOOR GEAUTORISEERD GEBRUIK
+================================================================================
+-->
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="author" content="L.P. Antenbrink, Knowledge by Data">
+<meta name="copyright" content="Copyright (c) 2025 L.P. Antenbrink, Knowledge by Data">
+<meta name="application-name" content="BIBOB Interview Pro">
+<meta name="version" content="1.0.0-PWA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1e3a5f">
+<meta name="description" content="BIBOB Interview Pro - Interview transcriptie voor BIBOB onderzoek">
+<title>BIBOB Interview Pro - Knowledge by Data</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-72x72.png">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+    --primary: #1e3a5f;
+    --primary-dark: #152a45;
+    --accent: #e67e22;
+    --accent-light: #f39c12;
+    --success: #27ae60;
+    --warning: #f1c40f;
+    --danger: #e74c3c;
+    --dark: #1a1a2e;
+    --light: #f8f9fa;
+    --gray: #6c757d;
+    --gray-light: #e9ecef;
+    --recording: #e74c3c;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--light);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Security Bar */
+.security-bar {
+    background: var(--success);
+    color: white;
+    padding: 8px 15px;
+    font-size: 0.75rem;
+    text-align: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+/* Header */
+.app-header {
+    background: linear-gradient(135deg, var(--dark), #16213e);
+    color: white;
+    padding: 20px;
+    padding-top: 50px;
+    text-align: center;
+}
+
+.app-header h1 {
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.app-header p {
+    color: var(--gray);
+    font-size: 0.8rem;
+}
+
+/* Navigation Tabs */
+.nav-tabs {
+    display: flex;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 30px;
+    z-index: 100;
+}
+
+.nav-tab {
+    flex: 1;
+    padding: 15px 10px;
+    text-align: center;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--gray);
+    transition: all 0.3s;
+    border-bottom: 3px solid transparent;
+}
+
+.nav-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: rgba(230, 126, 34, 0.05);
+}
+
+.nav-tab i {
+    display: block;
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+}
+
+/* Main Content */
+.main-content {
+    padding: 15px;
+    padding-bottom: 100px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Cards */
+.card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.card-title {
+    font-size: 1rem;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-title i {
+    color: var(--accent);
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-card.accent {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-accent {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-accent:hover {
+    background: var(--accent-light);
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn-lg {
+    padding: 15px 25px;
+    font-size: 1rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Recording Button */
+.btn-record {
+    background: var(--recording);
+    color: white;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 20px rgba(231, 76, 60, 0.4);
+}
+
+.btn-record.recording {
+    animation: pulse-record 1.5s infinite;
+}
+
+@keyframes pulse-record {
+    0%, 100% { box-shadow: 0 4px 20px rgba(231, 76, 60, 0.4); }
+    50% { box-shadow: 0 4px 40px rgba(231, 76, 60, 0.8); }
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 8px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--gray-light);
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    padding-right: 40px;
+}
+
+textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* Interview List */
+.interview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.interview-item {
+    background: var(--light);
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.interview-item:hover {
+    background: var(--gray-light);
+}
+
+.interview-info h4 {
+    font-size: 0.95rem;
+    color: var(--dark);
+    margin-bottom: 5px;
+}
+
+.interview-meta {
+    font-size: 0.75rem;
+    color: var(--gray);
+}
+
+.interview-status {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.interview-status.completed {
+    background: rgba(39, 174, 96, 0.15);
+    color: var(--success);
+}
+
+.interview-status.draft {
+    background: rgba(241, 196, 15, 0.15);
+    color: #d4a406;
+}
+
+/* Person List */
+.person-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.person-item {
+    background: var(--light);
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.person-info h4 {
+    font-size: 0.95rem;
+    color: var(--dark);
+    margin-bottom: 3px;
+}
+
+.person-info p {
+    font-size: 0.75rem;
+    color: var(--gray);
+}
+
+.person-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.person-actions button {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.person-actions .btn-edit {
+    background: rgba(30, 58, 95, 0.1);
+    color: var(--primary);
+}
+
+.person-actions .btn-delete {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger);
+}
+
+/* Recording Interface */
+.recording-interface {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.recording-timer {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--dark);
+    margin-bottom: 20px;
+    font-family: 'Courier New', monospace;
+}
+
+.recording-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.recording-status {
+    font-size: 0.9rem;
+    color: var(--gray);
+    margin-top: 10px;
+}
+
+.recording-status.active {
+    color: var(--recording);
+    font-weight: 600;
+}
+
+/* Transcript Display */
+.transcript-container {
+    background: var(--light);
+    border-radius: 10px;
+    padding: 15px;
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--dark);
+    white-space: pre-wrap;
+}
+
+.transcript-container.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray);
+    font-style: italic;
+}
+
+.transcript-interim {
+    color: var(--gray);
+    font-style: italic;
+}
+
+/* Attendees Tags */
+.attendees-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.attendee-tag {
+    background: rgba(30, 58, 95, 0.1);
+    color: var(--primary);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.attendee-tag .remove {
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 0.9rem;
+}
+
+.attendee-tag .remove:hover {
+    opacity: 1;
+}
+
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--gray-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 1.1rem;
+    color: var(--dark);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--gray-light);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+}
+
+.toast {
+    background: var(--dark);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    animation: slideUp 0.3s ease;
+}
+
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.warning { background: var(--warning); color: var(--dark); }
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Browser Warning */
+.browser-warning {
+    background: var(--warning);
+    color: var(--dark);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.browser-warning i {
+    margin-right: 8px;
+}
+
+/* Language Selector */
+.language-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.language-option {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid var(--gray-light);
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem;
+}
+
+.language-option.active {
+    border-color: var(--accent);
+    background: rgba(230, 126, 34, 0.1);
+    color: var(--accent);
+}
+
+/* Interview Session Info */
+.session-info {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.session-info h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: var(--accent-light);
+}
+
+.session-info p {
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+    opacity: 0.9;
+}
+
+/* QR Section */
+.qr-section {
+    text-align: center;
+    padding: 20px;
+}
+
+.qr-container {
+    display: inline-block;
+    padding: 15px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+}
+
+.qr-instructions {
+    margin-top: 15px;
+    font-size: 0.85rem;
+    color: var(--gray);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.3;
+}
+
+.empty-state p {
+    font-size: 0.9rem;
+}
+
+/* Action Buttons Row */
+.action-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.action-row .btn {
+    flex: 1;
+}
+
+/* Interview Detail View */
+.interview-detail {
+    display: none;
+}
+
+.interview-detail.active {
+    display: block;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-bottom: 15px;
+    background: none;
+    border: none;
+}
+
+/* Responsive */
+@media (max-width: 380px) {
+    .nav-tab {
+        padding: 12px 5px;
+        font-size: 0.75rem;
+    }
+    
+    .nav-tab i {
+        font-size: 1rem;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="security-bar">
+    <i class="fas fa-shield-alt"></i> Beveiligde omgeving - Data blijft lokaal op uw apparaat
+</div>
+
+<header class="app-header">
+    <h1><i class="fas fa-microphone"></i> BIBOB Interview Pro</h1>
+    <p>Interview Transcriptie voor BIBOB Onderzoek</p>
+</header>
+
+<nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="dashboard">
+        <i class="fas fa-home"></i>
+        Dashboard
+    </button>
+    <button class="nav-tab" data-tab="interview">
+        <i class="fas fa-microphone-alt"></i>
+        Interview
+    </button>
+    <button class="nav-tab" data-tab="persons">
+        <i class="fas fa-users"></i>
+        Personen
+    </button>
+    <button class="nav-tab" data-tab="settings">
+        <i class="fas fa-cog"></i>
+        Instellingen
+    </button>
+</nav>
+
+<main class="main-content">
+    <!-- Dashboard Tab -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="stat-interviews">0</div>
+                <div class="stat-label">Interviews</div>
+            </div>
+            <div class="stat-card accent">
+                <div class="stat-number" id="stat-persons">0</div>
+                <div class="stat-label">Personen</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-list"></i> Recente Interviews</span>
+                <button class="btn btn-accent btn-sm" onclick="startNewInterview()">
+                    <i class="fas fa-plus"></i> Nieuw
+                </button>
+            </div>
+            <div id="interview-list" class="interview-list">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <div class="action-row">
+            <button class="btn btn-primary" onclick="exportAllData()">
+                <i class="fas fa-download"></i> Exporteer Alles
+            </button>
+        </div>
+    </div>
+
+    <!-- Interview Tab -->
+    <div id="tab-interview" class="tab-content">
+        <div id="interview-setup">
+            <div id="browser-warning" class="browser-warning" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Let op:</strong> Speech-to-text werkt het beste in Google Chrome, Microsoft Edge of Safari.
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fas fa-user"></i> Interview Setup</span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Geïnterviewde *</label>
+                    <select id="interviewee-select" class="form-control">
+                        <option value="">-- Selecteer persoon --</option>
+                    </select>
+                    <button class="btn btn-outline" style="margin-top: 10px; width: 100%;" onclick="openPersonModal()">
+                        <i class="fas fa-user-plus"></i> Nieuwe persoon toevoegen
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Datum Interview *</label>
+                    <input type="date" id="interview-date" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Aanwezigen</label>
+                    <div class="attendees-container" id="attendees-list"></div>
+                    <select id="attendee-select" class="form-control" style="margin-top: 10px;">
+                        <option value="">-- Voeg aanwezige toe --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Taal voor Spraakherkenning</label>
+                    <div class="language-selector">
+                        <div class="language-option active" data-lang="nl-NL">🇳🇱 Nederlands</div>
+                        <div class="language-option" data-lang="en-US">🇺🇸 Engels</div>
+                        <div class="language-option" data-lang="de-DE">🇩🇪 Duits</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-accent btn-block btn-lg" onclick="startRecording()" id="btn-start-interview">
+                    <i class="fas fa-play"></i> Start Interview
+                </button>
+            </div>
+        </div>
+
+        <div id="interview-active" style="display: none;">
+            <div class="session-info" id="session-info">
+                <h3>Interview in Voortgang</h3>
+                <p id="session-interviewee"></p>
+                <p id="session-date"></p>
+            </div>
+
+            <div class="card">
+                <div class="recording-interface">
+                    <div class="recording-timer" id="recording-timer">00:00:00</div>
+                    
+                    <div class="recording-controls">
+                        <button class="btn btn-outline" onclick="pauseRecording()" id="btn-pause">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button class="btn btn-record" onclick="toggleRecording()" id="btn-record">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="btn btn-danger" onclick="stopInterview()">
+                            <i class="fas fa-stop"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="recording-status" id="recording-status">
+                        Klik op de microfoon om te beginnen
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fas fa-file-alt"></i> Transcript</span>
+                    <span id="word-count">0 woorden</span>
+                </div>
+                <div class="transcript-container empty" id="transcript-display">
+                    Transcript verschijnt hier tijdens het interview...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Persons Tab -->
+    <div id="tab-persons" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-users"></i> Personen Database</span>
+                <button class="btn btn-accent" onclick="openPersonModal()">
+                    <i class="fas fa-plus"></i> Nieuw
+                </button>
+            </div>
+            <div id="persons-list" class="person-list">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="tab-settings" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-share-alt"></i> App Delen</span>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--gray); margin-bottom: 15px;">
+                Scan de QR-code om deze app op een ander apparaat te openen.
+            </p>
+            <div class="qr-section">
+                <div class="qr-container" id="qr-code"></div>
+                <p class="qr-instructions">
+                    Scan met de camera van uw smartphone of tablet
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-database"></i> Data Beheer</span>
+            </div>
+            <div class="action-row">
+                <button class="btn btn-primary btn-block" onclick="exportAllData()">
+                    <i class="fas fa-download"></i> Exporteer Data
+                </button>
+            </div>
+            <div class="action-row">
+                <button class="btn btn-danger btn-block" onclick="confirmClearData()">
+                    <i class="fas fa-trash"></i> Wis Alle Data
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-info-circle"></i> App Informatie</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--gray); line-height: 1.6;">
+                <strong>BIBOB Interview Pro</strong><br>
+                Versie 1.0.0 PWA<br><br>
+                © 2025 L.P. Antenbrink<br>
+                Knowledge by Data<br><br>
+                <em>Interview transcriptie voor BIBOB onderzoeken met real-time spraakherkenning.</em>
+            </p>
+        </div>
+    </div>
+</main>
+
+<!-- Person Modal -->
+<div class="modal-overlay" id="person-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="person-modal-title">Nieuwe Persoon</h3>
+            <button class="modal-close" onclick="closePersonModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="person-edit-id">
+            <div class="form-group">
+                <label class="form-label">Naam *</label>
+                <input type="text" id="person-name" class="form-control" placeholder="Volledige naam">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Functie</label>
+                <input type="text" id="person-function" class="form-control" placeholder="Functie/rol">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Organisatie</label>
+                <input type="text" id="person-organization" class="form-control" placeholder="Organisatie/bedrijf">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Opmerkingen</label>
+                <textarea id="person-notes" class="form-control" placeholder="Eventuele opmerkingen"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closePersonModal()">Annuleren</button>
+            <button class="btn btn-accent" onclick="savePerson()">
+                <i class="fas fa-save"></i> Opslaan
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Interview Detail Modal -->
+<div class="modal-overlay" id="interview-detail-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Interview Details</h3>
+            <button class="modal-close" onclick="closeInterviewDetail()">&times;</button>
+        </div>
+        <div class="modal-body" id="interview-detail-content">
+            <!-- Dynamically populated -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeInterviewDetail()">Sluiten</button>
+            <button class="btn btn-primary" onclick="exportCurrentInterview()">
+                <i class="fas fa-download"></i> Exporteer
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+'use strict';
+
+// ============================================================================
+// Application State
+// ============================================================================
+const APP_STATE = {
+    interviews: [],
+    persons: [],
+    currentInterview: null,
+    isRecording: false,
+    isPaused: false,
+    recognition: null,
+    transcript: '',
+    interimTranscript: '',
+    startTime: null,
+    timerInterval: null,
+    selectedAttendees: [],
+    selectedLanguage: 'nl-NL',
+    currentInterviewId: null
+};
+
+// ============================================================================
+// Initialization
+// ============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    initializeApp();
+});
+
+function initializeApp() {
+    loadData();
+    setupTabs();
+    setupLanguageSelector();
+    setupAttendeeSelector();
+    checkSpeechSupport();
+    generateQRCode();
+    updateUI();
+    setDefaultDate();
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+}
+
+function setDefaultDate() {
+    const dateInput = document.getElementById('interview-date');
+    if (dateInput) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+}
+
+// ============================================================================
+// Data Persistence
+// ============================================================================
+function loadData() {
+    try {
+        const interviews = localStorage.getItem('bibob_interviews');
+        const persons = localStorage.getItem('bibob_persons');
+        
+        APP_STATE.interviews = interviews ? JSON.parse(interviews) : [];
+        APP_STATE.persons = persons ? JSON.parse(persons) : [];
+    } catch (error) {
+        console.error('Error loading data:', error);
+        APP_STATE.interviews = [];
+        APP_STATE.persons = [];
+    }
+}
+
+function saveData() {
+    try {
+        localStorage.setItem('bibob_interviews', JSON.stringify(APP_STATE.interviews));
+        localStorage.setItem('bibob_persons', JSON.stringify(APP_STATE.persons));
+    } catch (error) {
+        console.error('Error saving data:', error);
+        showToast('Fout bij opslaan van data', 'error');
+    }
+}
+
+function handleBeforeUnload(event) {
+    if (APP_STATE.isRecording || APP_STATE.transcript.length > 0) {
+        event.preventDefault();
+        event.returnValue = 'U heeft een actief interview of niet-geëxporteerde data. Weet u zeker dat u wilt afsluiten?';
+        return event.returnValue;
+    }
+}
+
+// ============================================================================
+// Tab Navigation
+// ============================================================================
+function setupTabs() {
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabId = tab.dataset.tab;
+            switchTab(tabId);
+        });
+    });
+}
+
+function switchTab(tabId) {
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabId);
+    });
+    
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `tab-${tabId}`);
+    });
+}
+
+// ============================================================================
+// Speech Recognition
+// ============================================================================
+function checkSpeechSupport() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        document.getElementById('browser-warning').style.display = 'block';
+        document.getElementById('btn-start-interview').disabled = true;
+        return false;
+    }
+    
+    return true;
+}
+
+function initSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        showToast('Spraakherkenning wordt niet ondersteund', 'error');
+        return null;
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = APP_STATE.selectedLanguage;
+    recognition.maxAlternatives = 1;
+    
+    recognition.onstart = () => {
+        updateRecordingStatus('Luisteren...', true);
+    };
+    
+    recognition.onresult = (event) => {
+        let interim = '';
+        let final = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                final += transcript + ' ';
+            } else {
+                interim += transcript;
+            }
+        }
+        
+        if (final) {
+            APP_STATE.transcript += final;
+        }
+        APP_STATE.interimTranscript = interim;
+        
+        updateTranscriptDisplay();
+    };
+    
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        
+        if (event.error === 'no-speech') {
+            // Continue listening
+            if (APP_STATE.isRecording && !APP_STATE.isPaused) {
+                recognition.stop();
+                setTimeout(() => {
+                    if (APP_STATE.isRecording && !APP_STATE.isPaused) {
+                        recognition.start();
+                    }
+                }, 100);
+            }
+        } else if (event.error === 'aborted') {
+            // Intentional stop, do nothing
+        } else {
+            updateRecordingStatus(`Fout: ${event.error}`, false);
+        }
+    };
+    
+    recognition.onend = () => {
+        // Auto-restart if still recording
+        if (APP_STATE.isRecording && !APP_STATE.isPaused) {
+            try {
+                recognition.start();
+            } catch (error) {
+                console.error('Error restarting recognition:', error);
+            }
+        }
+    };
+    
+    return recognition;
+}
+
+// ============================================================================
+// Recording Controls
+// ============================================================================
+function startNewInterview() {
+    APP_STATE.selectedAttendees = [];
+    APP_STATE.transcript = '';
+    APP_STATE.interimTranscript = '';
+    document.getElementById('attendees-list').innerHTML = '';
+    document.getElementById('interviewee-select').value = '';
+    setDefaultDate();
+    switchTab('interview');
+    showInterviewSetup();
+}
+
+function startRecording() {
+    const intervieweeId = document.getElementById('interviewee-select').value;
+    const date = document.getElementById('interview-date').value;
+    
+    if (!intervieweeId) {
+        showToast('Selecteer een geïnterviewde', 'warning');
+        return;
+    }
+    
+    if (!date) {
+        showToast('Selecteer een datum', 'warning');
+        return;
+    }
+    
+    const interviewee = APP_STATE.persons.find(p => p.id === intervieweeId);
+    
+    APP_STATE.currentInterview = {
+        id: generateId(),
+        intervieweeId: intervieweeId,
+        intervieweeName: interviewee ? interviewee.name : 'Onbekend',
+        date: date,
+        attendees: [...APP_STATE.selectedAttendees],
+        language: APP_STATE.selectedLanguage,
+        startTime: new Date().toISOString(),
+        endTime: null,
+        transcript: '',
+        status: 'draft'
+    };
+    
+    // Initialize speech recognition
+    APP_STATE.recognition = initSpeechRecognition();
+    
+    if (!APP_STATE.recognition) {
+        return;
+    }
+    
+    // Show active interview interface
+    showInterviewActive();
+    
+    // Update session info
+    document.getElementById('session-interviewee').textContent = `Geïnterviewde: ${APP_STATE.currentInterview.intervieweeName}`;
+    document.getElementById('session-date').textContent = `Datum: ${formatDate(date)}`;
+    
+    // Start timer
+    APP_STATE.startTime = Date.now();
+    startTimer();
+    
+    showToast('Interview gestart', 'success');
+}
+
+function toggleRecording() {
+    if (!APP_STATE.recognition) {
+        showToast('Spraakherkenning niet geïnitialiseerd', 'error');
+        return;
+    }
+    
+    if (APP_STATE.isRecording) {
+        stopRecognition();
+    } else {
+        startRecognition();
+    }
+}
+
+function startRecognition() {
+    try {
+        APP_STATE.recognition.start();
+        APP_STATE.isRecording = true;
+        APP_STATE.isPaused = false;
+        
+        const btn = document.getElementById('btn-record');
+        btn.classList.add('recording');
+        btn.innerHTML = '<i class="fas fa-microphone"></i>';
+        
+        updateRecordingStatus('Luisteren...', true);
+    } catch (error) {
+        console.error('Error starting recognition:', error);
+        showToast('Fout bij starten spraakherkenning', 'error');
+    }
+}
+
+function stopRecognition() {
+    try {
+        APP_STATE.recognition.stop();
+        APP_STATE.isRecording = false;
+        
+        const btn = document.getElementById('btn-record');
+        btn.classList.remove('recording');
+        
+        updateRecordingStatus('Gepauzeerd', false);
+    } catch (error) {
+        console.error('Error stopping recognition:', error);
+    }
+}
+
+function pauseRecording() {
+    if (APP_STATE.isRecording) {
+        stopRecognition();
+        APP_STATE.isPaused = true;
+        showToast('Opname gepauzeerd', 'info');
+    } else if (APP_STATE.isPaused) {
+        startRecognition();
+        showToast('Opname hervat', 'info');
+    }
+}
+
+function stopInterview() {
+    if (!confirm('Weet u zeker dat u het interview wilt beëindigen?')) {
+        return;
+    }
+    
+    // Stop recording
+    if (APP_STATE.isRecording) {
+        stopRecognition();
+    }
+    
+    // Stop timer
+    stopTimer();
+    
+    // Save interview
+    if (APP_STATE.currentInterview) {
+        APP_STATE.currentInterview.endTime = new Date().toISOString();
+        APP_STATE.currentInterview.transcript = APP_STATE.transcript.trim();
+        APP_STATE.currentInterview.status = 'completed';
+        APP_STATE.currentInterview.duration = formatDuration(Date.now() - APP_STATE.startTime);
+        
+        APP_STATE.interviews.unshift(APP_STATE.currentInterview);
+        saveData();
+        
+        showToast('Interview opgeslagen', 'success');
+    }
+    
+    // Reset state
+    APP_STATE.currentInterview = null;
+    APP_STATE.transcript = '';
+    APP_STATE.interimTranscript = '';
+    APP_STATE.startTime = null;
+    APP_STATE.recognition = null;
+    
+    // Update UI
+    showInterviewSetup();
+    updateUI();
+    switchTab('dashboard');
+}
+
+// ============================================================================
+// Timer Functions
+// ============================================================================
+function startTimer() {
+    updateTimerDisplay();
+    APP_STATE.timerInterval = setInterval(updateTimerDisplay, 1000);
+}
+
+function stopTimer() {
+    if (APP_STATE.timerInterval) {
+        clearInterval(APP_STATE.timerInterval);
+        APP_STATE.timerInterval = null;
+    }
+}
+
+function updateTimerDisplay() {
+    if (!APP_STATE.startTime) return;
+    
+    const elapsed = Date.now() - APP_STATE.startTime;
+    const display = formatDuration(elapsed);
+    document.getElementById('recording-timer').textContent = display;
+}
+
+function formatDuration(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    return [hours, minutes, secs]
+        .map(v => v.toString().padStart(2, '0'))
+        .join(':');
+}
+
+// ============================================================================
+// UI Updates
+// ============================================================================
+function showInterviewSetup() {
+    document.getElementById('interview-setup').style.display = 'block';
+    document.getElementById('interview-active').style.display = 'none';
+}
+
+function showInterviewActive() {
+    document.getElementById('interview-setup').style.display = 'none';
+    document.getElementById('interview-active').style.display = 'block';
+    
+    // Reset transcript display
+    const transcriptEl = document.getElementById('transcript-display');
+    transcriptEl.innerHTML = 'Transcript verschijnt hier tijdens het interview...';
+    transcriptEl.classList.add('empty');
+}
+
+function updateRecordingStatus(text, isActive) {
+    const statusEl = document.getElementById('recording-status');
+    statusEl.textContent = text;
+    statusEl.classList.toggle('active', isActive);
+}
+
+function updateTranscriptDisplay() {
+    const transcriptEl = document.getElementById('transcript-display');
+    transcriptEl.classList.remove('empty');
+    
+    let html = APP_STATE.transcript;
+    if (APP_STATE.interimTranscript) {
+        html += `<span class="transcript-interim">${APP_STATE.interimTranscript}</span>`;
+    }
+    
+    transcriptEl.innerHTML = html || 'Transcript verschijnt hier tijdens het interview...';
+    
+    // Auto-scroll to bottom
+    transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    
+    // Update word count
+    const wordCount = APP_STATE.transcript.trim().split(/\s+/).filter(w => w).length;
+    document.getElementById('word-count').textContent = `${wordCount} woorden`;
+}
+
+function updateUI() {
+    updateStats();
+    updateInterviewList();
+    updatePersonsList();
+    updatePersonSelects();
+}
+
+function updateStats() {
+    document.getElementById('stat-interviews').textContent = APP_STATE.interviews.length;
+    document.getElementById('stat-persons').textContent = APP_STATE.persons.length;
+}
+
+function updateInterviewList() {
+    const container = document.getElementById('interview-list');
+    
+    if (APP_STATE.interviews.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-microphone-slash"></i>
+                <p>Nog geen interviews</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = APP_STATE.interviews.slice(0, 10).map(interview => `
+        <div class="interview-item" onclick="viewInterviewDetail('${interview.id}')">
+            <div class="interview-info">
+                <h4>${escapeHtml(interview.intervieweeName)}</h4>
+                <div class="interview-meta">
+                    ${formatDate(interview.date)} | ${interview.duration || 'N/B'}
+                </div>
+            </div>
+            <span class="interview-status ${interview.status}">
+                ${interview.status === 'completed' ? 'Voltooid' : 'Concept'}
+            </span>
+        </div>
+    `).join('');
+}
+
+function updatePersonsList() {
+    const container = document.getElementById('persons-list');
+    
+    if (APP_STATE.persons.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <p>Nog geen personen toegevoegd</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = APP_STATE.persons.map(person => `
+        <div class="person-item">
+            <div class="person-info">
+                <h4>${escapeHtml(person.name)}</h4>
+                <p>${escapeHtml(person.function || '')}${person.function && person.organization ? ' - ' : ''}${escapeHtml(person.organization || '')}</p>
+            </div>
+            <div class="person-actions">
+                <button class="btn-edit" onclick="editPerson('${person.id}')" title="Bewerken">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-delete" onclick="deletePerson('${person.id}')" title="Verwijderen">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updatePersonSelects() {
+    const intervieweeSelect = document.getElementById('interviewee-select');
+    const attendeeSelect = document.getElementById('attendee-select');
+    
+    const options = APP_STATE.persons.map(person => 
+        `<option value="${person.id}">${escapeHtml(person.name)}</option>`
+    ).join('');
+    
+    intervieweeSelect.innerHTML = '<option value="">-- Selecteer persoon --</option>' + options;
+    attendeeSelect.innerHTML = '<option value="">-- Voeg aanwezige toe --</option>' + options;
+}
+
+// ============================================================================
+// Language Selector
+// ============================================================================
+function setupLanguageSelector() {
+    const options = document.querySelectorAll('.language-option');
+    options.forEach(option => {
+        option.addEventListener('click', () => {
+            options.forEach(o => o.classList.remove('active'));
+            option.classList.add('active');
+            APP_STATE.selectedLanguage = option.dataset.lang;
+        });
+    });
+}
+
+// ============================================================================
+// Attendee Selector
+// ============================================================================
+function setupAttendeeSelector() {
+    const select = document.getElementById('attendee-select');
+    select.addEventListener('change', () => {
+        const personId = select.value;
+        if (!personId) return;
+        
+        const person = APP_STATE.persons.find(p => p.id === personId);
+        if (!person) return;
+        
+        // Check if already added
+        if (APP_STATE.selectedAttendees.some(a => a.id === personId)) {
+            showToast('Persoon is al toegevoegd', 'warning');
+            select.value = '';
+            return;
+        }
+        
+        APP_STATE.selectedAttendees.push({
+            id: person.id,
+            name: person.name
+        });
+        
+        updateAttendeesDisplay();
+        select.value = '';
+    });
+}
+
+function updateAttendeesDisplay() {
+    const container = document.getElementById('attendees-list');
+    container.innerHTML = APP_STATE.selectedAttendees.map(attendee => `
+        <div class="attendee-tag">
+            ${escapeHtml(attendee.name)}
+            <span class="remove" onclick="removeAttendee('${attendee.id}')">&times;</span>
+        </div>
+    `).join('');
+}
+
+function removeAttendee(id) {
+    APP_STATE.selectedAttendees = APP_STATE.selectedAttendees.filter(a => a.id !== id);
+    updateAttendeesDisplay();
+}
+
+// ============================================================================
+// Person Management
+// ============================================================================
+function openPersonModal(personId = null) {
+    const modal = document.getElementById('person-modal');
+    const title = document.getElementById('person-modal-title');
+    
+    // Reset form
+    document.getElementById('person-edit-id').value = '';
+    document.getElementById('person-name').value = '';
+    document.getElementById('person-function').value = '';
+    document.getElementById('person-organization').value = '';
+    document.getElementById('person-notes').value = '';
+    
+    if (personId) {
+        const person = APP_STATE.persons.find(p => p.id === personId);
+        if (person) {
+            title.textContent = 'Persoon Bewerken';
+            document.getElementById('person-edit-id').value = person.id;
+            document.getElementById('person-name').value = person.name;
+            document.getElementById('person-function').value = person.function || '';
+            document.getElementById('person-organization').value = person.organization || '';
+            document.getElementById('person-notes').value = person.notes || '';
+        }
+    } else {
+        title.textContent = 'Nieuwe Persoon';
+    }
+    
+    modal.classList.add('active');
+}
+
+function closePersonModal() {
+    document.getElementById('person-modal').classList.remove('active');
+}
+
+function savePerson() {
+    const editId = document.getElementById('person-edit-id').value;
+    const name = document.getElementById('person-name').value.trim();
+    const func = document.getElementById('person-function').value.trim();
+    const org = document.getElementById('person-organization').value.trim();
+    const notes = document.getElementById('person-notes').value.trim();
+    
+    if (!name) {
+        showToast('Naam is verplicht', 'warning');
+        return;
+    }
+    
+    if (editId) {
+        // Update existing
+        const index = APP_STATE.persons.findIndex(p => p.id === editId);
+        if (index !== -1) {
+            APP_STATE.persons[index] = {
+                ...APP_STATE.persons[index],
+                name: name,
+                function: func,
+                organization: org,
+                notes: notes,
+                updatedAt: new Date().toISOString()
+            };
+        }
+        showToast('Persoon bijgewerkt', 'success');
+    } else {
+        // Create new
+        APP_STATE.persons.push({
+            id: generateId(),
+            name: name,
+            function: func,
+            organization: org,
+            notes: notes,
+            createdAt: new Date().toISOString()
+        });
+        showToast('Persoon toegevoegd', 'success');
+    }
+    
+    saveData();
+    updateUI();
+    closePersonModal();
+}
+
+function editPerson(id) {
+    openPersonModal(id);
+}
+
+function deletePerson(id) {
+    if (!confirm('Weet u zeker dat u deze persoon wilt verwijderen?')) {
+        return;
+    }
+    
+    APP_STATE.persons = APP_STATE.persons.filter(p => p.id !== id);
+    saveData();
+    updateUI();
+    showToast('Persoon verwijderd', 'success');
+}
+
+// ============================================================================
+// Interview Detail
+// ============================================================================
+function viewInterviewDetail(id) {
+    const interview = APP_STATE.interviews.find(i => i.id === id);
+    if (!interview) return;
+    
+    APP_STATE.currentInterviewId = id;
+    
+    const content = document.getElementById('interview-detail-content');
+    content.innerHTML = `
+        <div class="form-group">
+            <label class="form-label">Geïnterviewde</label>
+            <p style="font-size: 1rem; color: var(--dark);">${escapeHtml(interview.intervieweeName)}</p>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Datum</label>
+            <p style="font-size: 1rem; color: var(--dark);">${formatDate(interview.date)}</p>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Duur</label>
+            <p style="font-size: 1rem; color: var(--dark);">${interview.duration || 'N/B'}</p>
+        </div>
+        ${interview.attendees && interview.attendees.length > 0 ? `
+            <div class="form-group">
+                <label class="form-label">Aanwezigen</label>
+                <p style="font-size: 1rem; color: var(--dark);">${interview.attendees.map(a => escapeHtml(a.name)).join(', ')}</p>
+            </div>
+        ` : ''}
+        <div class="form-group">
+            <label class="form-label">Transcript (${interview.transcript ? interview.transcript.split(/\s+/).length : 0} woorden)</label>
+            <div class="transcript-container" style="max-height: 300px;">
+                ${escapeHtml(interview.transcript) || '<em>Geen transcript beschikbaar</em>'}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('interview-detail-modal').classList.add('active');
+}
+
+function closeInterviewDetail() {
+    document.getElementById('interview-detail-modal').classList.remove('active');
+    APP_STATE.currentInterviewId = null;
+}
+
+function exportCurrentInterview() {
+    if (!APP_STATE.currentInterviewId) return;
+    
+    const interview = APP_STATE.interviews.find(i => i.id === APP_STATE.currentInterviewId);
+    if (!interview) return;
+    
+    const exportData = {
+        version: '1.0.0',
+        source: 'BIBOB Interview Pro PWA',
+        exportedAt: new Date().toISOString(),
+        interview: interview
+    };
+    
+    downloadJSON(exportData, `interview_${interview.intervieweeName.replace(/\s+/g, '_')}_${interview.date}.json`);
+    closeInterviewDetail();
+}
+
+// ============================================================================
+// Export Functions
+// ============================================================================
+function exportAllData() {
+    if (APP_STATE.interviews.length === 0 && APP_STATE.persons.length === 0) {
+        showToast('Geen data om te exporteren', 'warning');
+        return;
+    }
+    
+    const exportData = {
+        version: '1.0.0',
+        source: 'BIBOB Interview Pro PWA',
+        exportedAt: new Date().toISOString(),
+        interviews: APP_STATE.interviews,
+        persons: APP_STATE.persons
+    };
+    
+    const date = new Date().toISOString().split('T')[0];
+    downloadJSON(exportData, `bibob_interview_export_${date}.json`);
+    showToast('Data geëxporteerd', 'success');
+}
+
+function downloadJSON(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// ============================================================================
+// Data Management
+// ============================================================================
+function confirmClearData() {
+    if (!confirm('WAARSCHUWING: Dit verwijdert alle interviews en personen permanent. Weet u dit zeker?')) {
+        return;
+    }
+    
+    if (!confirm('Laatste waarschuwing: Deze actie kan niet ongedaan worden gemaakt. Doorgaan?')) {
+        return;
+    }
+    
+    APP_STATE.interviews = [];
+    APP_STATE.persons = [];
+    saveData();
+    updateUI();
+    showToast('Alle data verwijderd', 'success');
+}
+
+// ============================================================================
+// QR Code Generation
+// ============================================================================
+function generateQRCode() {
+    const qrContainer = document.getElementById('qr-code');
+    const url = window.location.href;
+    
+    qrContainer.innerHTML = '';
+    
+    if (typeof QRCode !== 'undefined') {
+        new QRCode(qrContainer, {
+            text: url,
+            width: 180,
+            height: 180,
+            colorDark: '#1e3a5f',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    } else {
+        qrContainer.innerHTML = '<p style="color: var(--gray);">QR code niet beschikbaar</p>';
+    }
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/B';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('nl-NL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then((registration) => {
+                console.log('%c Service Worker geregistreerd', 'color:#27ae60', registration.scope);
+            })
+            .catch((error) => {
+                console.error('Service Worker registratie mislukt:', error);
+            });
+    });
+}
+
+// Console branding
+console.log('%c BIBOB Interview Pro v1.0.0', 'font-size:16px;font-weight:bold;color:#1e3a5f');
+console.log('%c © 2025 Knowledge by Data', 'font-size:12px;color:#e67e22');
+</script>
+</body>
+</html>

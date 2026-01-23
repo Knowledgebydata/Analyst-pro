@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<!--
+================================================================================
+ZorgAnalyst Pro Mobile - Progressieve Webapp voor Zorgmeldingen in het Veld
+Versie: 1.0.0 PWA | Knowledge by Data
+================================================================================
+
+Copyright (c) 2025 L.P. Antenbrink, CEO/Founder Knowledge by Data. Alle rechten voorbehouden.
+
+MOBIELE VELDAPPLICATIE - VOOR ZORGMELDINGEN ONDERWEG
+Functies:
+- Zorgmeldingen aanmaken met GPS-locatie
+- Ondernemingen beheren
+- Offline-first architectuur
+- Synchronisatie met ZorgAnalyst Pro desktop
+
+VERTROUWELIJK - UITSLUITEND VOOR GEAUTORISEERD GEBRUIK
+================================================================================
+-->
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="author" content="L.P. Antenbrink, Knowledge by Data">
+<meta name="copyright" content="Copyright (c) 2025 L.P. Antenbrink, Knowledge by Data">
+<meta name="application-name" content="ZorgAnalyst Pro Mobile">
+<meta name="version" content="1.0.0-PWA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d6efd">
+<meta name="description" content="ZorgAnalyst Pro Mobile - Zorgmeldingen in het veld">
+<title>ZorgAnalyst Pro Mobile - Knowledge by Data</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-72x72.png">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+    --primary: #0d6efd;
+    --primary-dark: #0a58ca;
+    --accent: #20c997;
+    --accent-light: #63e6be;
+    --success: #198754;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --dark: #1a1a2e;
+    --light: #f8f9fa;
+    --gray: #6c757d;
+    --gray-light: #e9ecef;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--light);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Security Bar */
+.security-bar {
+    background: var(--success);
+    color: white;
+    padding: 8px 15px;
+    font-size: 0.75rem;
+    text-align: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+/* Header */
+.app-header {
+    background: linear-gradient(135deg, var(--dark), #16213e);
+    color: white;
+    padding: 20px;
+    padding-top: 50px;
+    text-align: center;
+}
+
+.app-header h1 {
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.app-header p {
+    color: var(--gray);
+    font-size: 0.8rem;
+}
+
+/* Main Container */
+.app-container {
+    padding: 15px;
+    padding-bottom: 100px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Tab Navigation */
+.tab-nav {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    background: white;
+    padding: 5px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 8px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--gray);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.tab-btn i {
+    font-size: 1.1rem;
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Cards */
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+}
+
+.card h3 {
+    color: var(--dark);
+    margin-bottom: 15px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card h3 i {
+    color: var(--accent);
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.stat-card {
+    background: var(--light);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+}
+
+.stat-card .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.stat-card .label {
+    font-size: 0.75rem;
+    color: var(--gray);
+    margin-top: 2px;
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--dark);
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid var(--gray-light);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Buttons */
+.btn {
+    padding: 14px 24px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-accent {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-accent:hover {
+    background: var(--accent-light);
+    color: var(--dark);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--gray-light);
+    color: var(--dark);
+}
+
+.btn-outline:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-sm {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+}
+
+/* GPS Button */
+.gps-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background: var(--light);
+    border: 2px dashed var(--gray-light);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    text-align: left;
+}
+
+.gps-btn:hover {
+    border-color: var(--accent);
+    background: rgba(32, 201, 151, 0.05);
+}
+
+.gps-btn.active {
+    border-color: var(--success);
+    border-style: solid;
+    background: rgba(25, 135, 84, 0.05);
+}
+
+.gps-btn i {
+    font-size: 1.5rem;
+    color: var(--accent);
+}
+
+.gps-btn .gps-info {
+    flex: 1;
+}
+
+.gps-btn .gps-info strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--dark);
+}
+
+.gps-btn .gps-info span {
+    font-size: 0.75rem;
+    color: var(--gray);
+}
+
+/* Tags */
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    padding: 8px 14px;
+    background: var(--light);
+    border: 2px solid var(--gray-light);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tag:hover {
+    border-color: var(--accent);
+}
+
+.tag.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+/* List Items */
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: var(--light);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.list-item:hover {
+    background: var(--gray-light);
+}
+
+.list-item.selected {
+    background: rgba(32, 201, 151, 0.1);
+    border: 2px solid var(--accent);
+}
+
+.list-item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.list-item-content {
+    flex: 1;
+}
+
+.list-item-content strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--dark);
+}
+
+.list-item-content span {
+    font-size: 0.75rem;
+    color: var(--gray);
+}
+
+.list-item-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.list-item-actions button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: white;
+    color: var(--gray);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.list-item-actions button:hover {
+    color: var(--danger);
+    background: rgba(220, 53, 69, 0.1);
+}
+
+/* Melding Card */
+.melding-card {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid var(--accent);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.melding-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.melding-card-header h4 {
+    font-size: 0.95rem;
+    color: var(--dark);
+}
+
+.melding-card-header .date {
+    font-size: 0.75rem;
+    color: var(--gray);
+}
+
+.melding-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.melding-card-tags .tag {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+    border-width: 1px;
+}
+
+.melding-card p {
+    font-size: 0.85rem;
+    color: var(--gray);
+    line-height: 1.5;
+}
+
+.melding-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--gray-light);
+}
+
+.melding-card-footer .location {
+    font-size: 0.75rem;
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--gray-light);
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+}
+
+.modal-header h3 {
+    font-size: 1.1rem;
+    color: var(--dark);
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: var(--light);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--gray);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--gray-light);
+    display: flex;
+    gap: 10px;
+}
+
+.modal-footer .btn {
+    flex: 1;
+}
+
+/* Pages */
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--gray-light);
+    margin-bottom: 15px;
+}
+
+.empty-state h4 {
+    color: var(--dark);
+    margin-bottom: 5px;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--dark);
+    color: white;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 3000;
+    max-width: 90%;
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.toast.success {
+    background: var(--success);
+}
+
+.toast.error {
+    background: var(--danger);
+}
+
+/* Bottom Nav */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 10px 20px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    box-shadow: 0 -2px 20px rgba(0,0,0,0.1);
+    z-index: 900;
+}
+
+.bottom-nav .btn {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* QR Code Section */
+.qr-section {
+    text-align: center;
+    padding: 20px;
+}
+
+.qr-section #qrcode {
+    display: inline-block;
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin: 15px 0;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+    .modal-content {
+        border-radius: 20px;
+        margin: auto;
+        max-height: 80vh;
+    }
+    
+    .modal {
+        align-items: center;
+    }
+}
+
+/* Hidden utility */
+.hidden {
+    display: none !important;
+}
+</style>
+</head>
+<body>
+
+<!-- Security Bar -->
+<div class="security-bar">
+    <i class="fas fa-shield-alt"></i> Beveiligde omgeving - Alle data blijft lokaal
+</div>
+
+<!-- Header -->
+<header class="app-header">
+    <h1><i class="fas fa-hospital"></i> ZorgAnalyst Pro Mobile</h1>
+    <p>Zorgmeldingen in het veld | Knowledge by Data</p>
+</header>
+
+<!-- Main Container -->
+<div class="app-container">
+    
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+        <button class="tab-btn active" onclick="App.showPage('meldingen')">
+            <i class="fas fa-list-alt"></i>
+            <span>Meldingen</span>
+        </button>
+        <button class="tab-btn" onclick="App.showPage('ondernemingen')">
+            <i class="fas fa-building"></i>
+            <span>Bedrijven</span>
+        </button>
+        <button class="tab-btn" onclick="App.showPage('export')">
+            <i class="fas fa-download"></i>
+            <span>Export</span>
+        </button>
+    </nav>
+
+    <!-- Page: Meldingen -->
+    <div id="page-meldingen" class="page active">
+        
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="value" id="stat-meldingen">0</div>
+                <div class="label">Meldingen</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="stat-ondernemingen">0</div>
+                <div class="label">Ondernemingen</div>
+            </div>
+        </div>
+
+        <!-- Meldingen List -->
+        <div class="card">
+            <h3><i class="fas fa-clipboard-list"></i> Recente meldingen</h3>
+            <div id="meldingen-list">
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h4>Nog geen meldingen</h4>
+                    <p>Maak je eerste zorgmelding aan</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page: Ondernemingen -->
+    <div id="page-ondernemingen" class="page">
+        <div class="card">
+            <h3><i class="fas fa-building"></i> Geregistreerde ondernemingen</h3>
+            <div id="ondernemingen-list">
+                <div class="empty-state">
+                    <i class="fas fa-store"></i>
+                    <h4>Nog geen ondernemingen</h4>
+                    <p>Voeg een onderneming toe</p>
+                </div>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="App.openModal('onderneming')" style="margin-top: 15px;">
+                <i class="fas fa-plus"></i> Onderneming toevoegen
+            </button>
+        </div>
+    </div>
+
+    <!-- Page: Export -->
+    <div id="page-export" class="page">
+        <div class="card">
+            <h3><i class="fas fa-file-export"></i> Exporteren naar ZorgAnalyst Pro</h3>
+            <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 20px;">
+                Download alle meldingen als JSON-bestand. Dit bestand kan worden geïmporteerd in ZorgAnalyst Pro desktop voor verdere analyse.
+            </p>
+            
+            <div class="stats-grid" style="margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="value" id="export-meldingen">0</div>
+                    <div class="label">Te exporteren meldingen</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="export-ondernemingen">0</div>
+                    <div class="label">Te exporteren ondernemingen</div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="App.exportData()">
+                <i class="fas fa-download"></i> Download JSON Export
+            </button>
+        </div>
+
+        <div class="card">
+            <h3><i class="fas fa-qrcode"></i> App Delen</h3>
+            <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 15px;">
+                Scan deze QR-code om de app op een ander apparaat te openen.
+            </p>
+            <div class="qr-section">
+                <div id="qrcode"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3><i class="fas fa-trash-alt"></i> Gegevens wissen</h3>
+            <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 15px;">
+                Verwijder alle lokale gegevens. Zorg dat je eerst exporteert!
+            </p>
+            <button class="btn btn-danger" onclick="App.clearAllData()">
+                <i class="fas fa-trash"></i> Alle data wissen
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav">
+    <button class="btn btn-accent" onclick="App.openModal('melding')">
+        <i class="fas fa-plus"></i> Nieuwe melding
+    </button>
+</div>
+
+<!-- Modal: Nieuwe Melding -->
+<div id="modal-melding" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-plus-circle"></i> Nieuwe zorgmelding</h3>
+            <button class="modal-close" onclick="App.closeModal('melding')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            
+            <div class="form-group">
+                <label>Datum & Tijd</label>
+                <input type="datetime-local" id="melding-datetime">
+            </div>
+
+            <div class="form-group">
+                <label>Locatie (adres/omschrijving)</label>
+                <input type="text" id="melding-locatie" placeholder="Bijv. Hoofdstraat 123, Amsterdam">
+            </div>
+
+            <div class="form-group">
+                <label>GPS-positie vastleggen</label>
+                <button type="button" class="gps-btn" id="gps-btn" onclick="App.captureGPS()">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div class="gps-info">
+                        <strong>Klik om locatie vast te leggen</strong>
+                        <span id="gps-coords">Nog niet vastgelegd</span>
+                    </div>
+                </button>
+                <input type="hidden" id="melding-lat">
+                <input type="hidden" id="melding-lng">
+            </div>
+
+            <div class="form-group">
+                <label>Betrokken onderneming</label>
+                <select id="melding-onderneming">
+                    <option value="">-- Selecteer onderneming --</option>
+                </select>
+                <button type="button" class="btn btn-outline btn-sm" onclick="App.openModal('onderneming')" style="margin-top: 8px;">
+                    <i class="fas fa-plus"></i> Nieuwe onderneming
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label>Type fraude(vermoeden)</label>
+                <div class="tags-container" id="fraude-tags">
+                    <span class="tag" data-value="declaratiefraude">Declaratiefraude</span>
+                    <span class="tag" data-value="pgb-fraude">PGB-fraude</span>
+                    <span class="tag" data-value="kwaliteitsprobleem">Kwaliteitsprobleem</span>
+                    <span class="tag" data-value="zorgverwaarlozing">Zorgverwaarlozing</span>
+                    <span class="tag" data-value="identiteitsfraude">Identiteitsfraude</span>
+                    <span class="tag" data-value="dubbele-declaratie">Dubbele declaratie</span>
+                    <span class="tag" data-value="niet-geleverde-zorg">Niet geleverde zorg</span>
+                    <span class="tag" data-value="overig">Overig</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Soort zorg</label>
+                <div class="tags-container" id="zorg-tags">
+                    <span class="tag" data-value="wmo">Wmo</span>
+                    <span class="tag" data-value="pgb">PGB</span>
+                    <span class="tag" data-value="jeugdzorg">Jeugdzorg</span>
+                    <span class="tag" data-value="wlz">Wlz</span>
+                    <span class="tag" data-value="zvw">Zvw</span>
+                    <span class="tag" data-value="ggz">GGZ</span>
+                    <span class="tag" data-value="thuiszorg">Thuiszorg</span>
+                    <span class="tag" data-value="verpleging">Verpleging</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Mutatie / Omschrijving</label>
+                <textarea id="melding-omschrijving" placeholder="Beschrijf hier de situatie, waarnemingen en relevante details..."></textarea>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="App.closeModal('melding')">Annuleren</button>
+            <button class="btn btn-accent" onclick="App.saveMelding()">
+                <i class="fas fa-save"></i> Opslaan
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Nieuwe Onderneming -->
+<div id="modal-onderneming" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-building"></i> Onderneming toevoegen</h3>
+            <button class="modal-close" onclick="App.closeModal('onderneming')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            
+            <div class="form-group">
+                <label>Naam onderneming *</label>
+                <input type="text" id="onderneming-naam" placeholder="Officiële naam">
+            </div>
+
+            <div class="form-group">
+                <label>KVK-nummer</label>
+                <input type="text" id="onderneming-kvk" placeholder="8 cijfers" maxlength="8" pattern="[0-9]{8}">
+            </div>
+
+            <div class="form-group">
+                <label>Adres</label>
+                <input type="text" id="onderneming-adres" placeholder="Straat, huisnummer, postcode, plaats">
+            </div>
+
+            <div class="form-group">
+                <label>Contactpersoon</label>
+                <input type="text" id="onderneming-contact" placeholder="Naam contactpersoon">
+            </div>
+
+            <div class="form-group">
+                <label>Opmerkingen</label>
+                <textarea id="onderneming-opmerkingen" placeholder="Aanvullende informatie..."></textarea>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="App.closeModal('onderneming')">Annuleren</button>
+            <button class="btn btn-accent" onclick="App.saveOnderneming()">
+                <i class="fas fa-save"></i> Opslaan
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+
+// ============================================================================
+// DATA STORAGE
+// ============================================================================
+const Storage = {
+    KEYS: {
+        MELDINGEN: 'zorganalyst_mobile_meldingen',
+        ONDERNEMINGEN: 'zorganalyst_mobile_ondernemingen'
+    },
+
+    get(key) {
+        try {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : [];
+        } catch (error) {
+            console.error('Storage get error:', error);
+            return [];
+        }
+    },
+
+    set(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+            return true;
+        } catch (error) {
+            console.error('Storage set error:', error);
+            return false;
+        }
+    },
+
+    clear() {
+        try {
+            localStorage.removeItem(this.KEYS.MELDINGEN);
+            localStorage.removeItem(this.KEYS.ONDERNEMINGEN);
+            return true;
+        } catch (error) {
+            console.error('Storage clear error:', error);
+            return false;
+        }
+    }
+};
+
+// ============================================================================
+// APPLICATION
+// ============================================================================
+const App = {
+    meldingen: [],
+    ondernemingen: [],
+    selectedFraudeTypes: [],
+    selectedZorgTypes: [],
+    currentGPS: null,
+
+    init() {
+        this.loadData();
+        this.setupEventListeners();
+        this.setupTagListeners();
+        this.render();
+        this.generateQRCode();
+        this.setDefaultDateTime();
+    },
+
+    loadData() {
+        this.meldingen = Storage.get(Storage.KEYS.MELDINGEN);
+        this.ondernemingen = Storage.get(Storage.KEYS.ONDERNEMINGEN);
+    },
+
+    saveData() {
+        Storage.set(Storage.KEYS.MELDINGEN, this.meldingen);
+        Storage.set(Storage.KEYS.ONDERNEMINGEN, this.ondernemingen);
+    },
+
+    setupEventListeners() {
+        // Close modal on backdrop click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    const modalId = modal.id.replace('modal-', '');
+                    this.closeModal(modalId);
+                }
+            });
+        });
+
+        // Prevent data loss
+        window.addEventListener('beforeunload', (e) => {
+            if (this.meldingen.length > 0 || this.ondernemingen.length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    },
+
+    setupTagListeners() {
+        // Fraude type tags
+        document.querySelectorAll('#fraude-tags .tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                tag.classList.toggle('active');
+                this.updateSelectedTags('fraude');
+            });
+        });
+
+        // Zorg type tags
+        document.querySelectorAll('#zorg-tags .tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                tag.classList.toggle('active');
+                this.updateSelectedTags('zorg');
+            });
+        });
+    },
+
+    updateSelectedTags(type) {
+        const container = type === 'fraude' ? '#fraude-tags' : '#zorg-tags';
+        const selected = [];
+        document.querySelectorAll(`${container} .tag.active`).forEach(tag => {
+            selected.push(tag.dataset.value);
+        });
+        if (type === 'fraude') {
+            this.selectedFraudeTypes = selected;
+        } else {
+            this.selectedZorgTypes = selected;
+        }
+    },
+
+    setDefaultDateTime() {
+        const now = new Date();
+        const offset = now.getTimezoneOffset();
+        const local = new Date(now.getTime() - offset * 60 * 1000);
+        document.getElementById('melding-datetime').value = local.toISOString().slice(0, 16);
+    },
+
+    // ========================================================================
+    // PAGE NAVIGATION
+    // ========================================================================
+    showPage(pageName) {
+        // Update tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        // Update pages
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        document.getElementById(`page-${pageName}`).classList.add('active');
+    },
+
+    // ========================================================================
+    // MODAL HANDLING
+    // ========================================================================
+    openModal(type) {
+        const modal = document.getElementById(`modal-${type}`);
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            if (type === 'melding') {
+                this.setDefaultDateTime();
+                this.resetMeldingForm();
+                this.populateOndernemingSelect();
+            }
+        }
+    },
+
+    closeModal(type) {
+        const modal = document.getElementById(`modal-${type}`);
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    },
+
+    // ========================================================================
+    // GPS HANDLING
+    // ========================================================================
+    captureGPS() {
+        const btn = document.getElementById('gps-btn');
+        const coordsSpan = document.getElementById('gps-coords');
+        
+        if (!navigator.geolocation) {
+            this.showToast('GPS niet beschikbaar op dit apparaat', 'error');
+            return;
+        }
+
+        coordsSpan.textContent = 'Locatie ophalen...';
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude.toFixed(6);
+                const lng = position.coords.longitude.toFixed(6);
+                
+                document.getElementById('melding-lat').value = lat;
+                document.getElementById('melding-lng').value = lng;
+                
+                coordsSpan.textContent = `${lat}, ${lng} (±${Math.round(position.coords.accuracy)}m)`;
+                btn.classList.add('active');
+                
+                this.currentGPS = {
+                    lat: parseFloat(lat),
+                    lng: parseFloat(lng),
+                    accuracy: position.coords.accuracy,
+                    timestamp: new Date().toISOString()
+                };
+                
+                this.showToast('GPS-locatie vastgelegd', 'success');
+            },
+            (error) => {
+                let message = 'Kon locatie niet ophalen';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Locatietoegang geweigerd';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Locatie niet beschikbaar';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Timeout bij ophalen locatie';
+                        break;
+                }
+                coordsSpan.textContent = message;
+                this.showToast(message, 'error');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    },
+
+    // ========================================================================
+    // MELDING HANDLING
+    // ========================================================================
+    resetMeldingForm() {
+        document.getElementById('melding-locatie').value = '';
+        document.getElementById('melding-omschrijving').value = '';
+        document.getElementById('melding-onderneming').value = '';
+        document.getElementById('melding-lat').value = '';
+        document.getElementById('melding-lng').value = '';
+        document.getElementById('gps-coords').textContent = 'Nog niet vastgelegd';
+        document.getElementById('gps-btn').classList.remove('active');
+        
+        // Reset tags
+        document.querySelectorAll('#fraude-tags .tag, #zorg-tags .tag').forEach(tag => {
+            tag.classList.remove('active');
+        });
+        this.selectedFraudeTypes = [];
+        this.selectedZorgTypes = [];
+        this.currentGPS = null;
+    },
+
+    populateOndernemingSelect() {
+        const select = document.getElementById('melding-onderneming');
+        select.innerHTML = '<option value="">-- Selecteer onderneming --</option>';
+        
+        this.ondernemingen.forEach(o => {
+            const option = document.createElement('option');
+            option.value = o.id;
+            option.textContent = o.naam + (o.kvk ? ` (KVK: ${o.kvk})` : '');
+            select.appendChild(option);
+        });
+    },
+
+    saveMelding() {
+        const datetime = document.getElementById('melding-datetime').value;
+        const locatie = document.getElementById('melding-locatie').value.trim();
+        const ondernemingId = document.getElementById('melding-onderneming').value;
+        const omschrijving = document.getElementById('melding-omschrijving').value.trim();
+        const lat = document.getElementById('melding-lat').value;
+        const lng = document.getElementById('melding-lng').value;
+
+        // Validation
+        if (!datetime) {
+            this.showToast('Selecteer een datum en tijd', 'error');
+            return;
+        }
+
+        if (!omschrijving) {
+            this.showToast('Vul een omschrijving in', 'error');
+            return;
+        }
+
+        const onderneming = this.ondernemingen.find(o => o.id === ondernemingId);
+
+        const melding = {
+            id: 'MLG-' + Date.now(),
+            datetime: datetime,
+            locatie: locatie,
+            gps: lat && lng ? {
+                lat: parseFloat(lat),
+                lng: parseFloat(lng),
+                accuracy: this.currentGPS?.accuracy || null,
+                capturedAt: this.currentGPS?.timestamp || null
+            } : null,
+            onderneming: onderneming ? {
+                id: onderneming.id,
+                naam: onderneming.naam,
+                kvk: onderneming.kvk
+            } : null,
+            fraudeTypes: [...this.selectedFraudeTypes],
+            zorgTypes: [...this.selectedZorgTypes],
+            omschrijving: omschrijving,
+            createdAt: new Date().toISOString()
+        };
+
+        this.meldingen.unshift(melding);
+        this.saveData();
+        this.render();
+        this.closeModal('melding');
+        this.showToast('Melding opgeslagen', 'success');
+    },
+
+    deleteMelding(id) {
+        if (!confirm('Weet je zeker dat je deze melding wilt verwijderen?')) return;
+        
+        this.meldingen = this.meldingen.filter(m => m.id !== id);
+        this.saveData();
+        this.render();
+        this.showToast('Melding verwijderd', 'success');
+    },
+
+    // ========================================================================
+    // ONDERNEMING HANDLING
+    // ========================================================================
+    saveOnderneming() {
+        const naam = document.getElementById('onderneming-naam').value.trim();
+        const kvk = document.getElementById('onderneming-kvk').value.trim();
+        const adres = document.getElementById('onderneming-adres').value.trim();
+        const contact = document.getElementById('onderneming-contact').value.trim();
+        const opmerkingen = document.getElementById('onderneming-opmerkingen').value.trim();
+
+        if (!naam) {
+            this.showToast('Vul de naam van de onderneming in', 'error');
+            return;
+        }
+
+        if (kvk && !/^\d{8}$/.test(kvk)) {
+            this.showToast('KVK-nummer moet 8 cijfers zijn', 'error');
+            return;
+        }
+
+        const onderneming = {
+            id: 'OND-' + Date.now(),
+            naam: naam,
+            kvk: kvk || null,
+            adres: adres || null,
+            contact: contact || null,
+            opmerkingen: opmerkingen || null,
+            createdAt: new Date().toISOString()
+        };
+
+        this.ondernemingen.push(onderneming);
+        this.saveData();
+        this.render();
+        this.closeModal('onderneming');
+        
+        // Clear form
+        document.getElementById('onderneming-naam').value = '';
+        document.getElementById('onderneming-kvk').value = '';
+        document.getElementById('onderneming-adres').value = '';
+        document.getElementById('onderneming-contact').value = '';
+        document.getElementById('onderneming-opmerkingen').value = '';
+
+        // Refresh dropdown if melding modal is open
+        if (document.getElementById('modal-melding').classList.contains('active')) {
+            this.populateOndernemingSelect();
+            document.getElementById('melding-onderneming').value = onderneming.id;
+        }
+
+        this.showToast('Onderneming toegevoegd', 'success');
+    },
+
+    deleteOnderneming(id) {
+        if (!confirm('Weet je zeker dat je deze onderneming wilt verwijderen?')) return;
+        
+        this.ondernemingen = this.ondernemingen.filter(o => o.id !== id);
+        this.saveData();
+        this.render();
+        this.showToast('Onderneming verwijderd', 'success');
+    },
+
+    // ========================================================================
+    // RENDERING
+    // ========================================================================
+    render() {
+        this.renderStats();
+        this.renderMeldingen();
+        this.renderOndernemingen();
+    },
+
+    renderStats() {
+        document.getElementById('stat-meldingen').textContent = this.meldingen.length;
+        document.getElementById('stat-ondernemingen').textContent = this.ondernemingen.length;
+        document.getElementById('export-meldingen').textContent = this.meldingen.length;
+        document.getElementById('export-ondernemingen').textContent = this.ondernemingen.length;
+    },
+
+    renderMeldingen() {
+        const container = document.getElementById('meldingen-list');
+        
+        if (this.meldingen.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h4>Nog geen meldingen</h4>
+                    <p>Maak je eerste zorgmelding aan</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = this.meldingen.map(m => {
+            const date = new Date(m.datetime);
+            const dateStr = date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+            const timeStr = date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+            
+            const fraudeTags = m.fraudeTypes.map(t => `<span class="tag">${this.formatTag(t)}</span>`).join('');
+            const zorgTags = m.zorgTypes.map(t => `<span class="tag">${this.formatTag(t)}</span>`).join('');
+
+            return `
+                <div class="melding-card">
+                    <div class="melding-card-header">
+                        <h4>${m.onderneming ? m.onderneming.naam : 'Geen onderneming'}</h4>
+                        <span class="date">${dateStr} ${timeStr}</span>
+                    </div>
+                    <div class="melding-card-tags">
+                        ${fraudeTags}
+                        ${zorgTags}
+                    </div>
+                    <p>${this.truncate(m.omschrijving, 150)}</p>
+                    <div class="melding-card-footer">
+                        <span class="location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            ${m.locatie || (m.gps ? `GPS: ${m.gps.lat}, ${m.gps.lng}` : 'Geen locatie')}
+                        </span>
+                        <button class="btn btn-outline btn-sm" onclick="App.deleteMelding('${m.id}')" style="width: auto; padding: 6px 12px;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    renderOndernemingen() {
+        const container = document.getElementById('ondernemingen-list');
+        
+        if (this.ondernemingen.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-store"></i>
+                    <h4>Nog geen ondernemingen</h4>
+                    <p>Voeg een onderneming toe</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = this.ondernemingen.map(o => `
+            <div class="list-item">
+                <div class="list-item-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="list-item-content">
+                    <strong>${o.naam}</strong>
+                    <span>${o.kvk ? 'KVK: ' + o.kvk : 'Geen KVK'} ${o.adres ? '• ' + o.adres : ''}</span>
+                </div>
+                <div class="list-item-actions">
+                    <button onclick="App.deleteOnderneming('${o.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    formatTag(value) {
+        return value.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    },
+
+    truncate(str, length) {
+        if (!str) return '';
+        return str.length > length ? str.substring(0, length) + '...' : str;
+    },
+
+    // ========================================================================
+    // EXPORT
+    // ========================================================================
+    exportData() {
+        if (this.meldingen.length === 0 && this.ondernemingen.length === 0) {
+            this.showToast('Geen data om te exporteren', 'error');
+            return;
+        }
+
+        const exportData = {
+            version: '1.0.0',
+            exportedAt: new Date().toISOString(),
+            source: 'ZorgAnalyst Pro Mobile',
+            meldingen: this.meldingen,
+            ondernemingen: this.ondernemingen
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ZorgAnalyst_Mobile_Export_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.showToast('Export gedownload', 'success');
+    },
+
+    clearAllData() {
+        if (!confirm('WAARSCHUWING: Alle data wordt permanent verwijderd. Heb je eerst geëxporteerd?')) return;
+        if (!confirm('Weet je het zeker? Dit kan niet ongedaan worden gemaakt.')) return;
+
+        Storage.clear();
+        this.meldingen = [];
+        this.ondernemingen = [];
+        this.render();
+        this.showToast('Alle data gewist', 'success');
+    },
+
+    // ========================================================================
+    // QR CODE
+    // ========================================================================
+    generateQRCode() {
+        const qrContainer = document.getElementById('qrcode');
+        if (qrContainer && typeof QRCode !== 'undefined') {
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: window.location.href,
+                width: 150,
+                height: 150,
+                colorDark: '#1a1a2e',
+                colorLight: '#ffffff'
+            });
+        }
+    },
+
+    // ========================================================================
+    // TOAST NOTIFICATIONS
+    // ========================================================================
+    showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast ' + type;
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+};
+
+// Initialize app
+document.addEventListener('DOMContentLoaded', () => App.init());
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then((registration) => {
+                console.log('%c Service Worker geregistreerd', 'color:#198754', registration.scope);
+            })
+            .catch((error) => {
+                console.error('Service Worker registratie mislukt:', error);
+            });
+    });
+}
+
+// Console branding
+console.log('%c ZorgAnalyst Pro Mobile v1.0.0', 'font-size:16px;font-weight:bold;color:#0d6efd');
+console.log('%c © 2025 Knowledge by Data', 'font-size:12px;color:#20c997');
+</script>
+</body>
+</html>
