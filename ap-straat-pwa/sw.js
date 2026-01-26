@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ap-straat-v1';
+const CACHE_NAME = 'ap-straat-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',

@@ -232,6 +232,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 <div class="stat"><div class="ic green"><i class="fas fa-users"></i></div><div class="val" id="sP">0</div><div class="lbl">Personen</div></div>
 <div class="stat"><div class="ic blue"><i class="fas fa-car"></i></div><div class="val" id="sV">0</div><div class="lbl">Voertuigen</div></div>
 <div class="stat"><div class="ic orange"><i class="fas fa-map-marker-alt"></i></div><div class="val" id="sA">0</div><div class="lbl">Adressen</div></div>
+<div class="stat"><div class="ic" style="background:rgba(52,73,94,.1);color:#34495e"><i class="fas fa-building"></i></div><div class="val" id="sB">0</div><div class="lbl">Ondernemingen</div></div>
 </div>
 <div class="quick">
 <div class="qbtn" onclick="nav('nieuw')"><i class="fas fa-plus-circle"></i><span>Nieuwe Waarneming</span></div>
@@ -274,6 +275,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 <button class="add-btn" onclick="Ent.show('person')"><i class="fas fa-user-plus"></i> Persoon</button>
 <button class="add-btn" onclick="Ent.show('vehicle')"><i class="fas fa-car"></i> Voertuig</button>
 <button class="add-btn" onclick="Ent.show('address')"><i class="fas fa-map-marker-alt"></i> Adres</button>
+<button class="add-btn" onclick="Ent.show('business')"><i class="fas fa-building"></i> Onderneming</button>
 </div>
 <div class="section">Foto's</div>
 <div class="photos"><i class="fas fa-camera"></i><p><strong>Tik om foto's te maken</strong></p><input type="file" accept="image/*" multiple capture="environment" onchange="Photo.add(this.files)"></div>
@@ -294,6 +296,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 <div class="section">Personen (<span id="cP">0</span>)</div><div id="listP"></div>
 <div class="section">Voertuigen (<span id="cV">0</span>)</div><div id="listV"></div>
 <div class="section">Adressen (<span id="cA">0</span>)</div><div id="listA"></div>
+<div class="section">Ondernemingen (<span id="cB">0</span>)</div><div id="listB"></div>
 </div>
 
 <!-- Export -->
@@ -355,6 +358,13 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 <div class="fg"><label>Postcode</label><input class="fc" id="aPC" placeholder="1234 AB"></div>
 <div class="fg"><label>Plaats</label><input class="fc" id="aPlaats" placeholder="Amsterdam"></div>
 </div>
+<div id="formBusiness" class="hidden">
+<div class="fg"><label>Handelsnaam <span class="req">*</span></label><input class="fc" id="bNaam" placeholder="Bedrijfsnaam"></div>
+<div class="fg"><label>KvK-nummer</label><input class="fc" id="bKvk" placeholder="12345678"></div>
+<div class="fg"><label>Rechtsvorm</label><select class="fc" id="bRecht"><option value="">-- Selecteer --</option><option value="Eenmanszaak">Eenmanszaak</option><option value="VOF">VOF</option><option value="BV">BV</option><option value="NV">NV</option><option value="Stichting">Stichting</option><option value="Vereniging">Vereniging</option><option value="Maatschap">Maatschap</option><option value="CV">CV</option><option value="Overig">Overig</option></select></div>
+<div class="fg"><label>Vestigingsadres</label><input class="fc" id="bAdres" placeholder="Straat 123, Plaats"></div>
+<div class="fg"><label>Opmerkingen</label><textarea class="fc" id="bOpm" rows="2" placeholder="Bijzonderheden..."></textarea></div>
+</div>
 <button class="btn btn-s" onclick="Ent.saveNew()"><i class="fas fa-plus"></i> Toevoegen</button>
 </div>
 </div>
@@ -369,7 +379,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 <hr style="margin:20px 0;border:none;border-top:1px solid #e0e0e0">
 <button class="btn btn-w mb10" onclick="A.changePin()"><i class="fas fa-key"></i> PIN Wijzigen</button>
 <button class="btn btn-d" onclick="A.logout()"><i class="fas fa-sign-out-alt"></i> Uitloggen</button>
-<p style="text-align:center;color:var(--gray);font-size:.75rem;margin-top:20px">AP Straat v1.1 PWA<br>© 2025 Knowledge by Data</p>
+<p style="text-align:center;color:var(--gray);font-size:.75rem;margin-top:20px">AP Straat v1.2 PWA<br>© 2025 Knowledge by Data</p>
 </div>
 </div>
 
@@ -385,7 +395,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
 <script>
 'use strict';
-const K={PIN:'ap_pin',USER:'ap_user',WAAR:'ap_waar',PERS:'ap_pers',VEHI:'ap_vehi',ADDR:'ap_addr'};
+const K={PIN:'ap_pin',USER:'ap_user',WAAR:'ap_waar',PERS:'ap_pers',VEHI:'ap_vehi',ADDR:'ap_addr',BUSI:'ap_busi'};
 const esc=t=>{if(!t)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML};
 const fmtDate=d=>new Date(d).toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 const genId=()=>Date.now().toString(36)+Math.random().toString(36).substr(2,6);
@@ -558,7 +568,7 @@ reset(){document.getElementById('wThema').value='';document.getElementById('wBes
 updEnts(){
 const c=document.getElementById('selEnts');
 if(!selEnts.length){c.innerHTML='<span style="color:var(--gray);font-size:.85rem">Geen geselecteerd</span>';return}
-const icons={person:'fa-user',vehicle:'fa-car',address:'fa-map-marker-alt'};
+const icons={person:'fa-user',vehicle:'fa-car',address:'fa-map-marker-alt',business:'fa-building'};
 c.innerHTML=selEnts.map(e=>`<div class="chip sel"><i class="fas ${icons[e.type]}"></i>${esc(e.label)}<i class="fas fa-times x" onclick="W.remEnt('${e.id}')"></i></div>`).join('');
 },
 addEnt(e){if(!selEnts.find(x=>x.id===e.id)){selEnts.push(e);this.updEnts()}},
@@ -616,7 +626,7 @@ document.getElementById('detBody').innerHTML=`
 <div class="section">Beschrijving</div>
 <p>${esc(w.beschrijving)}</p>
 <div class="section">Entiteiten (${w.entiteiten.length})</div>
-<div class="chips">${w.entiteiten.map(e=>`<div class="chip"><i class="fas fa-${e.type==='person'?'user':e.type==='vehicle'?'car':'map-marker-alt'}"></i>${esc(e.label)}</div>`).join('')}</div>
+<div class="chips">${w.entiteiten.map(e=>`<div class="chip"><i class="fas fa-${e.type==='person'?'user':e.type==='vehicle'?'car':e.type==='business'?'building':'map-marker-alt'}"></i>${esc(e.label)}</div>`).join('')}</div>
 ${w.fotos?`<div class="section">Foto's (${w.fotos})</div><p style="color:var(--gray);font-size:.85rem">Foto's blijven lokaal op het toestel.</p>`:''}
 `;
 document.getElementById('detModal').classList.add('show');
@@ -655,7 +665,7 @@ r.readAsDataURL(f);
 // ENTITY DB
 const DB={
 add(type,data){
-const key=type==='person'?K.PERS:type==='vehicle'?K.VEHI:K.ADDR;
+const key=type==='person'?K.PERS:type==='vehicle'?K.VEHI:type==='business'?K.BUSI:K.ADDR;
 const list=JSON.parse(localStorage.getItem(key)||'[]');
 const ent={id:genId(),type,...data,created:new Date().toISOString()};
 list.push(ent);
@@ -666,21 +676,25 @@ getAll(){
 return{
 persons:JSON.parse(localStorage.getItem(K.PERS)||'[]'),
 vehicles:JSON.parse(localStorage.getItem(K.VEHI)||'[]'),
-addresses:JSON.parse(localStorage.getItem(K.ADDR)||'[]')
+addresses:JSON.parse(localStorage.getItem(K.ADDR)||'[]'),
+businesses:JSON.parse(localStorage.getItem(K.BUSI)||'[]')
 };
 },
 updLists(filter=''){
-const{persons,vehicles,addresses}=this.getAll();
+const{persons,vehicles,addresses,businesses}=this.getAll();
 const fl=filter.toLowerCase();
 document.getElementById('cP').textContent=persons.length;
 document.getElementById('cV').textContent=vehicles.length;
 document.getElementById('cA').textContent=addresses.length;
+document.getElementById('cB').textContent=businesses.length;
 const fp=persons.filter(p=>!fl||p.naam.toLowerCase().includes(fl));
 const fv=vehicles.filter(v=>!fl||v.kenteken.toLowerCase().includes(fl)||(v.merk||'').toLowerCase().includes(fl));
 const fa=addresses.filter(a=>!fl||(a.straat||'').toLowerCase().includes(fl)||(a.plaats||'').toLowerCase().includes(fl));
+const fb=businesses.filter(b=>!fl||(b.naam||'').toLowerCase().includes(fl)||(b.kvk||'').toLowerCase().includes(fl));
 document.getElementById('listP').innerHTML=fp.length?fp.map(p=>`<div class="item"><div class="iw green"><i class="fas fa-user"></i></div><div class="cnt"><div class="ttl">${esc(p.naam)}</div><div class="meta">${esc(p.rol)||'Geen rol'}</div></div></div>`).join(''):'<div class="empty"><p>Geen personen</p></div>';
 document.getElementById('listV').innerHTML=fv.length?fv.map(v=>`<div class="item"><div class="iw blue"><i class="fas fa-car"></i></div><div class="cnt"><div class="ttl">${esc(v.kenteken)}</div><div class="meta">${[v.merk,v.type,v.kleur].filter(x=>x).join(' • ')||'Geen details'}</div></div></div>`).join(''):'<div class="empty"><p>Geen voertuigen</p></div>';
 document.getElementById('listA').innerHTML=fa.length?fa.map(a=>`<div class="item"><div class="iw orange"><i class="fas fa-map-marker-alt"></i></div><div class="cnt"><div class="ttl">${esc(a.straat)} ${esc(a.huisnummer)}</div><div class="meta">${[a.postcode,a.plaats].filter(x=>x).join(' ')||'Geen details'}</div></div></div>`).join(''):'<div class="empty"><p>Geen adressen</p></div>';
+document.getElementById('listB').innerHTML=fb.length?fb.map(b=>`<div class="item"><div class="iw" style="background:rgba(52,73,94,.1);color:#34495e"><i class="fas fa-building"></i></div><div class="cnt"><div class="ttl">${esc(b.naam)}</div><div class="meta">${[b.kvk?'KvK: '+b.kvk:'',b.rechtsvorm].filter(x=>x).join(' • ')||'Geen details'}</div></div></div>`).join(''):'<div class="empty"><p>Geen ondernemingen</p></div>';
 },
 filter(q){this.updLists(q)}
 };
@@ -690,7 +704,7 @@ const Ent={
 type:null,
 show(type){
 this.type=type;
-document.getElementById('entTitle').textContent=type==='person'?'Persoon':type==='vehicle'?'Voertuig':'Adres';
+document.getElementById('entTitle').textContent=type==='person'?'Persoon':type==='vehicle'?'Voertuig':type==='business'?'Onderneming':'Adres';
 document.querySelectorAll('.entity-form').forEach(f=>f.classList.add('hidden'));
 document.getElementById('form'+type.charAt(0).toUpperCase()+type.slice(1)).classList.remove('hidden');
 document.querySelectorAll('#entModal .tab').forEach((t,i)=>{t.classList.toggle('active',i===0)});
@@ -705,22 +719,24 @@ document.getElementById('tabExisting').classList.toggle('active',t==='existing')
 document.getElementById('tabNew').classList.toggle('active',t==='new');
 },
 search(q){
-const{persons,vehicles,addresses}=DB.getAll();
-let list=this.type==='person'?persons:this.type==='vehicle'?vehicles:addresses;
+const{persons,vehicles,addresses,businesses}=DB.getAll();
+let list=this.type==='person'?persons:this.type==='vehicle'?vehicles:this.type==='business'?businesses:addresses;
 const ql=q.toLowerCase();
 if(ql)list=list.filter(e=>{
 if(this.type==='person')return e.naam.toLowerCase().includes(ql);
 if(this.type==='vehicle')return e.kenteken.toLowerCase().includes(ql);
+if(this.type==='business')return(e.naam||'').toLowerCase().includes(ql)||(e.kvk||'').toLowerCase().includes(ql);
 return(e.straat||'').toLowerCase().includes(ql);
 });
 const c=document.getElementById('entResults');
 if(!list.length){c.innerHTML='<div class="empty"><p>Geen gevonden</p></div>';return}
-const icons={person:'fa-user',vehicle:'fa-car',address:'fa-map-marker-alt'};
-const colors={person:'green',vehicle:'blue',address:'orange'};
+const icons={person:'fa-user',vehicle:'fa-car',address:'fa-map-marker-alt',business:'fa-building'};
+const colors={person:'green',vehicle:'blue',address:'orange',business:''};
 c.innerHTML=list.map(e=>{
-const label=this.type==='person'?e.naam:this.type==='vehicle'?e.kenteken:`${e.straat} ${e.huisnummer||''}`;
+const label=this.type==='person'?e.naam:this.type==='vehicle'?e.kenteken:this.type==='business'?e.naam:`${e.straat} ${e.huisnummer||''}`;
 const already=selEnts.find(x=>x.id===e.id);
-return`<div class="item" style="cursor:pointer;${already?'opacity:.5':'\"'}" onclick="${already?'':`Ent.select('${e.id}','${this.type}','${esc(label.replace(/'/g,"\\'"))}')`}"><div class="iw ${colors[this.type]}"><i class="fas ${icons[this.type]}"></i></div><div class="cnt"><div class="ttl">${esc(label)}</div></div>${already?'<span style="color:var(--success)"><i class="fas fa-check"></i></span>':''}</div>`;
+const colorStyle=this.type==='business'?'style="background:rgba(52,73,94,.1);color:#34495e"':'';
+return`<div class="item" style="cursor:pointer;${already?'opacity:.5':'\"'}" onclick="${already?'':`Ent.select('${e.id}','${this.type}','${esc(label.replace(/'/g,"\\'"))}')`}"><div class="iw ${colors[this.type]}" ${colorStyle}><i class="fas ${icons[this.type]}"></i></div><div class="cnt"><div class="ttl">${esc(label)}</div></div>${already?'<span style="color:var(--success)"><i class="fas fa-check"></i></span>':''}</div>`;
 }).join('');
 },
 select(id,type,label){
@@ -742,6 +758,12 @@ if(!kent){toast('Voer kenteken in','err');return}
 ent=DB.add('vehicle',{kenteken:kent,merk:document.getElementById('vMerk').value.trim(),type:document.getElementById('vType').value.trim(),kleur:document.getElementById('vKleur').value.trim()});
 label=kent;
 document.getElementById('vKent').value='';document.getElementById('vMerk').value='';document.getElementById('vType').value='';document.getElementById('vKleur').value='';
+}else if(this.type==='business'){
+const naam=document.getElementById('bNaam').value.trim();
+if(!naam){toast('Voer handelsnaam in','err');return}
+ent=DB.add('business',{naam,kvk:document.getElementById('bKvk').value.trim(),rechtsvorm:document.getElementById('bRecht').value,adres:document.getElementById('bAdres').value.trim(),opmerkingen:document.getElementById('bOpm').value.trim()});
+label=naam;
+document.getElementById('bNaam').value='';document.getElementById('bKvk').value='';document.getElementById('bRecht').value='';document.getElementById('bAdres').value='';document.getElementById('bOpm').value='';
 }else{
 const straat=document.getElementById('aStraat').value.trim();
 if(!straat){toast('Voer straat in','err');return}
@@ -761,14 +783,14 @@ toast('Aangemaakt & toegevoegd','ok');
 const Exp={
 stats(){
 const waar=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
-const{persons,vehicles,addresses}=DB.getAll();
+const{persons,vehicles,addresses,businesses}=DB.getAll();
 document.getElementById('exW').textContent=waar.length;
-document.getElementById('exE').textContent=persons.length+vehicles.length+addresses.length;
+document.getElementById('exE').textContent=persons.length+vehicles.length+addresses.length+businesses.length;
 },
 build(){
 const user=JSON.parse(localStorage.getItem(K.USER)||'{}');
 const waar=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
-const{persons,vehicles,addresses}=DB.getAll();
+const{persons,vehicles,addresses,businesses}=DB.getAll();
 return{
 type:'medewerker_export',
 version:'1.0',
@@ -776,7 +798,7 @@ generated:new Date().toISOString(),
 medewerker:user.name||'Onbekend',
 notes:document.getElementById('exNotes').value.trim(),
 waarnemingen:waar,
-entities:{persons,vehicles,addresses}
+entities:{persons,vehicles,addresses,businesses}
 };
 },
 preview(){
@@ -806,16 +828,17 @@ if(n){localStorage.setItem(K.USER,JSON.stringify({name:n}));document.getElementB
 function hideDet(){document.getElementById('detModal').classList.remove('show')}
 function updStats(){
 const waar=JSON.parse(localStorage.getItem(K.WAAR)||'[]');
-const{persons,vehicles,addresses}=DB.getAll();
+const{persons,vehicles,addresses,businesses}=DB.getAll();
 document.getElementById('sW').textContent=waar.length;
 document.getElementById('sP').textContent=persons.length;
 document.getElementById('sV').textContent=vehicles.length;
 document.getElementById('sA').textContent=addresses.length;
+document.getElementById('sB').textContent=businesses.length;
 }
 function clearAll(){
 if(!confirm('ALLE data wissen?'))return;
 if(!confirm('Dit kan niet ongedaan worden!'))return;
-localStorage.removeItem(K.WAAR);localStorage.removeItem(K.PERS);localStorage.removeItem(K.VEHI);localStorage.removeItem(K.ADDR);
+localStorage.removeItem(K.WAAR);localStorage.removeItem(K.PERS);localStorage.removeItem(K.VEHI);localStorage.removeItem(K.ADDR);localStorage.removeItem(K.BUSI);
 updStats();W.updList();W.updRecent();DB.updLists();
 toast('Alles gewist','ok');
 }
