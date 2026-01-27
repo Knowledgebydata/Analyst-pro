@@ -1,240 +1,2008 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0d6efd">
-<title>ZorgAnalyst Pro Mobile</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="./icons/icon-192x192.png">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<style>
-:root{--primary:#0d6efd;--primary-dark:#0b5ed7;--primary-light:#6ea8fe;--accent:#198754;--success:#198754;--warning:#ffc107;--danger:#dc3545;--dark:#1a1a2e;--light:#f8f9fa;--gray:#6c757d;--gray-light:#dee2e6}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--light);min-height:100vh;color:var(--dark)}
-.hidden{display:none!important}
-.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--dark),#16213e);padding:20px}
-.auth-box{background:rgba(255,255,255,0.05);padding:40px 30px;border-radius:24px;width:100%;max-width:360px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);text-align:center}
-.auth-logo{width:80px;height:80px;background:var(--primary);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2rem;color:white}
-.auth-box h1{color:var(--primary-light);font-size:1.5rem;margin-bottom:8px}
-.auth-box p{color:rgba(255,255,255,0.6);margin-bottom:30px;font-size:0.9rem}
-.auth-input{width:100%;padding:15px;margin-bottom:15px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.3);color:white;font-size:1rem;text-align:center}
-.auth-input::placeholder{color:rgba(255,255,255,0.4)}
-.auth-input:focus{outline:none;border-color:var(--primary)}
-.pin-dots{display:flex;justify-content:center;gap:15px;margin:30px 0}
-.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--primary-light);background:transparent;transition:all 0.2s}
-.pin-dot.filled{background:var(--primary-light);transform:scale(1.1)}
-.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:280px;margin:0 auto}
-.numpad-btn{aspect-ratio:1;border:none;border-radius:50%;font-size:1.5rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.1);color:white;transition:all 0.15s}
-.numpad-btn:hover{background:rgba(255,255,255,0.2)}
-.numpad-btn:active{transform:scale(0.95)}
-.numpad-btn.action{background:var(--primary)}
-.auth-error{color:var(--danger);font-size:0.85rem;margin-top:15px;min-height:20px}
-@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
-.shake{animation:shake 0.4s ease-in-out}
-.app-container{display:none}
-.app-container.active{display:block}
-.security-bar{background:var(--primary);color:white;padding:8px 15px;font-size:0.75rem;text-align:center;position:fixed;top:0;left:0;right:0;z-index:1000}
-.app-header{background:linear-gradient(135deg,var(--dark),#16213e);color:white;padding:25px 20px 20px;padding-top:50px;text-align:center}
-.app-header h1{font-size:1.3rem;color:var(--primary-light);margin-bottom:5px}
-.app-header .user-info{color:rgba(255,255,255,0.7);font-size:0.85rem}
-.nav-tabs{display:flex;background:white;box-shadow:0 2px 10px rgba(0,0,0,0.1);position:sticky;top:33px;z-index:100}
-.nav-tab{flex:1;padding:12px 8px;text-align:center;border:none;background:none;cursor:pointer;font-size:0.7rem;color:var(--gray);border-bottom:3px solid transparent}
-.nav-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
-.nav-tab i{display:block;font-size:1.1rem;margin-bottom:3px}
-.main-content{padding:15px;padding-bottom:100px;max-width:600px;margin:0 auto}
-.tab-content{display:none}
-.tab-content.active{display:block}
-.card{background:white;border-radius:16px;padding:20px;margin-bottom:15px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:1px solid var(--gray-light)}
-.card-title{font-size:1rem;font-weight:600;display:flex;align-items:center;gap:8px}
-.card-title i{color:var(--primary)}
-.stats-display{background:linear-gradient(135deg,var(--dark),#16213e);color:white;border-radius:16px;padding:20px;margin-bottom:15px}
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px}
-.stat-item{text-align:center}
-.stat-item .label{font-size:0.7rem;opacity:0.7;margin-bottom:4px}
-.stat-item .value{font-size:1.3rem;font-weight:bold}
-.stat-item.highlight .value{color:var(--primary-light)}
-.gps-status{display:flex;align-items:center;gap:10px;padding:12px 15px;border-radius:10px;margin-bottom:15px;font-size:0.85rem}
-.gps-status.loading{background:#e3f2fd;color:#1565c0}
-.gps-status.success{background:#d4edda;color:#155724}
-.gps-status.error{background:#f8d7da;color:#721c24}
-.gps-status i{font-size:1.1rem}
-.form-group{margin-bottom:15px}
-.form-label{display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px}
-.form-control{width:100%;padding:12px 15px;border:2px solid var(--gray-light);border-radius:10px;font-size:1rem}
-.form-control:focus{outline:none;border-color:var(--primary)}
-textarea.form-control{min-height:120px;resize:vertical}
-.tag-group{display:flex;flex-wrap:wrap;gap:8px}
-.tag{display:inline-flex;align-items:center;padding:8px 15px;border:2px solid var(--gray-light);border-radius:20px;font-size:0.85rem;cursor:pointer;transition:all 0.2s}
-.tag.active{background:var(--primary);border-color:var(--primary);color:white}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border:none;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer}
-.btn-primary{background:var(--primary);color:white}
-.btn-success{background:var(--success);color:white}
-.btn-danger{background:var(--danger);color:white}
-.btn-outline{background:white;border:2px solid var(--gray-light);color:var(--dark)}
-.btn-block{width:100%}
-.btn-lg{padding:15px 25px;font-size:1rem}
-.melding-item{padding:15px;border-radius:12px;background:var(--light);margin-bottom:10px}
-.melding-item-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.melding-item-bedrijf{font-weight:600;display:flex;align-items:center;gap:8px}
-.melding-item-bedrijf i{color:var(--primary)}
-.melding-item-date{font-size:0.8rem;color:var(--gray)}
-.melding-item-types{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.melding-type-badge{font-size:0.7rem;padding:3px 8px;background:var(--primary);color:white;border-radius:10px}
-.empty-state{text-align:center;padding:40px 20px;color:var(--gray)}
-.empty-state i{font-size:3rem;margin-bottom:15px;opacity:0.5}
-.toast-container{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:9999}
-.toast{background:var(--dark);color:white;padding:12px 24px;border-radius:10px;font-size:0.9rem;animation:slideUp 0.3s ease}
-.toast.success{background:var(--success)}
-.toast.error{background:var(--danger)}
-@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0d6efd">
+    <title>ZorgAnalyst Pro Mobile</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0d6efd;
+            --primary-dark: #0a58ca;
+            --secondary: #6c757d;
+            --success: #198754;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --white: #ffffff;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --radius: 12px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+        
+        .header h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .header .subtitle {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+        
+        /* GPS Indicator */
+        .gps-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .gps-indicator.active {
+            background: rgba(25, 135, 84, 0.3);
+        }
+        
+        .gps-indicator.error {
+            background: rgba(220, 53, 69, 0.3);
+        }
+        
+        .gps-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--warning);
+        }
+        
+        .gps-indicator.active .gps-dot {
+            background: var(--success);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .gps-indicator.error .gps-dot {
+            background: var(--danger);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        
+        /* Main Container */
+        .container {
+            padding: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow);
+        }
+        
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title i {
+            color: var(--primary);
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--secondary);
+        }
+        
+        .form-group label.required::after {
+            content: ' *';
+            color: var(--danger);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+        }
+        
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M8 10.5l-5-5h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 35px;
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        /* Row Layout */
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+        }
+        
+        /* Autocomplete */
+        .autocomplete-container {
+            position: relative;
+        }
+        
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border: 2px solid var(--primary);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+        }
+        
+        .autocomplete-list.show {
+            display: block;
+        }
+        
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .autocomplete-item:hover,
+        .autocomplete-item.active {
+            background: var(--light);
+        }
+        
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Speech Button */
+        .speech-container {
+            position: relative;
+        }
+        
+        .speech-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .speech-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+        
+        .speech-btn.recording {
+            background: var(--danger);
+            animation: pulse-record 1s infinite;
+        }
+        
+        @keyframes pulse-record {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            50% { box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
+        }
+        
+        .speech-status {
+            font-size: 0.75rem;
+            color: var(--secondary);
+            margin-top: 5px;
+            min-height: 18px;
+        }
+        
+        .speech-status.recording {
+            color: var(--danger);
+            font-weight: 500;
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #157347;
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+        
+        /* Tags/Chips for bedrijven */
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--light);
+            border: 1px solid #dee2e6;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        
+        .chip.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .chip-remove {
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        
+        .chip-remove:hover {
+            opacity: 1;
+        }
+        
+        /* GPS Info Box */
+        .gps-info {
+            background: linear-gradient(135deg, #e8f4fd, #d1e7fd);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        
+        .gps-info.success {
+            background: linear-gradient(135deg, #d1e7dd, #badbcc);
+        }
+        
+        .gps-info.error {
+            background: linear-gradient(135deg, #f8d7da, #f5c2c7);
+        }
+        
+        .gps-coords {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+        }
+        
+        .stat-card.secondary {
+            background: linear-gradient(135deg, var(--secondary), #5a6268);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        /* Melding List */
+        .melding-item {
+            background: var(--white);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary);
+        }
+        
+        .melding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .melding-type {
+            font-size: 0.75rem;
+            background: var(--light);
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: var(--secondary);
+        }
+        
+        .melding-date {
+            font-size: 0.75rem;
+            color: var(--secondary);
+        }
+        
+        .melding-bedrijven {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .melding-adres {
+            font-size: 0.85rem;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+        
+        .melding-omschrijving {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            color: var(--secondary);
+            text-decoration: none;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: color 0.2s;
+            border: none;
+            background: none;
+        }
+        
+        .nav-item i {
+            font-size: 1.3rem;
+        }
+        
+        .nav-item.active {
+            color: var(--primary);
+        }
+        
+        /* Screens */
+        .screen {
+            display: none;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        /* PIN Screen */
+        .pin-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            z-index: 200;
+            color: white;
+        }
+        
+        .pin-screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .pin-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .pin-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        
+        .pin-dots {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid white;
+            transition: all 0.2s;
+        }
+        
+        .pin-dot.filled {
+            background: white;
+        }
+        
+        .pin-keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            gap: 15px;
+        }
+        
+        .pin-key {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pin-key:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .pin-key:active {
+            transform: scale(0.95);
+        }
+        
+        .pin-key.empty {
+            visibility: hidden;
+        }
+        
+        .pin-key.backspace {
+            font-size: 1.2rem;
+        }
+        
+        .pin-error {
+            color: #ffcccc;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            min-height: 24px;
+        }
+        
+        /* Setup Screen */
+        .setup-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: var(--radius);
+            padding: 30px;
+            width: 100%;
+            max-width: 350px;
+            color: var(--dark);
+        }
+        
+        .setup-card h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--dark);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 300;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        .toast.success {
+            background: var(--success);
+        }
+        
+        .toast.error {
+            background: var(--danger);
+        }
+        
+        /* Add new bedrijf inline */
+        .add-bedrijf-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .add-bedrijf-row input {
+            flex: 1;
+        }
+        
+        /* Section divider */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            color: var(--secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        
+        .section-divider::before,
+        .section-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dee2e6;
+        }
+        
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Scrollable chips */
+        .bedrijf-select-container {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
-<div id="login-screen" class="auth-screen">
-<div class="auth-box">
-<div class="auth-logo"><i class="fas fa-heartbeat"></i></div>
-<h1>ZorgAnalyst Pro</h1>
-<p>Voer uw PIN in om door te gaan</p>
-<div class="pin-dots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
-<div class="numpad">
-<button class="numpad-btn" onclick="Auth.digit(1)">1</button>
-<button class="numpad-btn" onclick="Auth.digit(2)">2</button>
-<button class="numpad-btn" onclick="Auth.digit(3)">3</button>
-<button class="numpad-btn" onclick="Auth.digit(4)">4</button>
-<button class="numpad-btn" onclick="Auth.digit(5)">5</button>
-<button class="numpad-btn" onclick="Auth.digit(6)">6</button>
-<button class="numpad-btn" onclick="Auth.digit(7)">7</button>
-<button class="numpad-btn" onclick="Auth.digit(8)">8</button>
-<button class="numpad-btn" onclick="Auth.digit(9)">9</button>
-<button class="numpad-btn action" onclick="Auth.clear()"><i class="fas fa-times"></i></button>
-<button class="numpad-btn" onclick="Auth.digit(0)">0</button>
-<button class="numpad-btn action" onclick="Auth.backspace()"><i class="fas fa-backspace"></i></button>
-</div>
-<div id="login-error" class="auth-error"></div>
-</div>
-</div>
-<div id="setup-screen" class="auth-screen hidden">
-<div class="auth-box">
-<div class="auth-logo"><i class="fas fa-user-plus"></i></div>
-<h1>Welkom</h1>
-<p>Stel uw account in</p>
-<input type="text" id="setup-name" class="auth-input" placeholder="Uw naam" maxlength="50">
-<input type="password" id="setup-pin" class="auth-input" placeholder="Kies 4-cijferige PIN" maxlength="4" inputmode="numeric">
-<input type="password" id="setup-pin-confirm" class="auth-input" placeholder="Bevestig PIN" maxlength="4" inputmode="numeric">
-<button class="numpad-btn action" style="width:100%;aspect-ratio:auto;padding:15px;border-radius:12px;font-size:1rem" onclick="Auth.completeSetup()"><i class="fas fa-check"></i> Account Aanmaken</button>
-<div id="setup-error" class="auth-error"></div>
-</div>
-</div>
-<div id="app-container" class="app-container">
-<div class="security-bar"><i class="fas fa-shield-alt"></i> Beveiligde omgeving - Data blijft lokaal</div>
-<header class="app-header">
-<h1><i class="fas fa-heartbeat"></i> ZorgAnalyst Pro</h1>
-<div class="user-info">Welkom, <span id="display-user">Gebruiker</span></div>
-</header>
-<nav class="nav-tabs">
-<button class="nav-tab active" data-tab="dashboard"><i class="fas fa-home"></i>Dashboard</button>
-<button class="nav-tab" data-tab="new"><i class="fas fa-plus-circle"></i>Nieuwe</button>
-<button class="nav-tab" data-tab="list"><i class="fas fa-list"></i>Meldingen</button>
-<button class="nav-tab" data-tab="settings"><i class="fas fa-cog"></i>Instellingen</button>
-</nav>
-<main class="main-content">
-<div id="tab-dashboard" class="tab-content active">
-<div class="stats-display">
-<div class="stats-grid">
-<div class="stat-item highlight"><div class="label">Meldingen</div><div class="value" id="stat-count">0</div></div>
-<div class="stat-item"><div class="label">Unieke Bedrijven</div><div class="value" id="stat-bedrijven">0</div></div>
-</div>
-</div>
-<div class="card"><div class="card-header"><span class="card-title"><i class="fas fa-history"></i> Recente Meldingen</span></div><div id="recent-list"></div></div>
-</div>
-<div id="tab-new" class="tab-content">
-<div class="card">
-<div class="card-header"><span class="card-title"><i class="fas fa-plus-circle"></i> Nieuwe Melding</span></div>
-<div id="gps-status" class="gps-status loading"><i class="fas fa-spinner fa-spin"></i> <span>Locatie ophalen...</span></div>
-<div class="form-group"><label class="form-label">Bedrijfsnaam *</label><input type="text" id="melding-bedrijf" class="form-control" placeholder="Naam zorgorganisatie"></div>
-<div class="form-group"><label class="form-label">KVK-nummer</label><input type="text" id="melding-kvk" class="form-control" placeholder="8 cijfers" maxlength="8"></div>
-<div class="form-group"><label class="form-label">Adres</label><input type="text" id="melding-adres" class="form-control" placeholder="Straat, huisnummer, plaats"></div>
-<div class="form-group"><label class="form-label">Type fraude</label>
-<div class="tag-group" id="fraude-types">
-<div class="tag" data-type="declaratiefraude">Declaratiefraude</div>
-<div class="tag" data-type="pgb-fraude">PGB-fraude</div>
-<div class="tag" data-type="kwaliteit">Kwaliteitsprobleem</div>
-<div class="tag" data-type="zorgfraude">Zorgfraude</div>
-<div class="tag" data-type="overig">Overig</div>
-</div></div>
-<div class="form-group"><label class="form-label">Omschrijving *</label><textarea id="melding-omschrijving" class="form-control" placeholder="Beschrijf de situatie"></textarea></div>
-<button class="btn btn-success btn-block btn-lg" onclick="saveMelding()"><i class="fas fa-save"></i> Melding Opslaan</button>
-</div>
-</div>
-<div id="tab-list" class="tab-content">
-<div class="card"><div class="card-header"><span class="card-title"><i class="fas fa-list"></i> Alle Meldingen</span></div><div id="all-list"></div></div>
-</div>
-<div id="tab-settings" class="tab-content">
-<div class="card">
-<div class="card-header"><span class="card-title"><i class="fas fa-user"></i> Profiel</span></div>
-<div class="form-group"><label class="form-label">Naam</label><input type="text" id="settings-name" class="form-control"></div>
-<button class="btn btn-primary btn-block" onclick="saveSettings()"><i class="fas fa-save"></i> Opslaan</button>
-</div>
-<div class="card">
-<div class="card-header"><span class="card-title"><i class="fas fa-download"></i> Export</span></div>
-<button class="btn btn-outline btn-block" onclick="exportJSON()"><i class="fas fa-file-code"></i> Export JSON</button>
-</div>
-<div class="card">
-<div class="card-header"><span class="card-title"><i class="fas fa-shield-alt"></i> Beveiliging</span></div>
-<button class="btn btn-outline btn-block" onclick="changePin()" style="margin-bottom:10px"><i class="fas fa-key"></i> PIN Wijzigen</button>
-<button class="btn btn-danger btn-block" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Uitloggen</button>
-</div>
-<div class="card"><p style="font-size:0.85rem;color:var(--gray);text-align:center"><strong>ZorgAnalyst Pro Mobile</strong><br>Versie 1.0.0 PWA<br><br>© 2025 Knowledge by Data</p></div>
-</div>
-</main>
-</div>
-<div id="toast-container" class="toast-container"></div>
-<script>
-'use strict';
-const K={PIN:'zorg_pin',USER:'zorg_user',DATA:'zorg_data'};
-const STATE={pin:'',user:null,meldingen:[],selectedTypes:[],gps:null};
-const esc=t=>{if(!t)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML};
-const toast=(m,t='info')=>{const c=document.getElementById('toast-container');const e=document.createElement('div');e.className='toast '+t;e.textContent=m;c.appendChild(e);setTimeout(()=>e.remove(),3000)};
-const download=(content,name,type)=>{const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u)};
+    <!-- PIN Screen -->
+    <div class="pin-screen active" id="pinScreen">
+        <div id="pinLogin">
+            <h1 class="pin-title">ZorgAnalyst Pro</h1>
+            <p class="pin-subtitle">Voer uw PIN in om door te gaan</p>
+            <div class="pin-dots" id="pinDots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            <div class="pin-keypad" id="pinKeypad">
+                <button class="pin-key" data-key="1">1</button>
+                <button class="pin-key" data-key="2">2</button>
+                <button class="pin-key" data-key="3">3</button>
+                <button class="pin-key" data-key="4">4</button>
+                <button class="pin-key" data-key="5">5</button>
+                <button class="pin-key" data-key="6">6</button>
+                <button class="pin-key" data-key="7">7</button>
+                <button class="pin-key" data-key="8">8</button>
+                <button class="pin-key" data-key="9">9</button>
+                <button class="pin-key empty"></button>
+                <button class="pin-key" data-key="0">0</button>
+                <button class="pin-key backspace" data-key="back"><i class="fas fa-backspace"></i></button>
+            </div>
+            <p class="pin-error" id="pinError"></p>
+        </div>
+        
+        <div id="pinSetup" class="hidden">
+            <div class="setup-card">
+                <h2><i class="fas fa-user-plus"></i> Account Instellen</h2>
+                <div class="form-group">
+                    <label class="required">Uw naam</label>
+                    <input type="text" class="form-control" id="setupName" placeholder="Voornaam Achternaam">
+                </div>
+                <div class="form-group">
+                    <label class="required">Kies een 4-cijferige PIN</label>
+                    <input type="password" class="form-control" id="setupPin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••">
+                </div>
+                <div class="form-group">
+                    <label class="required">Bevestig PIN</label>
+                    <input type="password" class="form-control" id="setupPinConfirm" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••">
+                </div>
+                <button class="btn btn-primary" id="setupSubmit">
+                    <i class="fas fa-check"></i> Account Aanmaken
+                </button>
+                <p class="pin-error" id="setupError" style="color: var(--danger); margin-top: 10px;"></p>
+            </div>
+        </div>
+    </div>
 
-const Auth={
-init(){const p=localStorage.getItem(K.PIN);const u=localStorage.getItem(K.USER);if(p&&u){this.showLogin()}else{this.showSetup()}},
-showLogin(){document.getElementById('login-screen').classList.remove('hidden');document.getElementById('setup-screen').classList.add('hidden');document.getElementById('app-container').classList.remove('active');this.clearPin()},
-showSetup(){document.getElementById('login-screen').classList.add('hidden');document.getElementById('setup-screen').classList.remove('hidden');document.getElementById('app-container').classList.remove('active')},
-showApp(){document.getElementById('login-screen').classList.add('hidden');document.getElementById('setup-screen').classList.add('hidden');document.getElementById('app-container').classList.add('active');STATE.user=localStorage.getItem(K.USER);document.getElementById('display-user').textContent=esc(STATE.user);document.getElementById('settings-name').value=STATE.user;loadData();updateUI();getGPS()},
-digit(n){if(STATE.pin.length>=4)return;STATE.pin+=n;this.updateDots();if(STATE.pin.length===4)setTimeout(()=>this.verifyPin(),100)},
-backspace(){STATE.pin=STATE.pin.slice(0,-1);this.updateDots()},
-clear(){STATE.pin='';this.updateDots();document.getElementById('login-error').textContent=''},
-updateDots(){document.querySelectorAll('.pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<STATE.pin.length))},
-verifyPin(){const s=localStorage.getItem(K.PIN);if(STATE.pin===s){this.showApp()}else{document.getElementById('login-error').textContent='Onjuiste PIN';document.querySelector('#login-screen .auth-box').classList.add('shake');setTimeout(()=>{document.querySelector('#login-screen .auth-box').classList.remove('shake');this.clear()},400)}},
-clearPin(){STATE.pin='';this.updateDots();document.getElementById('login-error').textContent=''},
-completeSetup(){const n=document.getElementById('setup-name').value.trim();const p=document.getElementById('setup-pin').value;const c=document.getElementById('setup-pin-confirm').value;const e=document.getElementById('setup-error');if(!n){e.textContent='Voer uw naam in';return}if(!/^\d{4}$/.test(p)){e.textContent='PIN moet 4 cijfers zijn';return}if(p!==c){e.textContent='PIN komt niet overeen';return}localStorage.setItem(K.PIN,p);localStorage.setItem(K.USER,n);localStorage.setItem(K.DATA,'[]');this.showApp();toast('Account aangemaakt!','success')}
-};
+    <!-- Main App -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <header class="header">
+            <h1>ZorgAnalyst Pro Mobile</h1>
+            <p class="subtitle">Veldwerk Zorgcriminaliteit</p>
+            <div class="gps-indicator" id="gpsIndicator">
+                <div class="gps-dot"></div>
+                <span id="gpsStatus">GPS zoeken...</span>
+            </div>
+        </header>
 
-function getGPS(){const st=document.getElementById('gps-status');if(!navigator.geolocation){st.className='gps-status error';st.innerHTML='<i class="fas fa-times-circle"></i> GPS niet beschikbaar';return}
-navigator.geolocation.getCurrentPosition(p=>{STATE.gps={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy};st.className='gps-status success';st.innerHTML=`<i class="fas fa-check-circle"></i> Locatie: ${STATE.gps.lat.toFixed(5)}, ${STATE.gps.lng.toFixed(5)}`},e=>{st.className='gps-status error';st.innerHTML='<i class="fas fa-exclamation-circle"></i> Locatie niet beschikbaar'},{enableHighAccuracy:true,timeout:10000,maximumAge:60000})}
-function loadData(){try{const d=localStorage.getItem(K.DATA);STATE.meldingen=d?JSON.parse(d):[]}catch(e){STATE.meldingen=[]}}
-function saveData(){localStorage.setItem(K.DATA,JSON.stringify(STATE.meldingen))}
-function switchTab(t){document.querySelectorAll('.nav-tab').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(n=>n.classList.remove('active'));document.querySelector(`.nav-tab[data-tab="${t}"]`).classList.add('active');document.getElementById('tab-'+t).classList.add('active');if(t==='new')getGPS()}
-function updateUI(){updateStats();updateRecent();updateAll()}
-function updateStats(){document.getElementById('stat-count').textContent=STATE.meldingen.length;const unique=new Set(STATE.meldingen.map(m=>m.bedrijf.toLowerCase())).size;document.getElementById('stat-bedrijven').textContent=unique}
-function renderMelding(m){const dt=new Date(m.createdAt).toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});const types=m.types.map(t=>`<span class="melding-type-badge">${esc(t)}</span>`).join('');return`<div class="melding-item"><div class="melding-item-header"><span class="melding-item-bedrijf"><i class="fas fa-building"></i> ${esc(m.bedrijf)}</span><span class="melding-item-date">${dt}</span></div>${m.kvk?`<div style="font-size:0.8rem;color:var(--gray)">KVK: ${esc(m.kvk)}</div>`:''}<div class="melding-item-types">${types}</div></div>`}
-function updateRecent(){const c=document.getElementById('recent-list');const r=STATE.meldingen.slice(0,5);if(!r.length){c.innerHTML='<div class="empty-state"><i class="fas fa-clipboard-list"></i><p>Nog geen meldingen</p></div>';return}c.innerHTML=r.map(renderMelding).join('')}
-function updateAll(){const c=document.getElementById('all-list');if(!STATE.meldingen.length){c.innerHTML='<div class="empty-state"><i class="fas fa-clipboard-list"></i><p>Nog geen meldingen</p></div>';return}c.innerHTML=STATE.meldingen.map(renderMelding).join('')}
-function saveMelding(){const bedrijf=document.getElementById('melding-bedrijf').value.trim();const kvk=document.getElementById('melding-kvk').value.trim();const adres=document.getElementById('melding-adres').value.trim();const omschrijving=document.getElementById('melding-omschrijving').value.trim();if(!bedrijf){toast('Bedrijfsnaam verplicht','error');return}if(!omschrijving){toast('Omschrijving verplicht','error');return}if(!STATE.selectedTypes.length){toast('Selecteer minimaal één type','error');return}const melding={id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),bedrijf,kvk,adres,types:STATE.selectedTypes,omschrijving,gps:STATE.gps,createdAt:new Date().toISOString()};STATE.meldingen.unshift(melding);saveData();updateUI();document.getElementById('melding-bedrijf').value='';document.getElementById('melding-kvk').value='';document.getElementById('melding-adres').value='';document.getElementById('melding-omschrijving').value='';STATE.selectedTypes=[];document.querySelectorAll('#fraude-types .tag').forEach(t=>t.classList.remove('active'));toast('Melding opgeslagen','success');switchTab('dashboard')}
-function exportJSON(){if(!STATE.meldingen.length){toast('Geen data','error');return}const data={type:'zorganalyst',version:'1.0.0',medewerker:STATE.user,exportDatum:new Date().toISOString(),meldingen:STATE.meldingen};download(JSON.stringify(data,null,2),`zorganalyst_${new Date().toISOString().split('T')[0]}.json`,'application/json');toast('Geëxporteerd','success')}
-function saveSettings(){const n=document.getElementById('settings-name').value.trim();if(!n){toast('Naam verplicht','error');return}localStorage.setItem(K.USER,n);STATE.user=n;document.getElementById('display-user').textContent=esc(n);toast('Opgeslagen','success')}
-function changePin(){const p=prompt('Nieuwe 4-cijferige PIN:');if(p&&/^\d{4}$/.test(p)){localStorage.setItem(K.PIN,p);toast('PIN gewijzigd','success')}else if(p){toast('PIN moet 4 cijfers zijn','error')}}
-function logout(){if(confirm('Uitloggen?')){Auth.showLogin();toast('Uitgelogd','info')}}
-document.addEventListener('DOMContentLoaded',()=>{
-Auth.init();
-document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
-document.querySelectorAll('#fraude-types .tag').forEach(t=>t.addEventListener('click',()=>{t.classList.toggle('active');const type=t.dataset.type;if(t.classList.contains('active')){STATE.selectedTypes.push(type)}else{STATE.selectedTypes=STATE.selectedTypes.filter(x=>x!==type)}}))});
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(e=>console.error('SW:',e))}
-</script>
+        <!-- Dashboard Screen -->
+        <div class="screen active" id="dashboardScreen">
+            <div class="container">
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Dashboard
+                    </div>
+                    <p style="margin-bottom: 15px; color: var(--secondary);">Welkom, <span id="userName">Gebruiker</span></p>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="statMeldingen">0</div>
+                            <div class="stat-label">Meldingen</div>
+                        </div>
+                        <div class="stat-card secondary">
+                            <div class="stat-number" id="statBedrijven">0</div>
+                            <div class="stat-label">Bedrijven</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-clock"></i>
+                        Recente Meldingen
+                    </div>
+                    <div id="recentMeldingen">
+                        <p style="color: var(--secondary); text-align: center; padding: 20px 0;">
+                            Nog geen meldingen
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nieuwe Melding Screen -->
+        <div class="screen" id="nieuwScreen">
+            <div class="container">
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-plus-circle"></i>
+                        Nieuwe Melding
+                    </div>
+                    
+                    <!-- GPS Info -->
+                    <div class="gps-info" id="gpsInfo">
+                        <strong><i class="fas fa-map-marker-alt"></i> GPS Locatie</strong>
+                        <div class="gps-coords" id="gpsCoords">Locatie wordt bepaald...</div>
+                    </div>
+                    
+                    <!-- Bedrijven Selectie -->
+                    <div class="form-group">
+                        <label>Betrokken bedrijf(en)</label>
+                        <div class="bedrijf-select-container" id="bedrijfSelectContainer">
+                            <div class="chips-container" id="bedrijvenChips">
+                                <!-- Chips worden hier dynamisch toegevoegd -->
+                            </div>
+                        </div>
+                        <div class="add-bedrijf-row">
+                            <input type="text" class="form-control" id="nieuwBedrijfInput" placeholder="Nieuw bedrijf toevoegen...">
+                            <button class="btn btn-primary btn-sm" id="addBedrijfBtn" style="width: auto; padding: 12px 16px;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Adres -->
+                    <div class="section-divider">Locatie</div>
+                    
+                    <div class="form-row">
+                        <div class="form-group autocomplete-container">
+                            <label class="required">Straatnaam</label>
+                            <input type="text" class="form-control" id="straatnaamInput" placeholder="Begin met typen..." autocomplete="off">
+                            <div class="autocomplete-list" id="straatnaamList"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">Huisnr.</label>
+                            <input type="text" class="form-control" id="huisnummerInput" placeholder="123">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Toevoeging</label>
+                        <input type="text" class="form-control" id="toevoegingInput" placeholder="A, B, etc.">
+                    </div>
+                    
+                    <!-- Type Zorgverlening -->
+                    <div class="section-divider">Classificatie</div>
+                    
+                    <div class="form-group">
+                        <label class="required">Type zorgverlening</label>
+                        <select class="form-control" id="typeZorgverlening">
+                            <option value="">-- Selecteer --</option>
+                            <optgroup label="Eerstelijnszorg">
+                                <option value="huisarts">Huisarts</option>
+                                <option value="apotheek">Apotheek</option>
+                                <option value="fysiotherapie">Fysiotherapie</option>
+                                <option value="tandarts">Tandarts</option>
+                                <option value="verloskundige">Verloskundige</option>
+                                <option value="dietetiek">Diëtetiek</option>
+                                <option value="logopedie">Logopedie</option>
+                                <option value="ergotherapie">Ergotherapie</option>
+                                <option value="podotherapie">Podotherapie</option>
+                            </optgroup>
+                            <optgroup label="Tweedelijnszorg">
+                                <option value="ziekenhuis">Ziekenhuis</option>
+                                <option value="specialist">Medisch specialist</option>
+                                <option value="ggz">GGZ instelling</option>
+                                <option value="revalidatie">Revalidatie</option>
+                            </optgroup>
+                            <optgroup label="Langdurige zorg">
+                                <option value="verpleeghuis">Verpleeghuis</option>
+                                <option value="verzorgingshuis">Verzorgingshuis</option>
+                                <option value="thuiszorg">Thuiszorg</option>
+                                <option value="gehandicaptenzorg">Gehandicaptenzorg</option>
+                                <option value="wlz">WLZ instelling</option>
+                            </optgroup>
+                            <optgroup label="PGB">
+                                <option value="pgb-zorg">PGB zorgverlener</option>
+                                <option value="pgb-begeleiding">PGB begeleiding</option>
+                                <option value="pgb-wonen">PGB beschermd wonen</option>
+                            </optgroup>
+                            <optgroup label="Overig">
+                                <option value="wmo">WMO voorziening</option>
+                                <option value="jeugdzorg">Jeugdzorg</option>
+                                <option value="ambulance">Ambulancedienst</option>
+                                <option value="overig">Overig</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <!-- Type Zorgcriminaliteit -->
+                    <div class="form-group">
+                        <label class="required">Type zorgcriminaliteit</label>
+                        <select class="form-control" id="typeCriminaliteit">
+                            <option value="">-- Selecteer --</option>
+                            <optgroup label="Declaratiefraude">
+                                <option value="declaratie-niet-geleverd">Declaratie niet-geleverde zorg</option>
+                                <option value="declaratie-upcoding">Upcoding (duurder declareren)</option>
+                                <option value="declaratie-dubbel">Dubbele declaraties</option>
+                                <option value="declaratie-fictief">Fictieve patiënten</option>
+                                <option value="declaratie-overig">Overige declaratiefraude</option>
+                            </optgroup>
+                            <optgroup label="PGB Fraude">
+                                <option value="pgb-niet-geleverd">PGB niet-geleverde zorg</option>
+                                <option value="pgb-kwaliteit">PGB ondermaatse zorg</option>
+                                <option value="pgb-dwang">PGB dwang/uitbuiting</option>
+                                <option value="pgb-familie">PGB familieconstructie</option>
+                                <option value="pgb-overig">Overige PGB fraude</option>
+                            </optgroup>
+                            <optgroup label="Identiteitsfraude">
+                                <option value="id-misbruik">Misbruik identiteit</option>
+                                <option value="id-diefstal">Identiteitsdiefstal</option>
+                                <option value="id-vervalsing">Vervalsing documenten</option>
+                            </optgroup>
+                            <optgroup label="Kwaliteit & Veiligheid">
+                                <option value="kwaliteit-verwaarlozing">Verwaarlozing</option>
+                                <option value="kwaliteit-mishandeling">Mishandeling</option>
+                                <option value="kwaliteit-medicatie">Medicatiefraude/-misbruik</option>
+                                <option value="kwaliteit-bevoegdheid">Onbevoegde zorgverlening</option>
+                            </optgroup>
+                            <optgroup label="Ondermijning">
+                                <option value="ondermijning-witwassen">Witwassen via zorg</option>
+                                <option value="ondermijning-vastgoed">Vastgoedfraude zorglocaties</option>
+                                <option value="ondermijning-netwerk">Crimineel netwerk</option>
+                                <option value="ondermijning-dwang">Gedwongen zorgafname</option>
+                            </optgroup>
+                            <optgroup label="Overig">
+                                <option value="corruptie">Corruptie/omkoping</option>
+                                <option value="subsidie">Subsidiefraude</option>
+                                <option value="overig">Overig</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <!-- Omschrijving met Speech-to-Text -->
+                    <div class="section-divider">Omschrijving</div>
+                    
+                    <div class="form-group">
+                        <label class="required">Beschrijving zorgcriminaliteit</label>
+                        <div class="speech-container">
+                            <textarea class="form-control" id="omschrijvingInput" placeholder="Beschrijf de waarneming zo gedetailleerd mogelijk..." style="padding-right: 60px;"></textarea>
+                            <button type="button" class="speech-btn" id="speechBtn" title="Spraak naar tekst">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                        <div class="speech-status" id="speechStatus">Tik op de microfoon voor spraakherkenning</div>
+                    </div>
+                    
+                    <button class="btn btn-success" id="saveMeldingBtn">
+                        <i class="fas fa-save"></i> Melding Opslaan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meldingen Screen -->
+        <div class="screen" id="meldingenScreen">
+            <div class="container">
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-list"></i>
+                        Alle Meldingen
+                    </div>
+                    <div id="alleMeldingen">
+                        <p style="color: var(--secondary); text-align: center; padding: 20px 0;">
+                            Nog geen meldingen
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instellingen Screen -->
+        <div class="screen" id="instellingenScreen">
+            <div class="container">
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-user"></i>
+                        Profiel
+                    </div>
+                    <div class="form-group">
+                        <label>Naam</label>
+                        <input type="text" class="form-control" id="settingsName">
+                    </div>
+                    <button class="btn btn-primary" id="saveProfileBtn">
+                        <i class="fas fa-save"></i> Opslaan
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-building"></i>
+                        Bedrijven Beheren
+                    </div>
+                    <div id="bedrijvenLijst" class="chips-container" style="margin-bottom: 15px;">
+                        <!-- Bedrijven worden hier getoond -->
+                    </div>
+                    <div class="add-bedrijf-row">
+                        <input type="text" class="form-control" id="nieuwBedrijfSettings" placeholder="Bedrijfsnaam toevoegen...">
+                        <button class="btn btn-primary btn-sm" id="addBedrijfSettingsBtn" style="width: auto; padding: 12px 16px;">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--secondary); margin-bottom: 15px;">
+                        Exporteer alle meldingen naar JSON voor import in ZorgAnalyst Pro hoofdmodule.
+                    </p>
+                    <button class="btn btn-success" id="exportJsonBtn">
+                        <i class="fas fa-file-export"></i> Export JSON
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-shield-alt"></i>
+                        Beveiliging
+                    </div>
+                    <button class="btn btn-outline" id="changePinBtn" style="margin-bottom: 10px;">
+                        <i class="fas fa-key"></i> PIN Wijzigen
+                    </button>
+                    <button class="btn btn-danger" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i> Uitloggen
+                    </button>
+                </div>
+                
+                <div style="text-align: center; padding: 20px; color: var(--secondary); font-size: 0.8rem;">
+                    <strong>ZorgAnalyst Pro Mobile</strong><br>
+                    Versie 2.0.0 PWA<br><br>
+                    © 2025 Knowledge by Data
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-screen="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="nav-item" data-screen="nieuw">
+                <i class="fas fa-plus-circle"></i>
+                <span>Nieuwe</span>
+            </button>
+            <button class="nav-item" data-screen="meldingen">
+                <i class="fas fa-list"></i>
+                <span>Meldingen</span>
+            </button>
+            <button class="nav-item" data-screen="instellingen">
+                <i class="fas fa-cog"></i>
+                <span>Instellingen</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        'use strict';
+        
+        // =====================================================
+        // STRAATNAMEN HILVERSUM (selectie van meest voorkomende)
+        // =====================================================
+        const STRAATNAMEN_HILVERSUM = [
+            "'s-Gravelandseweg", "1e Loswal", "1e Nieuwstraat", "1e Oosterstraat",
+            "2e Loswal", "2e Nieuwstraat", "2e Oosterstraat", "3e Oosterstraat",
+            "Aardjesberg", "Achterom", "Albertus Perkstraat", "Alexanderlaan",
+            "Anna Paulownalaan", "Annastraat", "Asteroid", "Bachlaan",
+            "Badhuislaan", "Bakkerstraat", "Beatrixpark", "Beethovenlaan",
+            "Bergweg", "Binnendoor", "Bloemstraat", "Bosdrift",
+            "Boslaan", "Boterbloemweg", "Brediusweg", "Brinkweg",
+            "Burgemeester van Hellenberg Hubarlaan", "Capitool", "Ceintuurbaan", "Colosseum",
+            "Cornelis Drebbelstraat", "Crailoërweg", "De Gijselaar", "Diependaalselaan",
+            "Eemnesserweg", "Egelshoek", "Eikbosserweg", "Eikenlaan",
+            "Emmastraat", "Erfgooiersstraat", "Forum", "Frederik van Eedenlaan",
+            "Geuzenweg", "Gijsbrecht van Amstelstraat", "Gladiolenstraat", "Godelindeweg",
+            "Graaf Florislaan", "Gravenlandseweg", "Groest", "Havenstraat",
+            "Herenstraat", "Het Hoog", "Hilversumse Meentweg", "Hilvertsweg",
+            "Hoge Larenseweg", "Hoge Naarderweg", "Holleweg", "Huizerweg",
+            "Irisstraat", "Jacob van Campenlaan", "Jan van der Heijdenstraat", "Johannes Geradtsweg",
+            "Jonkerweg", "Julianaplein", "Kamerlingh Onnesweg", "Kampstraat",
+            "Kerkbrink", "Kerkstraat", "Kleine Drift", "Koningsstraat",
+            "Koppelweg", "Korte Noorderweg", "Laan 1940-1945", "Laapersveld",
+            "Langestraat", "Larenseweg", "Liebergerweg", "Lijsterweg",
+            "Loosdrechtseweg", "Maartensdijkseweg", "Marktplein", "Mediapark",
+            "Melkpad", "Merelstraat", "Meteorenweg", "Middenweg",
+            "Mussenstraat", "Naarderstraat", "Neuweg", "Nieuwe Crailoseweg",
+            "Nieuwe Havenweg", "Nieuwe 's-Gravelandseweg", "Nimrodpark", "Noorderweg",
+            "Noodweg", "Obrechtstraat", "Oude Amersfoortseweg", "Oude Enghweg",
+            "Oude Torenstraat", "Palmboomstraat", "Pauwenstraat", "Pelikaanstraat",
+            "Planetenstraat", "Plataanweg", "Prins Bernhardstraat", "Putter",
+            "Randweg", "Rembrandtlaan", "Rietgors", "Rossinilaan",
+            "Schapenkamp", "Schoolstraat", "Schoutenstraat", "Sibeliuslaan",
+            "Sint Annastraat", "Sint Vitusstraat", "Siriusstraat", "Snelliuslaan",
+            "Soestdijkerstraatweg", "Sophialaan", "Spoorstraat", "Stationsplein",
+            "Stationsstraat", "Steijnlaan", "Sumatralaan", "Taludweg",
+            "Trompenberg", "Tuinstraat", "Utrechtseweg", "Vaartweg",
+            "Van Brakellaan", "Van Ghentlaan", "Van Riebeeckweg", "Veerstraat",
+            "Verbindingsweg", "Vermeerstraat", "Violenstraat", "Vondelstraat",
+            "Weerdestein", "Westerveld", "Willibrordstraat", "Zeverijnstraat",
+            "Zuiderweg", "Zwaluwstraat"
+        ].sort();
+        
+        // =====================================================
+        // APP STATE
+        // =====================================================
+        const APP = {
+            currentUser: null,
+            currentPin: '',
+            gpsPosition: null,
+            gpsWatchId: null,
+            speechRecognition: null,
+            isRecording: false,
+            selectedBedrijven: []
+        };
+        
+        // =====================================================
+        // LOCALSTORAGE KEYS
+        // =====================================================
+        const STORAGE_KEYS = {
+            USER: 'zorganalyst_user',
+            PIN: 'zorganalyst_pin',
+            MELDINGEN: 'zorganalyst_meldingen',
+            BEDRIJVEN: 'zorganalyst_bedrijven'
+        };
+        
+        // =====================================================
+        // UTILITY FUNCTIONS
+        // =====================================================
+        function $(selector) {
+            return document.querySelector(selector);
+        }
+        
+        function $$(selector) {
+            return document.querySelectorAll(selector);
+        }
+        
+        function showToast(message, type = '') {
+            const toast = $('#toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+            setTimeout(() => toast.className = 'toast', 3000);
+        }
+        
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('nl-NL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function generateId() {
+            return 'M' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
+        }
+        
+        // =====================================================
+        // DATA FUNCTIONS
+        // =====================================================
+        function getUser() {
+            const data = localStorage.getItem(STORAGE_KEYS.USER);
+            return data ? JSON.parse(data) : null;
+        }
+        
+        function saveUser(user) {
+            localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+        }
+        
+        function getPin() {
+            return localStorage.getItem(STORAGE_KEYS.PIN) || '';
+        }
+        
+        function savePin(pin) {
+            localStorage.setItem(STORAGE_KEYS.PIN, pin);
+        }
+        
+        function getMeldingen() {
+            const data = localStorage.getItem(STORAGE_KEYS.MELDINGEN);
+            return data ? JSON.parse(data) : [];
+        }
+        
+        function saveMeldingen(meldingen) {
+            localStorage.setItem(STORAGE_KEYS.MELDINGEN, JSON.stringify(meldingen));
+        }
+        
+        function getBedrijven() {
+            const data = localStorage.getItem(STORAGE_KEYS.BEDRIJVEN);
+            return data ? JSON.parse(data) : [];
+        }
+        
+        function saveBedrijven(bedrijven) {
+            localStorage.setItem(STORAGE_KEYS.BEDRIJVEN, JSON.stringify(bedrijven));
+        }
+        
+        function addBedrijf(naam) {
+            if (!naam || naam.trim() === '') return false;
+            const bedrijven = getBedrijven();
+            const normalized = naam.trim();
+            if (!bedrijven.includes(normalized)) {
+                bedrijven.push(normalized);
+                bedrijven.sort();
+                saveBedrijven(bedrijven);
+                return true;
+            }
+            return false;
+        }
+        
+        function removeBedrijf(naam) {
+            let bedrijven = getBedrijven();
+            bedrijven = bedrijven.filter(b => b !== naam);
+            saveBedrijven(bedrijven);
+        }
+        
+        // =====================================================
+        // GPS FUNCTIONS
+        // =====================================================
+        function initGPS() {
+            if (!navigator.geolocation) {
+                updateGPSStatus('error', 'GPS niet beschikbaar');
+                return;
+            }
+            
+            updateGPSStatus('searching', 'GPS zoeken...');
+            
+            // High accuracy options
+            const gpsOptions = {
+                enableHighAccuracy: true,
+                timeout: 30000,
+                maximumAge: 0
+            };
+            
+            // Use watchPosition for continuous updates
+            APP.gpsWatchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    APP.gpsPosition = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date().toISOString()
+                    };
+                    updateGPSStatus('active', `GPS actief (±${Math.round(position.coords.accuracy)}m)`);
+                    updateGPSInfo();
+                },
+                (error) => {
+                    console.error('GPS Error:', error);
+                    let errorMsg = 'GPS fout';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg = 'GPS geweigerd';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg = 'Positie onbekend';
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg = 'GPS timeout';
+                            break;
+                    }
+                    updateGPSStatus('error', errorMsg);
+                    
+                    // Retry after error
+                    setTimeout(() => {
+                        if (!APP.gpsPosition) {
+                            navigator.geolocation.getCurrentPosition(
+                                (pos) => {
+                                    APP.gpsPosition = {
+                                        latitude: pos.coords.latitude,
+                                        longitude: pos.coords.longitude,
+                                        accuracy: pos.coords.accuracy,
+                                        timestamp: new Date().toISOString()
+                                    };
+                                    updateGPSStatus('active', `GPS actief (±${Math.round(pos.coords.accuracy)}m)`);
+                                    updateGPSInfo();
+                                },
+                                () => {},
+                                { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+                            );
+                        }
+                    }, 5000);
+                },
+                gpsOptions
+            );
+        }
+        
+        function updateGPSStatus(status, text) {
+            const indicator = $('#gpsIndicator');
+            const statusEl = $('#gpsStatus');
+            
+            indicator.className = 'gps-indicator ' + status;
+            statusEl.textContent = text;
+        }
+        
+        function updateGPSInfo() {
+            const gpsInfo = $('#gpsInfo');
+            const gpsCoords = $('#gpsCoords');
+            
+            if (APP.gpsPosition) {
+                gpsInfo.className = 'gps-info success';
+                gpsCoords.innerHTML = `
+                    <strong>Lat:</strong> ${APP.gpsPosition.latitude.toFixed(6)}<br>
+                    <strong>Lon:</strong> ${APP.gpsPosition.longitude.toFixed(6)}<br>
+                    <strong>Nauwkeurigheid:</strong> ±${Math.round(APP.gpsPosition.accuracy)} meter
+                `;
+            } else {
+                gpsInfo.className = 'gps-info';
+                gpsCoords.textContent = 'Locatie wordt bepaald...';
+            }
+        }
+        
+        // =====================================================
+        // SPEECH TO TEXT
+        // =====================================================
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                $('#speechBtn').style.display = 'none';
+                $('#speechStatus').textContent = 'Spraakherkenning niet beschikbaar in deze browser';
+                return;
+            }
+            
+            APP.speechRecognition = new SpeechRecognition();
+            APP.speechRecognition.continuous = true;
+            APP.speechRecognition.interimResults = true;
+            APP.speechRecognition.lang = 'nl-NL';
+            
+            let finalTranscript = '';
+            
+            APP.speechRecognition.onstart = () => {
+                APP.isRecording = true;
+                $('#speechBtn').classList.add('recording');
+                $('#speechBtn').innerHTML = '<i class="fas fa-stop"></i>';
+                $('#speechStatus').textContent = 'Luisteren... Spreek nu.';
+                $('#speechStatus').classList.add('recording');
+                finalTranscript = $('#omschrijvingInput').value;
+            };
+            
+            APP.speechRecognition.onresult = (event) => {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                $('#omschrijvingInput').value = finalTranscript + interimTranscript;
+            };
+            
+            APP.speechRecognition.onerror = (event) => {
+                console.error('Speech error:', event.error);
+                stopSpeechRecognition();
+                
+                if (event.error === 'not-allowed') {
+                    showToast('Microfoon toegang geweigerd', 'error');
+                    $('#speechStatus').textContent = 'Geef toestemming voor microfoon in browser';
+                } else {
+                    $('#speechStatus').textContent = 'Fout bij spraakherkenning: ' + event.error;
+                }
+            };
+            
+            APP.speechRecognition.onend = () => {
+                if (APP.isRecording) {
+                    // Auto restart if still recording
+                    try {
+                        APP.speechRecognition.start();
+                    } catch (e) {
+                        stopSpeechRecognition();
+                    }
+                }
+            };
+        }
+        
+        function toggleSpeechRecognition() {
+            if (!APP.speechRecognition) {
+                showToast('Spraakherkenning niet beschikbaar', 'error');
+                return;
+            }
+            
+            if (APP.isRecording) {
+                stopSpeechRecognition();
+            } else {
+                startSpeechRecognition();
+            }
+        }
+        
+        function startSpeechRecognition() {
+            try {
+                APP.speechRecognition.start();
+            } catch (e) {
+                console.error('Speech start error:', e);
+            }
+        }
+        
+        function stopSpeechRecognition() {
+            APP.isRecording = false;
+            try {
+                APP.speechRecognition.stop();
+            } catch (e) {}
+            
+            $('#speechBtn').classList.remove('recording');
+            $('#speechBtn').innerHTML = '<i class="fas fa-microphone"></i>';
+            $('#speechStatus').textContent = 'Tik op de microfoon voor spraakherkenning';
+            $('#speechStatus').classList.remove('recording');
+        }
+        
+        // =====================================================
+        // AUTOCOMPLETE STRAATNAMEN
+        // =====================================================
+        function initStraatnamenAutocomplete() {
+            const input = $('#straatnaamInput');
+            const list = $('#straatnaamList');
+            let activeIndex = -1;
+            
+            input.addEventListener('input', () => {
+                const value = input.value.toLowerCase();
+                list.innerHTML = '';
+                activeIndex = -1;
+                
+                if (value.length < 2) {
+                    list.classList.remove('show');
+                    return;
+                }
+                
+                const matches = STRAATNAMEN_HILVERSUM.filter(s => 
+                    s.toLowerCase().includes(value)
+                ).slice(0, 10);
+                
+                if (matches.length === 0) {
+                    list.classList.remove('show');
+                    return;
+                }
+                
+                matches.forEach((straat, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.textContent = straat;
+                    item.addEventListener('click', () => {
+                        input.value = straat;
+                        list.classList.remove('show');
+                        $('#huisnummerInput').focus();
+                    });
+                    list.appendChild(item);
+                });
+                
+                list.classList.add('show');
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                const items = list.querySelectorAll('.autocomplete-item');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = Math.min(activeIndex + 1, items.length - 1);
+                    updateActiveItem(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = Math.max(activeIndex - 1, 0);
+                    updateActiveItem(items);
+                } else if (e.key === 'Enter' && activeIndex >= 0) {
+                    e.preventDefault();
+                    items[activeIndex].click();
+                } else if (e.key === 'Escape') {
+                    list.classList.remove('show');
+                }
+            });
+            
+            function updateActiveItem(items) {
+                items.forEach((item, index) => {
+                    item.classList.toggle('active', index === activeIndex);
+                });
+            }
+            
+            // Close on click outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.autocomplete-container')) {
+                    list.classList.remove('show');
+                }
+            });
+        }
+        
+        // =====================================================
+        // BEDRIJVEN MANAGEMENT
+        // =====================================================
+        function renderBedrijvenChips() {
+            const container = $('#bedrijvenChips');
+            const bedrijven = getBedrijven();
+            
+            container.innerHTML = '';
+            
+            if (bedrijven.length === 0) {
+                container.innerHTML = '<span style="color: var(--secondary); font-size: 0.85rem;">Geen bedrijven. Voeg hieronder toe.</span>';
+                return;
+            }
+            
+            bedrijven.forEach(bedrijf => {
+                const chip = document.createElement('div');
+                chip.className = 'chip' + (APP.selectedBedrijven.includes(bedrijf) ? ' selected' : '');
+                chip.innerHTML = `
+                    <span>${bedrijf}</span>
+                `;
+                chip.addEventListener('click', () => toggleBedrijfSelection(bedrijf));
+                container.appendChild(chip);
+            });
+        }
+        
+        function toggleBedrijfSelection(bedrijf) {
+            const index = APP.selectedBedrijven.indexOf(bedrijf);
+            if (index > -1) {
+                APP.selectedBedrijven.splice(index, 1);
+            } else {
+                APP.selectedBedrijven.push(bedrijf);
+            }
+            renderBedrijvenChips();
+        }
+        
+        function renderBedrijvenSettings() {
+            const container = $('#bedrijvenLijst');
+            const bedrijven = getBedrijven();
+            
+            container.innerHTML = '';
+            
+            if (bedrijven.length === 0) {
+                container.innerHTML = '<span style="color: var(--secondary); font-size: 0.85rem;">Geen bedrijven opgeslagen.</span>';
+                return;
+            }
+            
+            bedrijven.forEach(bedrijf => {
+                const chip = document.createElement('div');
+                chip.className = 'chip';
+                chip.innerHTML = `
+                    <span>${bedrijf}</span>
+                    <span class="chip-remove" data-bedrijf="${bedrijf}"><i class="fas fa-times"></i></span>
+                `;
+                container.appendChild(chip);
+            });
+            
+            // Add remove handlers
+            container.querySelectorAll('.chip-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const naam = btn.dataset.bedrijf;
+                    if (confirm(`Bedrijf "${naam}" verwijderen?`)) {
+                        removeBedrijf(naam);
+                        renderBedrijvenSettings();
+                        renderBedrijvenChips();
+                        showToast('Bedrijf verwijderd');
+                    }
+                });
+            });
+        }
+        
+        // =====================================================
+        // PIN & AUTHENTICATION
+        // =====================================================
+        function initPIN() {
+            const user = getUser();
+            const pin = getPin();
+            
+            if (!user || !pin) {
+                // Show setup
+                $('#pinLogin').classList.add('hidden');
+                $('#pinSetup').classList.remove('hidden');
+            } else {
+                // Show login
+                APP.currentUser = user;
+                $('#pinLogin').classList.remove('hidden');
+                $('#pinSetup').classList.add('hidden');
+            }
+        }
+        
+        function handlePinKey(key) {
+            const dots = $$('#pinDots .pin-dot');
+            const error = $('#pinError');
+            
+            if (key === 'back') {
+                APP.currentPin = APP.currentPin.slice(0, -1);
+            } else if (APP.currentPin.length < 4) {
+                APP.currentPin += key;
+            }
+            
+            // Update dots
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('filled', i < APP.currentPin.length);
+            });
+            
+            // Check PIN when 4 digits entered
+            if (APP.currentPin.length === 4) {
+                setTimeout(() => {
+                    if (APP.currentPin === getPin()) {
+                        loginSuccess();
+                    } else {
+                        error.textContent = 'Onjuiste PIN, probeer opnieuw';
+                        APP.currentPin = '';
+                        dots.forEach(dot => dot.classList.remove('filled'));
+                        
+                        // Shake animation
+                        $('#pinDots').style.animation = 'shake 0.3s';
+                        setTimeout(() => $('#pinDots').style.animation = '', 300);
+                    }
+                }, 200);
+            } else {
+                error.textContent = '';
+            }
+        }
+        
+        function handleSetup() {
+            const name = $('#setupName').value.trim();
+            const pin = $('#setupPin').value;
+            const pinConfirm = $('#setupPinConfirm').value;
+            const error = $('#setupError');
+            
+            if (!name) {
+                error.textContent = 'Vul uw naam in';
+                return;
+            }
+            
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                error.textContent = 'PIN moet 4 cijfers zijn';
+                return;
+            }
+            
+            if (pin !== pinConfirm) {
+                error.textContent = 'PIN codes komen niet overeen';
+                return;
+            }
+            
+            // Save user
+            const user = { name, createdAt: new Date().toISOString() };
+            saveUser(user);
+            savePin(pin);
+            APP.currentUser = user;
+            
+            loginSuccess();
+        }
+        
+        function loginSuccess() {
+            $('#pinScreen').classList.remove('active');
+            $('#mainApp').classList.remove('hidden');
+            
+            // Update UI
+            $('#userName').textContent = APP.currentUser.name;
+            $('#settingsName').value = APP.currentUser.name;
+            
+            // Initialize app
+            initGPS();
+            initSpeechRecognition();
+            initStraatnamenAutocomplete();
+            renderBedrijvenChips();
+            renderBedrijvenSettings();
+            updateDashboard();
+        }
+        
+        function logout() {
+            APP.currentPin = '';
+            APP.selectedBedrijven = [];
+            
+            if (APP.gpsWatchId) {
+                navigator.geolocation.clearWatch(APP.gpsWatchId);
+            }
+            
+            $('#mainApp').classList.add('hidden');
+            $('#pinScreen').classList.add('active');
+            
+            // Reset PIN dots
+            $$('#pinDots .pin-dot').forEach(dot => dot.classList.remove('filled'));
+            $('#pinError').textContent = '';
+        }
+        
+        // =====================================================
+        // MELDINGEN
+        // =====================================================
+        function saveMelding() {
+            const straatnaam = $('#straatnaamInput').value.trim();
+            const huisnummer = $('#huisnummerInput').value.trim();
+            const toevoeging = $('#toevoegingInput').value.trim();
+            const typeZorgverlening = $('#typeZorgverlening').value;
+            const typeCriminaliteit = $('#typeCriminaliteit').value;
+            const omschrijving = $('#omschrijvingInput').value.trim();
+            
+            // Validation
+            if (!straatnaam) {
+                showToast('Vul een straatnaam in', 'error');
+                return;
+            }
+            
+            if (!huisnummer) {
+                showToast('Vul een huisnummer in', 'error');
+                return;
+            }
+            
+            if (!typeZorgverlening) {
+                showToast('Selecteer type zorgverlening', 'error');
+                return;
+            }
+            
+            if (!typeCriminaliteit) {
+                showToast('Selecteer type zorgcriminaliteit', 'error');
+                return;
+            }
+            
+            if (!omschrijving) {
+                showToast('Vul een omschrijving in', 'error');
+                return;
+            }
+            
+            // Build address
+            let adres = straatnaam + ' ' + huisnummer;
+            if (toevoeging) adres += toevoeging;
+            adres += ', Hilversum';
+            
+            // Create melding object
+            const melding = {
+                id: generateId(),
+                datum: new Date().toISOString(),
+                melder: APP.currentUser.name,
+                bedrijven: [...APP.selectedBedrijven],
+                adres: adres,
+                straatnaam: straatnaam,
+                huisnummer: huisnummer,
+                toevoeging: toevoeging,
+                gemeente: 'Hilversum',
+                typeZorgverlening: typeZorgverlening,
+                typeZorgverleningLabel: $('#typeZorgverlening option:checked').textContent,
+                typeCriminaliteit: typeCriminaliteit,
+                typeCriminaliteitLabel: $('#typeCriminaliteit option:checked').textContent,
+                omschrijving: omschrijving,
+                gps: APP.gpsPosition ? { ...APP.gpsPosition } : null
+            };
+            
+            // Save
+            const meldingen = getMeldingen();
+            meldingen.unshift(melding);
+            saveMeldingen(meldingen);
+            
+            // Reset form
+            resetMeldingForm();
+            
+            // Update UI
+            updateDashboard();
+            showToast('Melding opgeslagen!', 'success');
+            
+            // Switch to dashboard
+            switchScreen('dashboard');
+        }
+        
+        function resetMeldingForm() {
+            $('#straatnaamInput').value = '';
+            $('#huisnummerInput').value = '';
+            $('#toevoegingInput').value = '';
+            $('#typeZorgverlening').value = '';
+            $('#typeCriminaliteit').value = '';
+            $('#omschrijvingInput').value = '';
+            APP.selectedBedrijven = [];
+            renderBedrijvenChips();
+        }
+        
+        function updateDashboard() {
+            const meldingen = getMeldingen();
+            const bedrijven = getBedrijven();
+            
+            // Stats
+            $('#statMeldingen').textContent = meldingen.length;
+            $('#statBedrijven').textContent = bedrijven.length;
+            
+            // Recent meldingen
+            const recentContainer = $('#recentMeldingen');
+            const allContainer = $('#alleMeldingen');
+            
+            if (meldingen.length === 0) {
+                recentContainer.innerHTML = '<p style="color: var(--secondary); text-align: center; padding: 20px 0;">Nog geen meldingen</p>';
+                allContainer.innerHTML = '<p style="color: var(--secondary); text-align: center; padding: 20px 0;">Nog geen meldingen</p>';
+                return;
+            }
+            
+            // Recent (last 5)
+            recentContainer.innerHTML = meldingen.slice(0, 5).map(m => renderMeldingItem(m)).join('');
+            
+            // All
+            allContainer.innerHTML = meldingen.map(m => renderMeldingItem(m)).join('');
+        }
+        
+        function renderMeldingItem(melding) {
+            return `
+                <div class="melding-item">
+                    <div class="melding-header">
+                        <span class="melding-type">${melding.typeCriminaliteitLabel || melding.typeCriminaliteit}</span>
+                        <span class="melding-date">${formatDate(melding.datum)}</span>
+                    </div>
+                    ${melding.bedrijven && melding.bedrijven.length > 0 ? 
+                        `<div class="melding-bedrijven">${melding.bedrijven.join(', ')}</div>` : ''}
+                    <div class="melding-adres"><i class="fas fa-map-marker-alt"></i> ${melding.adres}</div>
+                    <div class="melding-omschrijving">${melding.omschrijving}</div>
+                </div>
+            `;
+        }
+        
+        // =====================================================
+        // EXPORT
+        // =====================================================
+        function exportJSON() {
+            const meldingen = getMeldingen();
+            const user = getUser();
+            
+            if (meldingen.length === 0) {
+                showToast('Geen meldingen om te exporteren', 'error');
+                return;
+            }
+            
+            const exportData = {
+                exportInfo: {
+                    applicatie: 'ZorgAnalyst Pro Mobile',
+                    versie: '2.0.0',
+                    exportDatum: new Date().toISOString(),
+                    melder: user.name,
+                    aantalMeldingen: meldingen.length
+                },
+                meldingen: meldingen.map(m => ({
+                    ...m,
+                    exportMelder: user.name
+                }))
+            };
+            
+            const json = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const safeName = user.name.replace(/[^a-zA-Z0-9]/g, '_');
+            a.href = url;
+            a.download = `zorganalyst_${safeName}_${timestamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast(`${meldingen.length} meldingen geëxporteerd`, 'success');
+        }
+        
+        // =====================================================
+        // NAVIGATION
+        // =====================================================
+        function switchScreen(screenName) {
+            // Update screens
+            $$('.screen').forEach(s => s.classList.remove('active'));
+            $(`#${screenName}Screen`).classList.add('active');
+            
+            // Update nav
+            $$('.nav-item').forEach(n => n.classList.remove('active'));
+            $(`.nav-item[data-screen="${screenName}"]`).classList.add('active');
+            
+            // Special actions
+            if (screenName === 'nieuw') {
+                updateGPSInfo();
+                renderBedrijvenChips();
+            } else if (screenName === 'instellingen') {
+                renderBedrijvenSettings();
+            }
+        }
+        
+        // =====================================================
+        // EVENT LISTENERS
+        // =====================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize PIN
+            initPIN();
+            
+            // PIN keypad
+            $$('.pin-key').forEach(key => {
+                key.addEventListener('click', () => {
+                    const keyVal = key.dataset.key;
+                    if (keyVal) handlePinKey(keyVal);
+                });
+            });
+            
+            // Setup form
+            $('#setupSubmit').addEventListener('click', handleSetup);
+            
+            // Navigation
+            $$('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    switchScreen(item.dataset.screen);
+                });
+            });
+            
+            // Add bedrijf (melding form)
+            $('#addBedrijfBtn').addEventListener('click', () => {
+                const input = $('#nieuwBedrijfInput');
+                if (addBedrijf(input.value)) {
+                    APP.selectedBedrijven.push(input.value.trim());
+                    input.value = '';
+                    renderBedrijvenChips();
+                    showToast('Bedrijf toegevoegd');
+                } else if (input.value.trim()) {
+                    showToast('Bedrijf bestaat al', 'error');
+                }
+            });
+            
+            // Add bedrijf (settings)
+            $('#addBedrijfSettingsBtn').addEventListener('click', () => {
+                const input = $('#nieuwBedrijfSettings');
+                if (addBedrijf(input.value)) {
+                    input.value = '';
+                    renderBedrijvenSettings();
+                    renderBedrijvenChips();
+                    showToast('Bedrijf toegevoegd');
+                } else if (input.value.trim()) {
+                    showToast('Bedrijf bestaat al', 'error');
+                }
+            });
+            
+            // Enter key for bedrijf inputs
+            $('#nieuwBedrijfInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') $('#addBedrijfBtn').click();
+            });
+            
+            $('#nieuwBedrijfSettings').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') $('#addBedrijfSettingsBtn').click();
+            });
+            
+            // Speech button
+            $('#speechBtn').addEventListener('click', toggleSpeechRecognition);
+            
+            // Save melding
+            $('#saveMeldingBtn').addEventListener('click', saveMelding);
+            
+            // Save profile
+            $('#saveProfileBtn').addEventListener('click', () => {
+                const name = $('#settingsName').value.trim();
+                if (!name) {
+                    showToast('Vul een naam in', 'error');
+                    return;
+                }
+                APP.currentUser.name = name;
+                saveUser(APP.currentUser);
+                $('#userName').textContent = name;
+                showToast('Profiel opgeslagen', 'success');
+            });
+            
+            // Export
+            $('#exportJsonBtn').addEventListener('click', exportJSON);
+            
+            // Logout
+            $('#logoutBtn').addEventListener('click', () => {
+                if (confirm('Weet u zeker dat u wilt uitloggen?')) {
+                    logout();
+                }
+            });
+            
+            // Change PIN
+            $('#changePinBtn').addEventListener('click', () => {
+                const currentPin = prompt('Huidige PIN:');
+                if (currentPin !== getPin()) {
+                    showToast('Onjuiste PIN', 'error');
+                    return;
+                }
+                
+                const newPin = prompt('Nieuwe PIN (4 cijfers):');
+                if (!newPin || !/^\d{4}$/.test(newPin)) {
+                    showToast('PIN moet 4 cijfers zijn', 'error');
+                    return;
+                }
+                
+                const confirmPin = prompt('Bevestig nieuwe PIN:');
+                if (newPin !== confirmPin) {
+                    showToast('PINs komen niet overeen', 'error');
+                    return;
+                }
+                
+                savePin(newPin);
+                showToast('PIN gewijzigd', 'success');
+            });
+        });
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.log('SW registration failed:', err);
+            });
+        }
+    </script>
 </body>
 </html>
