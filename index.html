@@ -225,7 +225,7 @@ footer a {
                 <span class="feature">Export</span>
             </div>
             <div class="app-qr" id="qr-declaratie"></div>
-            <a href="https://knowledgebydata.github.io/Declaratie-Module/" class="app-link" style="background:#9c27b0">
+            <a href="https://app.knowledgebydata.nl/Declaratie-Module/" class="app-link" style="background:#9c27b0">
                 <i class="fas fa-external-link-alt"></i> Open App
             </a>
         </div>
@@ -245,7 +245,7 @@ footer a {
                 <span class="feature">Bedrijven</span>
             </div>
             <div class="app-qr" id="qr-zorganalyst"></div>
-            <a href="https://knowledgebydata.github.io/ZorgAnalyst_Pro_mobile/" class="app-link" style="background:#0d6efd">
+            <a href="https://app.knowledgebydata.nl/ZorgAnalyst_Pro_mobile/" class="app-link" style="background:#0d6efd">
                 <i class="fas fa-external-link-alt"></i> Open App
             </a>
         </div>
@@ -265,7 +265,7 @@ footer a {
                 <span class="feature">Export</span>
             </div>
             <div class="app-qr" id="qr-bibob"></div>
-            <a href="https://knowledgebydata.github.io/BIBOB-Interview-Pro/" class="app-link" style="background:#1e3a5f">
+            <a href="https://app.knowledgebydata.nl/BIBOB-Interview-Pro/" class="app-link" style="background:#1e3a5f">
                 <i class="fas fa-external-link-alt"></i> Open App
             </a>
         </div>
@@ -278,14 +278,14 @@ footer a {
                     <p>v1.0.0</p>
                 </div>
             </div>
-            <p class="app-description">Kilometeradministratie met GPS tracking. Start een rit en registreer automatisch de afstand.</p>
+            <p class="app-description">Kilometeradministratie met GPS tracking. Start en stop ritten met automatische afstandsmeting.</p>
             <div class="features">
                 <span class="feature">GPS Tracking</span>
                 <span class="feature">Ritten log</span>
                 <span class="feature">Export</span>
             </div>
             <div class="app-qr" id="qr-km"></div>
-            <a href="https://knowledgebydata.github.io/KM-Registratie-Pro/" class="app-link" style="background:#2e7d32">
+            <a href="https://app.knowledgebydata.nl/KM-Registratie-Pro/" class="app-link" style="background:#2e7d32">
                 <i class="fas fa-external-link-alt"></i> Open App
             </a>
         </div>
@@ -298,14 +298,14 @@ footer a {
                     <p>v1.0.0</p>
                 </div>
             </div>
-            <p class="app-description">Urenregistratie met timer of handmatige invoer. Projecten en activiteiten bijhouden.</p>
+            <p class="app-description">Urenregistratie met timer en handmatige invoer. Projecten en activiteiten bijhouden.</p>
             <div class="features">
                 <span class="feature">Timer</span>
                 <span class="feature">Handmatig</span>
                 <span class="feature">Projecten</span>
             </div>
             <div class="app-qr" id="qr-uren"></div>
-            <a href="https://knowledgebydata.github.io/Uren-Registratie-Pro/" class="app-link" style="background:#3f51b5">
+            <a href="https://app.knowledgebydata.nl/Uren-Registratie-Pro/" class="app-link" style="background:#3f51b5">
                 <i class="fas fa-external-link-alt"></i> Open App
             </a>
         </div>
@@ -320,12 +320,12 @@ footer a {
             </div>
             <p class="app-description">Straatobservaties voor ondermijningsonderzoek. Foto's en GPS locatie registreren.</p>
             <div class="features">
-                <span class="feature">Foto upload</span>
+                <span class="feature">Foto's</span>
                 <span class="feature">GPS Locatie</span>
-                <span class="feature">Categorieën</span>
+                <span class="feature">Waarnemingen</span>
             </div>
             <div class="app-qr" id="qr-apstraat"></div>
-            <a href="https://knowledgebydata.github.io/ap-straat-pwa/" class="app-link" style="background:#9b59b6">
+            <a href="https://app.knowledgebydata.nl/ap-straat-pwa/" class="app-link" style="background:#9b59b6">
                 <i class="fas fa-external-link-alt"></i> Open App
             </a>
         </div>
@@ -345,7 +345,7 @@ footer a {
                 <span class="feature">Veilig</span>
             </div>
             <div class="app-qr" id="qr-meldpunt"></div>
-            <a href="https://knowledgebydata.github.io/pwa-meldpuntformulier/" class="app-link" style="background:#1a56db">
+            <a href="https://app.knowledgebydata.nl/pwa-meldpuntformulier/" class="app-link" style="background:#1a56db">
                 <i class="fas fa-external-link-alt"></i> Open App
             </a>
         </div>
@@ -359,19 +359,21 @@ footer a {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const baseUrl = 'https://app.knowledgebydata.nl';
+    
     const apps = [
-        { id: 'qr-declaratie', url: 'https://knowledgebydata.github.io/Declaratie-Module/' },
-        { id: 'qr-zorganalyst', url: 'https://knowledgebydata.github.io/ZorgAnalyst_Pro_mobile/' },
-        { id: 'qr-bibob', url: 'https://knowledgebydata.github.io/BIBOB-Interview-Pro/' },
-        { id: 'qr-km', url: 'https://knowledgebydata.github.io/KM-Registratie-Pro/' },
-        { id: 'qr-uren', url: 'https://knowledgebydata.github.io/Uren-Registratie-Pro/' },
-        { id: 'qr-apstraat', url: 'https://knowledgebydata.github.io/ap-straat-pwa/' },
-        { id: 'qr-meldpunt', url: 'https://knowledgebydata.github.io/pwa-meldpuntformulier/' }
+        { id: 'qr-declaratie', path: '/Declaratie-Module/' },
+        { id: 'qr-zorganalyst', path: '/ZorgAnalyst_Pro_mobile/' },
+        { id: 'qr-bibob', path: '/BIBOB-Interview-Pro/' },
+        { id: 'qr-km', path: '/KM-Registratie-Pro/' },
+        { id: 'qr-uren', path: '/Uren-Registratie-Pro/' },
+        { id: 'qr-apstraat', path: '/ap-straat-pwa/' },
+        { id: 'qr-meldpunt', path: '/pwa-meldpuntformulier/' }
     ];
     
     apps.forEach(app => {
         new QRCode(document.getElementById(app.id), {
-            text: app.url,
+            text: baseUrl + app.path,
             width: 120,
             height: 120,
             colorDark: '#1a1a2e',
