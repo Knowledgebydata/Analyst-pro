@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#9c27b0">
+<title>Declaratie Module</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+:root{--primary:#9c27b0;--primary-dark:#7b1fa2;--primary-light:#ce93d8;--accent:#00bcd4;--success:#4caf50;--warning:#ff9800;--danger:#f44336;--dark:#1a1a2e;--light:#f5f5f5;--gray:#757575;--gray-light:#e0e0e0}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--light);min-height:100vh;color:var(--dark)}
+.hidden{display:none!important}
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--dark),#16213e);padding:20px}
+.auth-box{background:rgba(255,255,255,0.05);padding:40px 30px;border-radius:24px;width:100%;max-width:360px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);text-align:center}
+.auth-logo{width:80px;height:80px;background:var(--primary);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2rem;color:white}
+.auth-box h1{color:var(--primary-light);font-size:1.5rem;margin-bottom:8px}
+.auth-box p{color:rgba(255,255,255,0.6);margin-bottom:30px;font-size:0.9rem}
+.auth-input{width:100%;padding:15px;margin-bottom:15px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.3);color:white;font-size:1rem;text-align:center}
+.auth-input::placeholder{color:rgba(255,255,255,0.4)}
+.auth-input:focus{outline:none;border-color:var(--primary)}
+.pin-dots{display:flex;justify-content:center;gap:15px;margin:30px 0}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--primary-light);background:transparent;transition:all 0.2s}
+.pin-dot.filled{background:var(--primary-light);transform:scale(1.1)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:280px;margin:0 auto}
+.numpad-btn{aspect-ratio:1;border:none;border-radius:50%;font-size:1.5rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.1);color:white;transition:all 0.15s}
+.numpad-btn:hover{background:rgba(255,255,255,0.2)}
+.numpad-btn:active{transform:scale(0.95)}
+.numpad-btn.action{background:var(--primary)}
+.auth-error{color:var(--danger);font-size:0.85rem;margin-top:15px;min-height:20px}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.shake{animation:shake 0.4s ease-in-out}
+.app-container{display:none}
+.app-container.active{display:block}
+.security-bar{background:var(--primary);color:white;padding:8px 15px;font-size:0.75rem;text-align:center;position:fixed;top:0;left:0;right:0;z-index:1000}
+.app-header{background:linear-gradient(135deg,var(--dark),#16213e);color:white;padding:25px 20px 20px;padding-top:50px;text-align:center}
+.app-header h1{font-size:1.3rem;color:var(--primary-light);margin-bottom:5px}
+.app-header .user-info{color:rgba(255,255,255,0.7);font-size:0.85rem}
+.nav-tabs{display:flex;background:white;box-shadow:0 2px 10px rgba(0,0,0,0.1);position:sticky;top:33px;z-index:100}
+.nav-tab{flex:1;padding:12px 8px;text-align:center;border:none;background:none;cursor:pointer;font-size:0.7rem;color:var(--gray);border-bottom:3px solid transparent}
+.nav-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.nav-tab i{display:block;font-size:1.1rem;margin-bottom:3px}
+.main-content{padding:15px;padding-bottom:100px;max-width:600px;margin:0 auto}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.card{background:white;border-radius:16px;padding:20px;margin-bottom:15px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:1px solid var(--gray-light)}
+.card-title{font-size:1rem;font-weight:600;display:flex;align-items:center;gap:8px}
+.card-title i{color:var(--primary)}
+.totals-display{background:linear-gradient(135deg,var(--dark),#16213e);color:white;border-radius:16px;padding:20px;margin-bottom:15px}
+.totals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.total-item{text-align:center}
+.total-item .label{font-size:0.7rem;opacity:0.7;margin-bottom:4px}
+.total-item .value{font-size:1.1rem;font-weight:bold}
+.total-item.highlight .value{color:var(--primary-light);font-size:1.3rem}
+.form-group{margin-bottom:15px}
+.form-label{display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px}
+.form-control{width:100%;padding:12px 15px;border:2px solid var(--gray-light);border-radius:10px;font-size:1rem}
+.form-control:focus{outline:none;border-color:var(--primary)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.category-pills{display:flex;gap:10px;flex-wrap:wrap}
+.category-pill{padding:10px 18px;border:2px solid var(--gray-light);border-radius:25px;background:white;cursor:pointer;font-size:0.85rem}
+.category-pill.active{border-color:var(--primary);background:var(--primary);color:white}
+.rate-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rate-card{padding:15px 10px;border:2px solid var(--gray-light);border-radius:12px;background:white;cursor:pointer;text-align:center}
+.rate-card.active{border-color:var(--primary);background:var(--primary);color:white}
+.rate-card .rate-amount{font-size:1.1rem;font-weight:bold;margin-bottom:4px}
+.rate-card .rate-label{font-size:0.7rem;opacity:0.8}
+.calculated-display{background:var(--light);border-radius:10px;padding:15px;text-align:center;margin:15px 0}
+.calculated-display .label{font-size:0.8rem;color:var(--gray);margin-bottom:5px}
+.calculated-display .amount{font-size:1.5rem;font-weight:bold;color:var(--primary)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border:none;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer}
+.btn-primary{background:var(--primary);color:white}
+.btn-success{background:var(--success);color:white}
+.btn-danger{background:var(--danger);color:white}
+.btn-outline{background:white;border:2px solid var(--gray-light);color:var(--dark)}
+.btn-block{width:100%}
+.btn-lg{padding:15px 25px;font-size:1rem}
+.declaration-item{padding:15px;border-radius:12px;background:var(--light);margin-bottom:10px}
+.declaration-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.declaration-item-type{font-weight:600;display:flex;align-items:center;gap:8px}
+.declaration-item-type i{color:var(--primary)}
+.declaration-item-amount{font-weight:bold;color:var(--success)}
+.declaration-item-amount.km{color:var(--accent)}
+.declaration-item-meta{font-size:0.8rem;color:var(--gray)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--gray)}
+.empty-state i{font-size:3rem;margin-bottom:15px;opacity:0.5}
+.toast-container{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:9999}
+.toast{background:var(--dark);color:white;padding:12px 24px;border-radius:10px;font-size:0.9rem;animation:slideUp 0.3s ease}
+.toast.success{background:var(--success)}
+.toast.error{background:var(--danger)}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="login-screen" class="auth-screen">
+<div class="auth-box">
+<div class="auth-logo"><i class="fas fa-euro-sign"></i></div>
+<h1>Declaratie Module</h1>
+<p>Voer uw PIN in om door te gaan</p>
+<div class="pin-dots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+<div class="numpad">
+<button class="numpad-btn" onclick="Auth.digit(1)">1</button>
+<button class="numpad-btn" onclick="Auth.digit(2)">2</button>
+<button class="numpad-btn" onclick="Auth.digit(3)">3</button>
+<button class="numpad-btn" onclick="Auth.digit(4)">4</button>
+<button class="numpad-btn" onclick="Auth.digit(5)">5</button>
+<button class="numpad-btn" onclick="Auth.digit(6)">6</button>
+<button class="numpad-btn" onclick="Auth.digit(7)">7</button>
+<button class="numpad-btn" onclick="Auth.digit(8)">8</button>
+<button class="numpad-btn" onclick="Auth.digit(9)">9</button>
+<button class="numpad-btn action" onclick="Auth.clear()"><i class="fas fa-times"></i></button>
+<button class="numpad-btn" onclick="Auth.digit(0)">0</button>
+<button class="numpad-btn action" onclick="Auth.backspace()"><i class="fas fa-backspace"></i></button>
+</div>
+<div id="login-error" class="auth-error"></div>
+</div>
+</div>
+<div id="setup-screen" class="auth-screen hidden">
+<div class="auth-box">
+<div class="auth-logo"><i class="fas fa-user-plus"></i></div>
+<h1>Welkom</h1>
+<p>Stel uw account in</p>
+<input type="text" id="setup-name" class="auth-input" placeholder="Uw naam" maxlength="50">
+<input type="password" id="setup-pin" class="auth-input" placeholder="Kies 4-cijferige PIN" maxlength="4" inputmode="numeric">
+<input type="password" id="setup-pin-confirm" class="auth-input" placeholder="Bevestig PIN" maxlength="4" inputmode="numeric">
+<button class="numpad-btn action" style="width:100%;aspect-ratio:auto;padding:15px;border-radius:12px;font-size:1rem;" onclick="Auth.completeSetup()"><i class="fas fa-check"></i> Account Aanmaken</button>
+<div id="setup-error" class="auth-error"></div>
+</div>
+</div>
+<div id="app-container" class="app-container">
+<div class="security-bar"><i class="fas fa-shield-alt"></i> Beveiligde omgeving - Data blijft lokaal</div>
+<header class="app-header">
+<h1><i class="fas fa-euro-sign"></i> Declaratie Module</h1>
+<div class="user-info">Welkom, <span id="display-user">Gebruiker</span></div>
+</header>
+<nav class="nav-tabs">
+<button class="nav-tab active" data-tab="dashboard"><i class="fas fa-home"></i>Dashboard</button>
+<button class="nav-tab" data-tab="km"><i class="fas fa-car"></i>Kilometers</button>
+<button class="nav-tab" data-tab="hours"><i class="fas fa-clock"></i>Uren</button>
+<button class="nav-tab" data-tab="settings"><i class="fas fa-cog"></i>Instellingen</button>
+</nav>
+<main class="main-content">
+<div id="tab-dashboard" class="tab-content active">
+<div class="totals-display">
+<div class="totals-grid">
+<div class="total-item"><div class="label">Kilometers</div><div class="value" id="total-km">€ 0,00</div></div>
+<div class="total-item"><div class="label">Uren</div><div class="value" id="total-hours">€ 0,00</div></div>
+<div class="total-item highlight"><div class="label">Totaal</div><div class="value" id="total-all">€ 0,00</div></div>
+</div>
+</div>
+<div class="card"><div class="card-header"><span class="card-title"><i class="fas fa-history"></i> Recente Declaraties</span></div><div id="recent-list"></div></div>
+</div>
+<div id="tab-km" class="tab-content">
+<div class="card">
+<div class="card-header"><span class="card-title"><i class="fas fa-car"></i> Kilometer Declaratie</span></div>
+<div class="form-group"><label class="form-label">Categorie</label>
+<div class="category-pills" id="km-categories">
+<div class="category-pill active" data-cat="reistijd">Reistijd</div>
+<div class="category-pill" data-cat="instructie">Instructie</div>
+<div class="category-pill" data-cat="demo">Demo</div>
+</div></div>
+<div class="form-group"><label class="form-label">Datum</label><input type="date" id="km-date" class="form-control"></div>
+<div class="form-group"><label class="form-label">Kilometers</label><input type="number" id="km-amount" class="form-control" placeholder="0" min="0"></div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Van</label><input type="text" id="km-from" class="form-control" placeholder="Vertrekplaats"></div>
+<div class="form-group"><label class="form-label">Naar</label><input type="text" id="km-to" class="form-control" placeholder="Bestemming"></div>
+</div>
+<div class="form-group"><label class="form-label">Omschrijving</label><input type="text" id="km-description" class="form-control" placeholder="Optioneel"></div>
+<div class="calculated-display"><div class="label">Berekend (€0,23/km)</div><div class="amount" id="km-calculated">€ 0,00</div></div>
+<button class="btn btn-success btn-block btn-lg" onclick="saveKm()"><i class="fas fa-plus"></i> Toevoegen</button>
+</div>
+</div>
+<div id="tab-hours" class="tab-content">
+<div class="card">
+<div class="card-header"><span class="card-title"><i class="fas fa-clock"></i> Uren Declaratie</span></div>
+<div class="form-group"><label class="form-label">Categorie</label>
+<div class="category-pills" id="hours-categories">
+<div class="category-pill active" data-cat="instructie">Instructie</div>
+<div class="category-pill" data-cat="reistijd">Reistijd</div>
+<div class="category-pill" data-cat="demo">Demo</div>
+</div></div>
+<div class="form-group"><label class="form-label">Tarief</label>
+<div class="rate-grid">
+<div class="rate-card active" data-rate="hour"><div class="rate-amount">€75</div><div class="rate-label">Per uur</div></div>
+<div class="rate-card" data-rate="halfday"><div class="rate-amount">€300</div><div class="rate-label">Dagdeel</div></div>
+<div class="rate-card" data-rate="fullday"><div class="rate-amount">€500</div><div class="rate-label">Hele dag</div></div>
+</div></div>
+<div class="form-group"><label class="form-label">Datum</label><input type="date" id="hours-date" class="form-control"></div>
+<div class="form-group"><label class="form-label">Aantal <span id="rate-unit">uren</span></label><input type="number" id="hours-count" class="form-control" value="1" min="1"></div>
+<div class="form-group"><label class="form-label">Project/Klant</label><input type="text" id="hours-project" class="form-control" placeholder="Optioneel"></div>
+<div class="calculated-display"><div class="label">Berekend bedrag</div><div class="amount" id="hours-calculated">€ 75,00</div></div>
+<button class="btn btn-success btn-block btn-lg" onclick="saveHours()"><i class="fas fa-plus"></i> Toevoegen</button>
+</div>
+</div>
+<div id="tab-settings" class="tab-content">
+<div class="card">
+<div class="card-header"><span class="card-title"><i class="fas fa-user"></i> Profiel</span></div>
+<div class="form-group"><label class="form-label">Naam</label><input type="text" id="settings-name" class="form-control"></div>
+<button class="btn btn-primary btn-block" onclick="saveSettings()"><i class="fas fa-save"></i> Opslaan</button>
+</div>
+<div class="card">
+<div class="card-header"><span class="card-title"><i class="fas fa-download"></i> Export</span></div>
+<button class="btn btn-outline btn-block" onclick="exportJSON()" style="margin-bottom:10px"><i class="fas fa-file-code"></i> Export JSON</button>
+<button class="btn btn-outline btn-block" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
+</div>
+<div class="card">
+<div class="card-header"><span class="card-title"><i class="fas fa-shield-alt"></i> Beveiliging</span></div>
+<button class="btn btn-outline btn-block" onclick="changePin()" style="margin-bottom:10px"><i class="fas fa-key"></i> PIN Wijzigen</button>
+<button class="btn btn-danger btn-block" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Uitloggen</button>
+</div>
+<div class="card">
+<p style="font-size:0.85rem;color:var(--gray);text-align:center">
+<strong>Declaratie Module</strong><br>Versie 2.0.0 PWA<br><br>© 2025 Knowledge by Data
+</p>
+</div>
+</div>
+</main>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script>
+'use strict';
+const K={PIN:'decl_pin',USER:'decl_user',DATA:'decl_data'};
+const KM_RATE=0.23;
+const RATES={hour:75,halfday:300,fullday:500};
+const RATE_LABELS={hour:'uren',halfday:'dagdelen',fullday:'dagen'};
+const CAT_LABELS={reistijd:'Reistijd',instructie:'Instructie',demo:'Demo'};
+const STATE={pin:'',user:null,declarations:[],kmCat:'reistijd',hoursCat:'instructie',rate:'hour'};
+const esc=t=>{if(!t)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML};
+const fmt=a=>'€ '+Number(a).toFixed(2).replace('.',',');
+const toast=(m,t='info')=>{const c=document.getElementById('toast-container');const e=document.createElement('div');e.className='toast '+t;e.textContent=m;c.appendChild(e);setTimeout(()=>e.remove(),3000)};
+const download=(content,name,type)=>{const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u)};
+
+const Auth={
+init(){const p=localStorage.getItem(K.PIN);const u=localStorage.getItem(K.USER);if(p&&u){this.showLogin()}else{this.showSetup()}},
+showLogin(){document.getElementById('login-screen').classList.remove('hidden');document.getElementById('setup-screen').classList.add('hidden');document.getElementById('app-container').classList.remove('active');this.clearPin()},
+showSetup(){document.getElementById('login-screen').classList.add('hidden');document.getElementById('setup-screen').classList.remove('hidden');document.getElementById('app-container').classList.remove('active')},
+showApp(){document.getElementById('login-screen').classList.add('hidden');document.getElementById('setup-screen').classList.add('hidden');document.getElementById('app-container').classList.add('active');STATE.user=localStorage.getItem(K.USER);document.getElementById('display-user').textContent=esc(STATE.user);document.getElementById('settings-name').value=STATE.user;loadData();updateUI()},
+digit(n){if(STATE.pin.length>=4)return;STATE.pin+=n;this.updateDots();if(STATE.pin.length===4)setTimeout(()=>this.verifyPin(),100)},
+backspace(){STATE.pin=STATE.pin.slice(0,-1);this.updateDots()},
+clear(){STATE.pin='';this.updateDots();document.getElementById('login-error').textContent=''},
+updateDots(){document.querySelectorAll('.pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<STATE.pin.length))},
+verifyPin(){const s=localStorage.getItem(K.PIN);if(STATE.pin===s){this.showApp()}else{document.getElementById('login-error').textContent='Onjuiste PIN';document.querySelector('#login-screen .auth-box').classList.add('shake');setTimeout(()=>{document.querySelector('#login-screen .auth-box').classList.remove('shake');this.clear()},400)}},
+clearPin(){STATE.pin='';this.updateDots();document.getElementById('login-error').textContent=''},
+completeSetup(){const n=document.getElementById('setup-name').value.trim();const p=document.getElementById('setup-pin').value;const c=document.getElementById('setup-pin-confirm').value;const e=document.getElementById('setup-error');if(!n){e.textContent='Voer uw naam in';return}if(!/^\d{4}$/.test(p)){e.textContent='PIN moet 4 cijfers zijn';return}if(p!==c){e.textContent='PIN komt niet overeen';return}localStorage.setItem(K.PIN,p);localStorage.setItem(K.USER,n);localStorage.setItem(K.DATA,'[]');this.showApp();toast('Account aangemaakt!','success')}
+};
+
+function loadData(){try{const d=localStorage.getItem(K.DATA);STATE.declarations=d?JSON.parse(d):[]}catch(e){STATE.declarations=[]}}
+function saveData(){localStorage.setItem(K.DATA,JSON.stringify(STATE.declarations))}
+function switchTab(t){document.querySelectorAll('.nav-tab').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(n=>n.classList.remove('active'));document.querySelector(`.nav-tab[data-tab="${t}"]`).classList.add('active');document.getElementById('tab-'+t).classList.add('active')}
+function updateUI(){updateTotals();updateRecent()}
+function updateTotals(){const km=STATE.declarations.filter(d=>d.type==='km').reduce((s,d)=>s+d.amount,0);const hr=STATE.declarations.filter(d=>d.type==='hours').reduce((s,d)=>s+d.amount,0);document.getElementById('total-km').textContent=fmt(km);document.getElementById('total-hours').textContent=fmt(hr);document.getElementById('total-all').textContent=fmt(km+hr)}
+function updateRecent(){const c=document.getElementById('recent-list');const r=STATE.declarations.slice(0,10);if(!r.length){c.innerHTML='<div class="empty-state"><i class="fas fa-file-invoice"></i><p>Nog geen declaraties</p></div>';return}c.innerHTML=r.map(d=>{const dt=new Date(d.date).toLocaleDateString('nl-NL',{day:'numeric',month:'short'});const cat=CAT_LABELS[d.category]||d.category;if(d.type==='km'){return`<div class="declaration-item"><div class="declaration-item-header"><span class="declaration-item-type"><i class="fas fa-car"></i> ${d.km} km</span><span class="declaration-item-amount km">${fmt(d.amount)}</span></div><div class="declaration-item-meta">${esc(dt)} | ${esc(cat)}</div></div>`}else{return`<div class="declaration-item"><div class="declaration-item-header"><span class="declaration-item-type"><i class="fas fa-clock"></i> ${d.count}× ${RATE_LABELS[d.rateType]}</span><span class="declaration-item-amount">${fmt(d.amount)}</span></div><div class="declaration-item-meta">${esc(dt)} | ${esc(cat)}</div></div>`}}).join('')}
+function saveKm(){const date=document.getElementById('km-date').value;const km=parseFloat(document.getElementById('km-amount').value)||0;const from=document.getElementById('km-from').value.trim();const to=document.getElementById('km-to').value.trim();const desc=document.getElementById('km-description').value.trim();if(!date){toast('Selecteer datum','error');return}if(km<=0){toast('Voer kilometers in','error');return}const decl={id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),type:'km',date,category:STATE.kmCat,km,from,to,description:desc,amount:Math.round(km*KM_RATE*100)/100,createdAt:new Date().toISOString()};STATE.declarations.unshift(decl);saveData();updateUI();document.getElementById('km-amount').value='';document.getElementById('km-from').value='';document.getElementById('km-to').value='';document.getElementById('km-description').value='';document.getElementById('km-calculated').textContent='€ 0,00';toast(`${fmt(decl.amount)} toegevoegd`,'success');switchTab('dashboard')}
+function saveHours(){const date=document.getElementById('hours-date').value;const count=parseInt(document.getElementById('hours-count').value)||0;const project=document.getElementById('hours-project').value.trim();if(!date){toast('Selecteer datum','error');return}if(count<=0){toast('Voer aantal in','error');return}const hMap={hour:1,halfday:4,fullday:8};const decl={id:Date.now().toString(36)+Math.random().toString(36).substr(2,5),type:'hours',date,category:STATE.hoursCat,rateType:STATE.rate,count,hours:count*hMap[STATE.rate],project,amount:count*RATES[STATE.rate],createdAt:new Date().toISOString()};STATE.declarations.unshift(decl);saveData();updateUI();document.getElementById('hours-count').value='1';document.getElementById('hours-project').value='';calcHours();toast(`${fmt(decl.amount)} toegevoegd`,'success');switchTab('dashboard')}
+function calcKm(){const km=parseFloat(document.getElementById('km-amount').value)||0;document.getElementById('km-calculated').textContent=fmt(km*KM_RATE)}
+function calcHours(){const c=parseInt(document.getElementById('hours-count').value)||0;document.getElementById('hours-calculated').textContent=fmt(c*RATES[STATE.rate])}
+function exportJSON(){if(!STATE.declarations.length){toast('Geen data','error');return}const data={type:'declaratie',version:'2.0.0',medewerker:STATE.user,exportDatum:new Date().toISOString(),declaraties:STATE.declarations};download(JSON.stringify(data,null,2),`declaratie_${STATE.user.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.json`,'application/json');toast('JSON geëxporteerd','success')}
+function exportCSV(){if(!STATE.declarations.length){toast('Geen data','error');return}const h=['Medewerker','Datum','Type','Categorie','Kilometers','Uren','Bedrag'];const rows=STATE.declarations.map(d=>[STATE.user,d.date,d.type==='km'?'Kilometers':'Uren',CAT_LABELS[d.category]||d.category,d.type==='km'?d.km:'',d.type==='hours'?d.hours:'',d.amount.toFixed(2).replace('.',',')]);const csv=[h,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';')).join('\n');download('\uFEFF'+csv,`declaratie_${STATE.user.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.csv`,'text/csv;charset=utf-8');toast('CSV geëxporteerd','success')}
+function saveSettings(){const n=document.getElementById('settings-name').value.trim();if(!n){toast('Naam verplicht','error');return}localStorage.setItem(K.USER,n);STATE.user=n;document.getElementById('display-user').textContent=esc(n);toast('Opgeslagen','success')}
+function changePin(){const p=prompt('Nieuwe 4-cijferige PIN:');if(p&&/^\d{4}$/.test(p)){localStorage.setItem(K.PIN,p);toast('PIN gewijzigd','success')}else if(p){toast('PIN moet 4 cijfers zijn','error')}}
+function logout(){if(confirm('Uitloggen?')){Auth.showLogin();toast('Uitgelogd','info')}}
+document.addEventListener('DOMContentLoaded',()=>{
+Auth.init();
+const today=new Date().toISOString().split('T')[0];
+document.getElementById('km-date').value=today;
+document.getElementById('hours-date').value=today;
+document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+document.querySelectorAll('#km-categories .category-pill').forEach(p=>p.addEventListener('click',()=>{document.querySelectorAll('#km-categories .category-pill').forEach(x=>x.classList.remove('active'));p.classList.add('active');STATE.kmCat=p.dataset.cat}));
+document.querySelectorAll('#hours-categories .category-pill').forEach(p=>p.addEventListener('click',()=>{document.querySelectorAll('#hours-categories .category-pill').forEach(x=>x.classList.remove('active'));p.classList.add('active');STATE.hoursCat=p.dataset.cat}));
+document.querySelectorAll('.rate-card').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.rate-card').forEach(x=>x.classList.remove('active'));c.classList.add('active');STATE.rate=c.dataset.rate;document.getElementById('rate-unit').textContent=RATE_LABELS[STATE.rate];calcHours()}));
+document.getElementById('km-amount').addEventListener('input',calcKm);
+document.getElementById('hours-count').addEventListener('input',calcHours);
+});
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(e=>console.error('SW:',e))}
+</script>
+</body>
+</html>
