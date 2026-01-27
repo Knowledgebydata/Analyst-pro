@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0d6efd">
-    <title>ZorgAnalyst Pro Mobile</title>
+    <title>Zorg Analyst Pro Mobile</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -673,22 +673,34 @@
             padding: 20px;
         }
         
+        #pinLogin {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
+        
         .pin-title {
             font-size: 1.5rem;
             font-weight: 600;
             margin-bottom: 10px;
+            text-align: center;
         }
         
         .pin-subtitle {
             font-size: 0.9rem;
             opacity: 0.9;
             margin-bottom: 30px;
+            text-align: center;
         }
         
         .pin-dots {
             display: flex;
+            justify-content: center;
             gap: 15px;
             margin-bottom: 30px;
+            width: 100%;
         }
         
         .pin-dot {
@@ -707,6 +719,7 @@
             display: grid;
             grid-template-columns: repeat(3, 70px);
             gap: 15px;
+            justify-content: center;
         }
         
         .pin-key {
@@ -843,7 +856,7 @@
     <!-- PIN Screen -->
     <div class="pin-screen active" id="pinScreen">
         <div id="pinLogin">
-            <h1 class="pin-title">ZorgAnalyst Pro</h1>
+            <h1 class="pin-title">Zorg Analyst Pro</h1>
             <p class="pin-subtitle">Voer uw PIN in om door te gaan</p>
             <div class="pin-dots" id="pinDots">
                 <div class="pin-dot"></div>
@@ -997,7 +1010,7 @@
         <!-- Header -->
         <header class="header">
             <div class="header-top">
-                <h1>ZorgAnalyst Pro Mobile</h1>
+                <h1>Zorg Analyst Pro Mobile</h1>
                 <div class="gps-indicator" id="gpsIndicator">
                     <div class="gps-dot"></div>
                     <span id="gpsStatus">GPS</span>
@@ -1357,7 +1370,7 @@
                         Export
                     </div>
                     <p style="font-size: 0.85rem; color: var(--secondary); margin-bottom: 15px;">
-                        Exporteer alle meldingen naar JSON voor import in ZorgAnalyst Pro.
+                        Exporteer alle meldingen naar JSON voor import in Zorg Analyst Pro.
                     </p>
                     <button class="btn btn-success" id="exportJsonBtn">
                         <i class="fas fa-file-export"></i> Export JSON
@@ -1378,7 +1391,7 @@
                 </div>
                 
                 <div style="text-align: center; padding: 20px; color: var(--secondary); font-size: 0.8rem;">
-                    <strong>ZorgAnalyst Pro Mobile</strong><br>
+                    <strong>Zorg Analyst Pro Mobile</strong><br>
                     Versie 2.1.0 PWA<br><br>
                     © 2025 Knowledge by Data
                 </div>
@@ -2754,7 +2767,7 @@
             
             const exportData = {
                 exportInfo: {
-                    applicatie: 'ZorgAnalyst Pro Mobile',
+                    applicatie: 'Zorg Analyst Pro Mobile',
                     versie: '2.1.0',
                     exportDatum: new Date().toISOString(),
                     melder: user.name,
