@@ -62,18 +62,22 @@
             margin-top: 4px;
         }
         
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
         /* GPS Indicator */
         .gps-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             padding: 4px 10px;
             border-radius: 20px;
             background: rgba(255,255,255,0.2);
+            white-space: nowrap;
         }
         
         .gps-indicator.active {
@@ -514,6 +518,94 @@
             overflow: hidden;
         }
         
+        .melding-item.expanded .melding-omschrijving {
+            display: block;
+            -webkit-line-clamp: unset;
+        }
+        
+        .melding-item.expanded .melding-details {
+            display: block !important;
+        }
+        
+        .melding-item.expanded .melding-expand-hint {
+            display: none;
+        }
+        
+        .melding-item.expanded .fa-chevron-down {
+            transform: rotate(180deg);
+        }
+        
+        .melding-expand-hint {
+            transition: opacity 0.2s;
+        }
+        
+        /* Nieuwe melding card styling */
+        .melding-card {
+            background: var(--white);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary);
+            overflow: hidden;
+        }
+        
+        .melding-card.expanded {
+            border-left-color: var(--success);
+        }
+        
+        .melding-card-header {
+            padding: 15px;
+            cursor: pointer;
+        }
+        
+        .melding-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .melding-bedrijf {
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+        
+        .melding-preview {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        
+        .melding-toggle {
+            text-align: center;
+            color: var(--primary);
+            font-size: 0.8rem;
+            padding-top: 5px;
+            border-top: 1px dashed #eee;
+        }
+        
+        .melding-card-body {
+            background: #f8f9fa;
+            padding: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .melding-details-inner p {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .melding-full-text {
+            white-space: pre-wrap;
+            background: var(--white);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-top: 8px;
+        }
+        
         /* Bottom Navigation */
         .bottom-nav {
             position: fixed;
@@ -702,13 +794,13 @@
         }
         
         /* Add new bedrijf inline */
-        .add-bedrijf-row {
+        .add-bedrijf-row, .add-entity-row {
             display: flex;
             gap: 8px;
             margin-top: 10px;
         }
         
-        .add-bedrijf-row input {
+        .add-bedrijf-row input, .add-entity-row input {
             flex: 1;
         }
         
@@ -783,6 +875,107 @@
                     <label class="required">Uw naam</label>
                     <input type="text" class="form-control" id="setupName" placeholder="Voornaam Achternaam">
                 </div>
+                
+                <!-- Werkgever selectie -->
+                <div class="form-group">
+                    <label class="required">Werkgever type</label>
+                    <select class="form-control" id="setupWerkgeverType" onchange="toggleWerkgeverDetails()">
+                        <option value="">-- Selecteer --</option>
+                        <option value="gemeente">Gemeente</option>
+                        <option value="zorgkantoor">Zorgkantoor</option>
+                    </select>
+                </div>
+                
+                <div id="gemeenteSelectDiv" class="form-group" style="display:none">
+                    <label class="required">Gemeente</label>
+                    <select class="form-control" id="setupGemeente" onchange="toggleGemeenteAnders()">
+                        <option value="">-- Selecteer gemeente --</option>
+                        <optgroup label="Gooi en Vechtstreek">
+                            <option value="Hilversum">Hilversum</option>
+                            <option value="Gooise Meren">Gooise Meren (Bussum/Naarden/Muiden)</option>
+                            <option value="Huizen">Huizen</option>
+                            <option value="Blaricum">Blaricum</option>
+                            <option value="Laren">Laren</option>
+                            <option value="Wijdemeren">Wijdemeren</option>
+                            <option value="Weesp">Weesp</option>
+                        </optgroup>
+                        <optgroup label="Regio Midden-Nederland">
+                            <option value="Utrecht">Utrecht</option>
+                            <option value="Amersfoort">Amersfoort</option>
+                            <option value="Almere">Almere</option>
+                            <option value="Lelystad">Lelystad</option>
+                            <option value="Zeist">Zeist</option>
+                            <option value="Nieuwegein">Nieuwegein</option>
+                            <option value="Houten">Houten</option>
+                            <option value="Veenendaal">Veenendaal</option>
+                            <option value="De Bilt">De Bilt</option>
+                            <option value="Soest">Soest</option>
+                            <option value="Baarn">Baarn</option>
+                            <option value="Bunschoten">Bunschoten-Spakenburg</option>
+                            <option value="Leusden">Leusden</option>
+                            <option value="Woerden">Woerden</option>
+                            <option value="IJsselstein">IJsselstein</option>
+                            <option value="Stichtse Vecht">Stichtse Vecht</option>
+                            <option value="Utrechtse Heuvelrug">Utrechtse Heuvelrug</option>
+                            <option value="Wijk bij Duurstede">Wijk bij Duurstede</option>
+                            <option value="De Ronde Venen">De Ronde Venen</option>
+                            <option value="Rhenen">Rhenen</option>
+                            <option value="Renswoude">Renswoude</option>
+                            <option value="Woudenberg">Woudenberg</option>
+                            <option value="Bunnik">Bunnik</option>
+                            <option value="Lopik">Lopik</option>
+                            <option value="Oudewater">Oudewater</option>
+                            <option value="Montfoort">Montfoort</option>
+                            <option value="Eemnes">Eemnes</option>
+                            <option value="Zeewolde">Zeewolde</option>
+                            <option value="Nijkerk">Nijkerk</option>
+                            <option value="Barneveld">Barneveld</option>
+                        </optgroup>
+                        <optgroup label="Overige gemeenten">
+                            <option value="Amsterdam">Amsterdam</option>
+                            <option value="Rotterdam">Rotterdam</option>
+                            <option value="Den Haag">'s-Gravenhage (Den Haag)</option>
+                            <option value="Eindhoven">Eindhoven</option>
+                            <option value="Groningen">Groningen</option>
+                            <option value="Tilburg">Tilburg</option>
+                            <option value="Breda">Breda</option>
+                            <option value="Nijmegen">Nijmegen</option>
+                            <option value="Apeldoorn">Apeldoorn</option>
+                            <option value="Arnhem">Arnhem</option>
+                            <option value="Haarlem">Haarlem</option>
+                            <option value="Enschede">Enschede</option>
+                            <option value="Haarlemmermeer">Haarlemmermeer</option>
+                            <option value="Zaanstad">Zaanstad</option>
+                            <option value="Den Bosch">'s-Hertogenbosch</option>
+                            <option value="Zwolle">Zwolle</option>
+                            <option value="Zoetermeer">Zoetermeer</option>
+                            <option value="Leeuwarden">Leeuwarden</option>
+                            <option value="Leiden">Leiden</option>
+                            <option value="Maastricht">Maastricht</option>
+                            <option value="Dordrecht">Dordrecht</option>
+                            <option value="Ede">Ede</option>
+                        </optgroup>
+                        <option value="Anders">Anders (vul in)</option>
+                    </select>
+                    <input type="text" class="form-control" id="setupGemeenteAnders" placeholder="Vul gemeentenaam in" style="display:none;margin-top:8px">
+                </div>
+                
+                <div id="zorgkantoorSelectDiv" class="form-group" style="display:none">
+                    <label class="required">Zorgkantoor</label>
+                    <select class="form-control" id="setupZorgkantoor" onchange="toggleZorgkantoorAnders()">
+                        <option value="">-- Selecteer zorgkantoor --</option>
+                        <option value="Zilveren Kruis">Zilveren Kruis Zorgkantoor</option>
+                        <option value="VGZ">VGZ Zorgkantoor</option>
+                        <option value="CZ">CZ Zorgkantoor</option>
+                        <option value="Menzis">Menzis Zorgkantoor</option>
+                        <option value="Zorg en Zekerheid">Zorg en Zekerheid</option>
+                        <option value="DSW">DSW Zorgkantoor</option>
+                        <option value="Salland">Salland Zorgkantoor</option>
+                        <option value="Anders">Anders (vul in)</option>
+                    </select>
+                    <input type="text" class="form-control" id="setupZorgkantoorAnders" placeholder="Vul zorgkantoor naam in" style="display:none;margin-top:8px">
+                </div>
+                
                 <div class="form-group">
                     <label class="required">Kies een 4-cijferige PIN</label>
                     <input type="password" class="form-control" id="setupPin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••">
@@ -803,11 +996,14 @@
     <div id="mainApp" class="hidden">
         <!-- Header -->
         <header class="header">
-            <h1>ZorgAnalyst Pro Mobile</h1>
-            <p class="subtitle">Veldwerk Zorgcriminaliteit</p>
-            <div class="gps-indicator" id="gpsIndicator">
-                <div class="gps-dot"></div>
-                <span id="gpsStatus">GPS zoeken...</span>
+            <div class="header-top">
+                <h1>ZorgAnalyst Pro Mobile</h1>
+                <div class="gps-indicator" id="gpsIndicator">
+                    <div class="gps-dot"></div>
+                    <span id="gpsStatus">GPS</span>
+                </div>
+            </div>
+            <p class="subtitle" id="headerWerkgever">Veldwerk Zorgcriminaliteit</p>
             </div>
         </header>
 
@@ -827,21 +1023,12 @@
                         </div>
                         <div class="stat-card secondary">
                             <div class="stat-number" id="statBedrijven">0</div>
-                            <div class="stat-label">Bedrijven</div>
+                            <div class="stat-label">Entiteiten</div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-title">
-                        <i class="fas fa-clock"></i>
-                        Recente Meldingen
-                    </div>
-                    <div id="recentMeldingen">
-                        <p style="color: var(--secondary); text-align: center; padding: 20px 0;">
-                            Nog geen meldingen
-                        </p>
-                    </div>
+                    <button class="btn btn-primary" style="margin-top:15px;width:100%" onclick="switchScreen('meldingen')">
+                        <i class="fas fa-list"></i> Bekijk Meldingen
+                    </button>
                 </div>
             </div>
         </div>
@@ -861,24 +1048,56 @@
                         <div class="gps-coords" id="gpsCoords">Locatie wordt bepaald...</div>
                     </div>
                     
-                    <!-- Bedrijven Selectie -->
+                    <!-- Entiteiten Selectie -->
+                    <div class="section-divider">Betrokken Entiteiten</div>
+                    
+                    <!-- Bedrijf Selectie (Dropdown) -->
                     <div class="form-group">
-                        <label>Betrokken bedrijf(en)</label>
-                        <div class="bedrijf-select-container" id="bedrijfSelectContainer">
-                            <div class="chips-container" id="bedrijvenChips">
-                                <!-- Chips worden hier dynamisch toegevoegd -->
-                            </div>
-                        </div>
-                        <div class="add-bedrijf-row">
-                            <input type="text" class="form-control" id="nieuwBedrijfInput" placeholder="Nieuw bedrijf toevoegen...">
-                            <button class="btn btn-primary btn-sm" id="addBedrijfBtn" style="width: auto; padding: 12px 16px;">
+                        <label>Zorgaanbieder / Bedrijf</label>
+                        <select class="form-control" id="bedrijfSelect">
+                            <option value="">-- Selecteer bedrijf --</option>
+                        </select>
+                        <div class="add-entity-row">
+                            <input type="text" class="form-control" id="nieuwBedrijfInput" placeholder="Of voeg nieuw bedrijf toe...">
+                            <button class="btn btn-primary btn-sm" id="addBedrijfBtn" style="width: auto; padding: 10px 14px;">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
                     </div>
                     
+                    <!-- Zorglocatie Selectie (Dropdown) -->
+                    <div class="form-group">
+                        <label>Zorglocatie</label>
+                        <select class="form-control" id="locatieSelect">
+                            <option value="">-- Selecteer locatie --</option>
+                        </select>
+                        <div class="add-entity-row">
+                            <input type="text" class="form-control" id="nieuwLocatieInput" placeholder="Of voeg nieuwe locatie toe...">
+                            <button class="btn btn-primary btn-sm" id="addLocatieBtn" style="width: auto; padding: 10px 14px;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Zorgverlener Selectie (Dropdown) -->
+                    <div class="form-group">
+                        <label>Zorgverlener (persoon/ZZP'er)</label>
+                        <select class="form-control" id="zorgverlenerSelect">
+                            <option value="">-- Selecteer zorgverlener --</option>
+                        </select>
+                        <div class="add-entity-row">
+                            <input type="text" class="form-control" id="nieuwZorgverlenerInput" placeholder="Of voeg nieuwe zorgverlener toe...">
+                            <button class="btn btn-primary btn-sm" id="addZorgverlenerBtn" style="width: auto; padding: 10px 14px;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:0.85rem;color:var(--secondary)">
+                            <input type="checkbox" id="zorgverlenerIsZzp"> Dit is een ZZP'er
+                        </label>
+                    </div>
+                    
                     <!-- Adres -->
-                    <div class="section-divider">Locatie</div>
+                    <div class="section-divider">Locatie Adres</div>
                     
                     <div class="form-row">
                         <div class="form-group autocomplete-container">
@@ -910,7 +1129,7 @@
                                 <option value="fysiotherapie">Fysiotherapie</option>
                                 <option value="tandarts">Tandarts</option>
                                 <option value="verloskundige">Verloskundige</option>
-                                <option value="dietetiek">Diëtetiek</option>
+                                <option value="dietetiek">DiÃ«tetiek</option>
                                 <option value="logopedie">Logopedie</option>
                                 <option value="ergotherapie">Ergotherapie</option>
                                 <option value="podotherapie">Podotherapie</option>
@@ -951,7 +1170,7 @@
                                 <option value="declaratie-niet-geleverd">Declaratie niet-geleverde zorg</option>
                                 <option value="declaratie-upcoding">Upcoding (duurder declareren)</option>
                                 <option value="declaratie-dubbel">Dubbele declaraties</option>
-                                <option value="declaratie-fictief">Fictieve patiënten</option>
+                                <option value="declaratie-fictief">Fictieve patiÃ«nten</option>
                                 <option value="declaratie-overig">Overige declaratiefraude</option>
                             </optgroup>
                             <optgroup label="PGB Fraude">
@@ -1024,6 +1243,14 @@
                         <i class="fas fa-list"></i>
                         Alle Meldingen
                     </div>
+                    <!-- Zoekfunctie -->
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <div style="position:relative">
+                            <i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--secondary)"></i>
+                            <input type="text" class="form-control" id="meldingenZoek" placeholder="Zoeken in meldingen..." style="padding-left:38px" oninput="filterMeldingen()">
+                        </div>
+                    </div>
+                    <div id="meldingenCount" style="font-size:0.85rem;color:var(--secondary);margin-bottom:10px"></div>
                     <div id="alleMeldingen">
                         <p style="color: var(--secondary); text-align: center; padding: 20px 0;">
                             Nog geen meldingen
@@ -1045,25 +1272,83 @@
                         <label>Naam</label>
                         <input type="text" class="form-control" id="settingsName">
                     </div>
+                    <div class="form-group">
+                        <label>Werkgever</label>
+                        <input type="text" class="form-control" id="settingsWerkgever" readonly style="background:#f0f0f0">
+                    </div>
                     <button class="btn btn-primary" id="saveProfileBtn">
                         <i class="fas fa-save"></i> Opslaan
                     </button>
                 </div>
                 
+                <!-- Bedrijven Beheren -->
                 <div class="card">
                     <div class="card-title">
                         <i class="fas fa-building"></i>
                         Bedrijven Beheren
                     </div>
-                    <div id="bedrijvenLijst" class="chips-container" style="margin-bottom: 15px;">
-                        <!-- Bedrijven worden hier getoond -->
+                    <div class="form-group">
+                        <select class="form-control" id="bedrijvenBeheerSelect" size="4" style="height:auto">
+                        </select>
                     </div>
-                    <div class="add-bedrijf-row">
-                        <input type="text" class="form-control" id="nieuwBedrijfSettings" placeholder="Bedrijfsnaam toevoegen...">
-                        <button class="btn btn-primary btn-sm" id="addBedrijfSettingsBtn" style="width: auto; padding: 12px 16px;">
+                    <div class="add-entity-row">
+                        <input type="text" class="form-control" id="nieuwBedrijfSettings" placeholder="Nieuw bedrijf toevoegen...">
+                        <button class="btn btn-primary btn-sm" id="addBedrijfSettingsBtn" style="width:auto;padding:10px 14px">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
+                    <button class="btn btn-danger btn-sm" id="deleteBedrijfBtn" style="margin-top:10px;width:100%">
+                        <i class="fas fa-trash"></i> Verwijder Geselecteerde
+                    </button>
+                </div>
+                
+                <!-- Locaties Beheren -->
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Zorglocaties Beheren
+                    </div>
+                    <div class="form-group">
+                        <select class="form-control" id="locatiesBeheerSelect" size="4" style="height:auto">
+                        </select>
+                    </div>
+                    <div class="add-entity-row">
+                        <input type="text" class="form-control" id="nieuwLocatieSettings" placeholder="Locatie naam...">
+                        <button class="btn btn-primary btn-sm" id="addLocatieSettingsBtn" style="width:auto;padding:10px 14px">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <input type="text" class="form-control" id="nieuwLocatieAdresSettings" placeholder="Adres (optioneel)" style="margin-top:8px">
+                    <button class="btn btn-danger btn-sm" id="deleteLocatieBtn" style="margin-top:10px;width:100%">
+                        <i class="fas fa-trash"></i> Verwijder Geselecteerde
+                    </button>
+                </div>
+                
+                <!-- Zorgverleners Beheren -->
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-user-nurse"></i>
+                        Zorgverleners Beheren
+                    </div>
+                    <div class="form-group">
+                        <select class="form-control" id="zorgverlenersBeheerSelect" size="4" style="height:auto">
+                        </select>
+                    </div>
+                    <div class="add-entity-row">
+                        <input type="text" class="form-control" id="nieuwZorgverlenerSettings" placeholder="Naam zorgverlener...">
+                        <button class="btn btn-primary btn-sm" id="addZorgverlenerSettingsBtn" style="width:auto;padding:10px 14px">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                        <input type="text" class="form-control" id="nieuwZvFunctieSettings" placeholder="Functie" style="flex:1">
+                        <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:0.85rem">
+                            <input type="checkbox" id="nieuwZvIsZzpSettings"> ZZP
+                        </label>
+                    </div>
+                    <button class="btn btn-danger btn-sm" id="deleteZorgverlenerBtn" style="margin-top:10px;width:100%">
+                        <i class="fas fa-trash"></i> Verwijder Geselecteerde
+                    </button>
                 </div>
                 
                 <div class="card">
@@ -1072,7 +1357,7 @@
                         Export
                     </div>
                     <p style="font-size: 0.85rem; color: var(--secondary); margin-bottom: 15px;">
-                        Exporteer alle meldingen naar JSON voor import in ZorgAnalyst Pro hoofdmodule.
+                        Exporteer alle meldingen naar JSON voor import in ZorgAnalyst Pro.
                     </p>
                     <button class="btn btn-success" id="exportJsonBtn">
                         <i class="fas fa-file-export"></i> Export JSON
@@ -1094,7 +1379,7 @@
                 
                 <div style="text-align: center; padding: 20px; color: var(--secondary); font-size: 0.8rem;">
                     <strong>ZorgAnalyst Pro Mobile</strong><br>
-                    Versie 2.0.0 PWA<br><br>
+                    Versie 2.1.0 PWA<br><br>
                     © 2025 Knowledge by Data
                 </div>
             </div>
@@ -1139,7 +1424,7 @@
             "Bergweg", "Binnendoor", "Bloemstraat", "Bosdrift",
             "Boslaan", "Boterbloemweg", "Brediusweg", "Brinkweg",
             "Burgemeester van Hellenberg Hubarlaan", "Capitool", "Ceintuurbaan", "Colosseum",
-            "Cornelis Drebbelstraat", "Crailoërweg", "De Gijselaar", "Diependaalselaan",
+            "Cornelis Drebbelstraat", "CrailoÃ«rweg", "De Gijselaar", "Diependaalselaan",
             "Eemnesserweg", "Egelshoek", "Eikbosserweg", "Eikenlaan",
             "Emmastraat", "Erfgooiersstraat", "Forum", "Frederik van Eedenlaan",
             "Geuzenweg", "Gijsbrecht van Amstelstraat", "Gladiolenstraat", "Godelindeweg",
@@ -1190,7 +1475,9 @@
             USER: 'zorganalyst_user',
             PIN: 'zorganalyst_pin',
             MELDINGEN: 'zorganalyst_meldingen',
-            BEDRIJVEN: 'zorganalyst_bedrijven'
+            BEDRIJVEN: 'zorganalyst_bedrijven',
+            LOCATIES: 'zorganalyst_locaties',
+            ZORGVERLENERS: 'zorganalyst_zorgverleners'
         };
         
         // =====================================================
@@ -1283,6 +1570,78 @@
             saveBedrijven(bedrijven);
         }
         
+        // Locaties functies
+        function getLocaties() {
+            const data = localStorage.getItem(STORAGE_KEYS.LOCATIES);
+            return data ? JSON.parse(data) : [];
+        }
+        
+        function saveLocaties(locaties) {
+            localStorage.setItem(STORAGE_KEYS.LOCATIES, JSON.stringify(locaties));
+        }
+        
+        function addLocatie(locatie) {
+            if (!locatie || !locatie.naam || locatie.naam.trim() === '') return null;
+            const locaties = getLocaties();
+            const normalized = {
+                id: 'LOC-' + Date.now(),
+                naam: locatie.naam.trim(),
+                adres: locatie.adres || '',
+                bedrijf: locatie.bedrijf || '',
+                aangemaakt: new Date().toISOString()
+            };
+            if (!locaties.find(l => l.naam === normalized.naam && l.adres === normalized.adres)) {
+                locaties.push(normalized);
+                locaties.sort((a, b) => a.naam.localeCompare(b.naam));
+                saveLocaties(locaties);
+                return normalized;
+            }
+            return locaties.find(l => l.naam === normalized.naam);
+        }
+        
+        function removeLocatie(id) {
+            let locaties = getLocaties();
+            locaties = locaties.filter(l => l.id !== id);
+            saveLocaties(locaties);
+        }
+        
+        // Zorgverleners functies
+        function getZorgverleners() {
+            const data = localStorage.getItem(STORAGE_KEYS.ZORGVERLENERS);
+            return data ? JSON.parse(data) : [];
+        }
+        
+        function saveZorgverleners(zorgverleners) {
+            localStorage.setItem(STORAGE_KEYS.ZORGVERLENERS, JSON.stringify(zorgverleners));
+        }
+        
+        function addZorgverlener(zv) {
+            if (!zv || !zv.naam || zv.naam.trim() === '') return null;
+            const zorgverleners = getZorgverleners();
+            const normalized = {
+                id: 'ZV-' + Date.now(),
+                naam: zv.naam.trim(),
+                functie: zv.functie || '',
+                isZzp: zv.isZzp || false,
+                bedrijven: zv.bedrijven || [],
+                locaties: zv.locaties || [],
+                aangemaakt: new Date().toISOString()
+            };
+            if (!zorgverleners.find(z => z.naam === normalized.naam)) {
+                zorgverleners.push(normalized);
+                zorgverleners.sort((a, b) => a.naam.localeCompare(b.naam));
+                saveZorgverleners(zorgverleners);
+                return normalized;
+            }
+            return zorgverleners.find(z => z.naam === normalized.naam);
+        }
+        
+        function removeZorgverlener(id) {
+            let zorgverleners = getZorgverleners();
+            zorgverleners = zorgverleners.filter(z => z.id !== id);
+            saveZorgverleners(zorgverleners);
+        }
+        
         // =====================================================
         // GPS FUNCTIONS
         // =====================================================
@@ -1310,7 +1669,7 @@
                         accuracy: position.coords.accuracy,
                         timestamp: new Date().toISOString()
                     };
-                    updateGPSStatus('active', `GPS actief (±${Math.round(position.coords.accuracy)}m)`);
+                    updateGPSStatus('active', `GPS actief (Â±${Math.round(position.coords.accuracy)}m)`);
                     updateGPSInfo();
                 },
                 (error) => {
@@ -1340,7 +1699,7 @@
                                         accuracy: pos.coords.accuracy,
                                         timestamp: new Date().toISOString()
                                     };
-                                    updateGPSStatus('active', `GPS actief (±${Math.round(pos.coords.accuracy)}m)`);
+                                    updateGPSStatus('active', `GPS actief (Â±${Math.round(pos.coords.accuracy)}m)`);
                                     updateGPSInfo();
                                 },
                                 () => {},
@@ -1370,7 +1729,7 @@
                 gpsCoords.innerHTML = `
                     <strong>Lat:</strong> ${APP.gpsPosition.latitude.toFixed(6)}<br>
                     <strong>Lon:</strong> ${APP.gpsPosition.longitude.toFixed(6)}<br>
-                    <strong>Nauwkeurigheid:</strong> ±${Math.round(APP.gpsPosition.accuracy)} meter
+                    <strong>Nauwkeurigheid:</strong> Â±${Math.round(APP.gpsPosition.accuracy)} meter
                 `;
             } else {
                 gpsInfo.className = 'gps-info';
@@ -1835,72 +2194,83 @@
         // =====================================================
         // BEDRIJVEN MANAGEMENT
         // =====================================================
-        function renderBedrijvenChips() {
-            const container = $('#bedrijvenChips');
+        // Render dropdowns voor nieuwe melding scherm
+        function renderEntityDropdowns() {
+            // Bedrijven dropdown
+            const bedrijfSelect = $('#bedrijfSelect');
             const bedrijven = getBedrijven();
+            bedrijfSelect.innerHTML = '<option value="">-- Selecteer bedrijf --</option>';
+            bedrijven.forEach(b => {
+                bedrijfSelect.innerHTML += `<option value="${b}">${b}</option>`;
+            });
             
-            container.innerHTML = '';
+            // Locaties dropdown
+            const locatieSelect = $('#locatieSelect');
+            const locaties = getLocaties();
+            locatieSelect.innerHTML = '<option value="">-- Selecteer locatie --</option>';
+            locaties.forEach(l => {
+                const display = l.adres ? `${l.naam} (${l.adres})` : l.naam;
+                locatieSelect.innerHTML += `<option value="${l.id}">${display}</option>`;
+            });
             
-            if (bedrijven.length === 0) {
-                container.innerHTML = '<span style="color: var(--secondary); font-size: 0.85rem;">Geen bedrijven. Voeg hieronder toe.</span>';
-                return;
-            }
-            
-            bedrijven.forEach(bedrijf => {
-                const chip = document.createElement('div');
-                chip.className = 'chip' + (APP.selectedBedrijven.includes(bedrijf) ? ' selected' : '');
-                chip.innerHTML = `
-                    <span>${bedrijf}</span>
-                `;
-                chip.addEventListener('click', () => toggleBedrijfSelection(bedrijf));
-                container.appendChild(chip);
+            // Zorgverleners dropdown
+            const zvSelect = $('#zorgverlenerSelect');
+            const zorgverleners = getZorgverleners();
+            zvSelect.innerHTML = '<option value="">-- Selecteer zorgverlener --</option>';
+            zorgverleners.forEach(zv => {
+                const zzpTag = zv.isZzp ? ' (ZZP)' : '';
+                const functieTag = zv.functie ? ` - ${zv.functie}` : '';
+                zvSelect.innerHTML += `<option value="${zv.id}">${zv.naam}${functieTag}${zzpTag}</option>`;
             });
         }
         
-        function toggleBedrijfSelection(bedrijf) {
-            const index = APP.selectedBedrijven.indexOf(bedrijf);
-            if (index > -1) {
-                APP.selectedBedrijven.splice(index, 1);
+        // Render settings lijsten
+        function renderSettingsLists() {
+            // Bedrijven
+            const bedrijvenSelect = $('#bedrijvenBeheerSelect');
+            const bedrijven = getBedrijven();
+            bedrijvenSelect.innerHTML = '';
+            if (bedrijven.length === 0) {
+                bedrijvenSelect.innerHTML = '<option disabled>Geen bedrijven</option>';
             } else {
-                APP.selectedBedrijven.push(bedrijf);
+                bedrijven.forEach(b => {
+                    bedrijvenSelect.innerHTML += `<option value="${b}">${b}</option>`;
+                });
             }
-            renderBedrijvenChips();
+            
+            // Locaties
+            const locatiesSelect = $('#locatiesBeheerSelect');
+            const locaties = getLocaties();
+            locatiesSelect.innerHTML = '';
+            if (locaties.length === 0) {
+                locatiesSelect.innerHTML = '<option disabled>Geen locaties</option>';
+            } else {
+                locaties.forEach(l => {
+                    const display = l.adres ? `${l.naam} - ${l.adres}` : l.naam;
+                    locatiesSelect.innerHTML += `<option value="${l.id}">${display}</option>`;
+                });
+            }
+            
+            // Zorgverleners
+            const zvSelect = $('#zorgverlenersBeheerSelect');
+            const zorgverleners = getZorgverleners();
+            zvSelect.innerHTML = '';
+            if (zorgverleners.length === 0) {
+                zvSelect.innerHTML = '<option disabled>Geen zorgverleners</option>';
+            } else {
+                zorgverleners.forEach(zv => {
+                    const zzpTag = zv.isZzp ? ' (ZZP)' : '';
+                    const functieTag = zv.functie ? ` - ${zv.functie}` : '';
+                    zvSelect.innerHTML += `<option value="${zv.id}">${zv.naam}${functieTag}${zzpTag}</option>`;
+                });
+            }
         }
         
-        function renderBedrijvenSettings() {
-            const container = $('#bedrijvenLijst');
-            const bedrijven = getBedrijven();
-            
-            container.innerHTML = '';
-            
-            if (bedrijven.length === 0) {
-                container.innerHTML = '<span style="color: var(--secondary); font-size: 0.85rem;">Geen bedrijven opgeslagen.</span>';
-                return;
-            }
-            
-            bedrijven.forEach(bedrijf => {
-                const chip = document.createElement('div');
-                chip.className = 'chip';
-                chip.innerHTML = `
-                    <span>${bedrijf}</span>
-                    <span class="chip-remove" data-bedrijf="${bedrijf}"><i class="fas fa-times"></i></span>
-                `;
-                container.appendChild(chip);
-            });
-            
-            // Add remove handlers
-            container.querySelectorAll('.chip-remove').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const naam = btn.dataset.bedrijf;
-                    if (confirm(`Bedrijf "${naam}" verwijderen?`)) {
-                        removeBedrijf(naam);
-                        renderBedrijvenSettings();
-                        renderBedrijvenChips();
-                        showToast('Bedrijf verwijderd');
-                    }
-                });
-            });
+        // Filter meldingen op zoekterm
+        function filterMeldingen() {
+            var zoekInput = document.getElementById('meldingenZoek');
+            var zoekterm = zoekInput ? zoekInput.value.toLowerCase().trim() : '';
+            renderAlleMeldingen(zoekterm);
         }
         
         // =====================================================
@@ -1961,11 +2331,49 @@
             const name = $('#setupName').value.trim();
             const pin = $('#setupPin').value;
             const pinConfirm = $('#setupPinConfirm').value;
+            const werkgeverType = $('#setupWerkgeverType').value;
             const error = $('#setupError');
             
             if (!name) {
                 error.textContent = 'Vul uw naam in';
                 return;
+            }
+            
+            if (!werkgeverType) {
+                error.textContent = 'Selecteer werkgever type';
+                return;
+            }
+            
+            // Check gemeente of zorgkantoor
+            let gemeente = '';
+            let zorgkantoor = '';
+            
+            if (werkgeverType === 'gemeente') {
+                gemeente = $('#setupGemeente').value;
+                if (!gemeente) {
+                    error.textContent = 'Selecteer een gemeente';
+                    return;
+                }
+                if (gemeente === 'Anders') {
+                    gemeente = $('#setupGemeenteAnders').value.trim();
+                    if (!gemeente) {
+                        error.textContent = 'Vul de gemeentenaam in';
+                        return;
+                    }
+                }
+            } else if (werkgeverType === 'zorgkantoor') {
+                zorgkantoor = $('#setupZorgkantoor').value;
+                if (!zorgkantoor) {
+                    error.textContent = 'Selecteer een zorgkantoor';
+                    return;
+                }
+                if (zorgkantoor === 'Anders') {
+                    zorgkantoor = $('#setupZorgkantoorAnders').value.trim();
+                    if (!zorgkantoor) {
+                        error.textContent = 'Vul de zorgkantoor naam in';
+                        return;
+                    }
+                }
             }
             
             if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
@@ -1978,13 +2386,36 @@
                 return;
             }
             
-            // Save user
-            const user = { name, createdAt: new Date().toISOString() };
+            // Save user met werkgever info
+            const user = { 
+                name, 
+                werkgeverType,
+                gemeente,
+                zorgkantoor,
+                createdAt: new Date().toISOString() 
+            };
             saveUser(user);
             savePin(pin);
             APP.currentUser = user;
             
             loginSuccess();
+        }
+        
+        // Toggle functies voor werkgever selectie
+        function toggleWerkgeverDetails() {
+            const type = $('#setupWerkgeverType').value;
+            $('#gemeenteSelectDiv').style.display = type === 'gemeente' ? 'block' : 'none';
+            $('#zorgkantoorSelectDiv').style.display = type === 'zorgkantoor' ? 'block' : 'none';
+        }
+        
+        function toggleGemeenteAnders() {
+            const val = $('#setupGemeente').value;
+            $('#setupGemeenteAnders').style.display = val === 'Anders' ? 'block' : 'none';
+        }
+        
+        function toggleZorgkantoorAnders() {
+            const val = $('#setupZorgkantoor').value;
+            $('#setupZorgkantoorAnders').style.display = val === 'Anders' ? 'block' : 'none';
         }
         
         function loginSuccess() {
@@ -1995,12 +2426,19 @@
             $('#userName').textContent = APP.currentUser.name;
             $('#settingsName').value = APP.currentUser.name;
             
+            // Update werkgever display
+            const werkgever = APP.currentUser.gemeente || APP.currentUser.zorgkantoor || '';
+            if (werkgever) {
+                $('#headerWerkgever').textContent = werkgever + ' - ' + APP.currentUser.name;
+                $('#settingsWerkgever').value = (APP.currentUser.werkgeverType === 'gemeente' ? 'Gemeente ' : '') + werkgever;
+            }
+            
             // Initialize app
             initGPS();
             initSpeechRecognition();
             initStraatnamenAutocomplete();
-            renderBedrijvenChips();
-            renderBedrijvenSettings();
+            renderEntityDropdowns();
+            renderSettingsLists();
             updateDashboard();
         }
         
@@ -2031,6 +2469,11 @@
             const typeCriminaliteit = $('#typeCriminaliteit').value;
             const omschrijving = $('#omschrijvingInput').value.trim();
             
+            // Entiteiten uit dropdowns
+            const bedrijfSelect = $('#bedrijfSelect').value;
+            const locatieSelect = $('#locatieSelect').value;
+            const zorgverlenerSelect = $('#zorgverlenerSelect').value;
+            
             // Validation
             if (!straatnaam) {
                 showToast('Vul een straatnaam in', 'error');
@@ -2060,19 +2503,51 @@
             // Build address
             let adres = straatnaam + ' ' + huisnummer;
             if (toevoeging) adres += toevoeging;
-            adres += ', Hilversum';
+            
+            // Haal gemeente uit user settings
+            const werkgever = APP.currentUser.gemeente || APP.currentUser.zorgkantoor || 'Onbekend';
+            adres += ', ' + (APP.currentUser.gemeente || 'Onbekend');
+            
+            // Haal entiteit namen op
+            let locatieNaam = '';
+            if (locatieSelect) {
+                const loc = getLocaties().find(l => l.id === locatieSelect);
+                if (loc) locatieNaam = loc.naam;
+            }
+            
+            let zorgverlenerNaam = '';
+            let zorgverlenerIsZzp = false;
+            if (zorgverlenerSelect) {
+                const zv = getZorgverleners().find(z => z.id === zorgverlenerSelect);
+                if (zv) {
+                    zorgverlenerNaam = zv.naam;
+                    zorgverlenerIsZzp = zv.isZzp;
+                }
+            }
             
             // Create melding object
             const melding = {
                 id: generateId(),
                 datum: new Date().toISOString(),
                 melder: APP.currentUser.name,
-                bedrijven: [...APP.selectedBedrijven],
+                consulent: APP.currentUser.name,
+                werkgeverType: APP.currentUser.werkgeverType || '',
+                werkgever: werkgever,
+                // Entiteiten
+                bedrijf: bedrijfSelect,
+                bedrijven: bedrijfSelect ? [bedrijfSelect] : [],
+                locatieId: locatieSelect,
+                locatieNaam: locatieNaam,
+                zorgverlenerId: zorgverlenerSelect,
+                zorgverlenerNaam: zorgverlenerNaam,
+                zorgverlenerIsZzp: zorgverlenerIsZzp,
+                // Adres
                 adres: adres,
                 straatnaam: straatnaam,
                 huisnummer: huisnummer,
                 toevoeging: toevoeging,
-                gemeente: 'Hilversum',
+                gemeente: APP.currentUser.gemeente || '',
+                // Classificatie
                 typeZorgverlening: typeZorgverlening,
                 typeZorgverleningLabel: $('#typeZorgverlening option:checked').textContent,
                 typeCriminaliteit: typeCriminaliteit,
@@ -2104,48 +2579,160 @@
             $('#typeZorgverlening').value = '';
             $('#typeCriminaliteit').value = '';
             $('#omschrijvingInput').value = '';
-            APP.selectedBedrijven = [];
-            renderBedrijvenChips();
+            // Reset dropdowns
+            $('#bedrijfSelect').value = '';
+            $('#locatieSelect').value = '';
+            $('#zorgverlenerSelect').value = '';
+            $('#zorgverlenerIsZzp').checked = false;
+            // Reset input velden
+            $('#nieuwBedrijfInput').value = '';
+            $('#nieuwLocatieInput').value = '';
+            $('#nieuwZorgverlenerInput').value = '';
         }
         
         function updateDashboard() {
             const meldingen = getMeldingen();
             const bedrijven = getBedrijven();
+            const locaties = getLocaties();
+            const zorgverleners = getZorgverleners();
             
-            // Stats
+            // Stats alleen
             $('#statMeldingen').textContent = meldingen.length;
-            $('#statBedrijven').textContent = bedrijven.length;
+            $('#statBedrijven').textContent = bedrijven.length + locaties.length + zorgverleners.length;
+        }
+        
+        function renderAlleMeldingen(zoekterm = '') {
+            const allContainer = document.getElementById('alleMeldingen');
+            const countDiv = document.getElementById('meldingenCount');
             
-            // Recent meldingen
-            const recentContainer = $('#recentMeldingen');
-            const allContainer = $('#alleMeldingen');
+            if (!allContainer) {
+                console.error('alleMeldingen container niet gevonden');
+                return;
+            }
             
-            if (meldingen.length === 0) {
-                recentContainer.innerHTML = '<p style="color: var(--secondary); text-align: center; padding: 20px 0;">Nog geen meldingen</p>';
+            // Haal meldingen op
+            let meldingen = [];
+            try {
+                const data = localStorage.getItem('zorganalyst_meldingen');
+                if (data) {
+                    meldingen = JSON.parse(data);
+                }
+            } catch (e) {
+                console.error('Fout bij ophalen meldingen:', e);
+                meldingen = [];
+            }
+            
+            const totalCount = meldingen.length;
+            
+            // Update count altijd eerst
+            if (countDiv) {
+                countDiv.textContent = totalCount + ' meldingen';
+            }
+            
+            // Check of er meldingen zijn
+            if (totalCount === 0) {
                 allContainer.innerHTML = '<p style="color: var(--secondary); text-align: center; padding: 20px 0;">Nog geen meldingen</p>';
                 return;
             }
             
-            // Recent (last 5)
-            recentContainer.innerHTML = meldingen.slice(0, 5).map(m => renderMeldingItem(m)).join('');
+            // Filter op zoekterm indien nodig
+            if (zoekterm && zoekterm.trim() !== '') {
+                const zoektermLower = zoekterm.toLowerCase();
+                meldingen = meldingen.filter(function(m) {
+                    const searchText = [
+                        m.adres || '',
+                        m.omschrijving || '',
+                        m.typeCriminaliteitLabel || m.typeCriminaliteit || '',
+                        m.typeZorgverleningLabel || m.typeZorgverlening || '',
+                        m.bedrijf || '',
+                        m.locatieNaam || '',
+                        m.zorgverlenerNaam || '',
+                        (m.bedrijven || []).join(' ')
+                    ].join(' ').toLowerCase();
+                    return searchText.indexOf(zoektermLower) !== -1;
+                });
+                
+                if (countDiv) {
+                    countDiv.textContent = meldingen.length + ' van ' + totalCount + ' meldingen';
+                }
+            }
             
-            // All
-            allContainer.innerHTML = meldingen.map(m => renderMeldingItem(m)).join('');
+            // Check na filtering
+            if (meldingen.length === 0) {
+                allContainer.innerHTML = '<p style="color: var(--secondary); text-align: center; padding: 20px 0;">Geen meldingen gevonden</p>';
+                return;
+            }
+            
+            // Bouw HTML
+            var html = '';
+            for (var i = 0; i < meldingen.length; i++) {
+                var m = meldingen[i];
+                var bedrijfInfo = m.bedrijf || (m.bedrijven && m.bedrijven.length > 0 ? m.bedrijven.join(', ') : '');
+                var omschrijving = m.omschrijving || '';
+                var shortOmschrijving = omschrijving.length > 80 ? omschrijving.substring(0, 80) + '...' : omschrijving;
+                var datumStr = '';
+                try {
+                    datumStr = formatDate(m.datum);
+                } catch(e) {
+                    datumStr = m.datum || '';
+                }
+                
+                html += '<div class="melding-card" data-index="' + i + '">';
+                html += '<div class="melding-card-header" onclick="toggleMelding(' + i + ')">';
+                html += '<div class="melding-card-top">';
+                html += '<span class="melding-type">' + (m.typeCriminaliteitLabel || m.typeCriminaliteit || 'Onbekend') + '</span>';
+                html += '<span class="melding-date">' + datumStr + '</span>';
+                html += '</div>';
+                if (bedrijfInfo) {
+                    html += '<div class="melding-bedrijf"><strong>' + bedrijfInfo + '</strong></div>';
+                }
+                html += '<div class="melding-adres"><i class="fas fa-map-marker-alt"></i> ' + (m.adres || 'Geen adres') + '</div>';
+                html += '<div class="melding-preview">' + shortOmschrijving + '</div>';
+                html += '<div class="melding-toggle" id="toggle' + i + '"><i class="fas fa-chevron-down"></i> Tik voor details</div>';
+                html += '</div>';
+                
+                html += '<div class="melding-card-body" id="meldingBody' + i + '" style="display:none;">';
+                html += '<div class="melding-details-inner">';
+                if (m.typeZorgverleningLabel) {
+                    html += '<p><strong>Type zorg:</strong> ' + m.typeZorgverleningLabel + '</p>';
+                }
+                if (bedrijfInfo) {
+                    html += '<p><strong>Bedrijf:</strong> ' + bedrijfInfo + '</p>';
+                }
+                if (m.locatieNaam) {
+                    html += '<p><strong>Locatie:</strong> ' + m.locatieNaam + '</p>';
+                }
+                if (m.zorgverlenerNaam) {
+                    html += '<p><strong>Zorgverlener:</strong> ' + m.zorgverlenerNaam + (m.zorgverlenerIsZzp ? ' (ZZP)' : '') + '</p>';
+                }
+                if (m.gps && m.gps.lat && m.gps.lng) {
+                    html += '<p><strong>GPS:</strong> ' + m.gps.lat.toFixed(6) + ', ' + m.gps.lng.toFixed(6) + '</p>';
+                }
+                html += '<p><strong>Volledige melding:</strong></p>';
+                html += '<div class="melding-full-text">' + omschrijving + '</div>';
+                html += '</div></div></div>';
+            }
+            
+            allContainer.innerHTML = html;
         }
         
-        function renderMeldingItem(melding) {
-            return `
-                <div class="melding-item">
-                    <div class="melding-header">
-                        <span class="melding-type">${melding.typeCriminaliteitLabel || melding.typeCriminaliteit}</span>
-                        <span class="melding-date">${formatDate(melding.datum)}</span>
-                    </div>
-                    ${melding.bedrijven && melding.bedrijven.length > 0 ? 
-                        `<div class="melding-bedrijven">${melding.bedrijven.join(', ')}</div>` : ''}
-                    <div class="melding-adres"><i class="fas fa-map-marker-alt"></i> ${melding.adres}</div>
-                    <div class="melding-omschrijving">${melding.omschrijving}</div>
-                </div>
-            `;
+        // Toggle functie voor uitklappen
+        function toggleMelding(index) {
+            var body = document.getElementById('meldingBody' + index);
+            var toggle = document.getElementById('toggle' + index);
+            
+            if (!body || !toggle) {
+                console.error('Melding elementen niet gevonden voor index:', index);
+                return;
+            }
+            
+            if (body.style.display === 'none' || body.style.display === '') {
+                body.style.display = 'block';
+                toggle.innerHTML = '<i class="fas fa-chevron-up"></i> Inklappen';
+            } else {
+                body.style.display = 'none';
+                toggle.innerHTML = '<i class="fas fa-chevron-down"></i> Tik voor details';
+            }
         }
         
         // =====================================================
@@ -2154,23 +2741,39 @@
         function exportJSON() {
             const meldingen = getMeldingen();
             const user = getUser();
+            const bedrijven = getBedrijven();
+            const locaties = getLocaties();
+            const zorgverleners = getZorgverleners();
             
             if (meldingen.length === 0) {
                 showToast('Geen meldingen om te exporteren', 'error');
                 return;
             }
             
+            const werkgever = user.gemeente || user.zorgkantoor || '';
+            
             const exportData = {
                 exportInfo: {
                     applicatie: 'ZorgAnalyst Pro Mobile',
-                    versie: '2.0.0',
+                    versie: '2.1.0',
                     exportDatum: new Date().toISOString(),
                     melder: user.name,
+                    consulent: user.name,
+                    werkgeverType: user.werkgeverType || '',
+                    gemeente: user.gemeente || '',
+                    zorgkantoor: user.zorgkantoor || '',
                     aantalMeldingen: meldingen.length
+                },
+                entiteiten: {
+                    bedrijven: bedrijven,
+                    locaties: locaties,
+                    zorgverleners: zorgverleners
                 },
                 meldingen: meldingen.map(m => ({
                     ...m,
-                    exportMelder: user.name
+                    exportMelder: user.name,
+                    exportConsulent: user.name,
+                    exportGemeente: werkgever
                 }))
             };
             
@@ -2181,8 +2784,9 @@
             const a = document.createElement('a');
             const timestamp = new Date().toISOString().slice(0, 10);
             const safeName = user.name.replace(/[^a-zA-Z0-9]/g, '_');
+            const safeWerkgever = werkgever.replace(/[^a-zA-Z0-9]/g, '_');
             a.href = url;
-            a.download = `zorganalyst_${safeName}_${timestamp}.json`;
+            a.download = `zorganalyst_${safeWerkgever}_${safeName}_${timestamp}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -2206,9 +2810,11 @@
             // Special actions
             if (screenName === 'nieuw') {
                 updateGPSInfo();
-                renderBedrijvenChips();
+                renderEntityDropdowns();
             } else if (screenName === 'instellingen') {
-                renderBedrijvenSettings();
+                renderSettingsLists();
+            } else if (screenName === 'meldingen') {
+                renderAlleMeldingen();
             }
         }
         
@@ -2241,12 +2847,44 @@
             $('#addBedrijfBtn').addEventListener('click', () => {
                 const input = $('#nieuwBedrijfInput');
                 if (addBedrijf(input.value)) {
-                    APP.selectedBedrijven.push(input.value.trim());
+                    // Selecteer direct in dropdown
+                    const newVal = input.value.trim();
                     input.value = '';
-                    renderBedrijvenChips();
+                    renderEntityDropdowns();
+                    $('#bedrijfSelect').value = newVal;
                     showToast('Bedrijf toegevoegd');
                 } else if (input.value.trim()) {
                     showToast('Bedrijf bestaat al', 'error');
+                }
+            });
+            
+            // Add locatie (melding form)
+            $('#addLocatieBtn').addEventListener('click', () => {
+                const input = $('#nieuwLocatieInput');
+                const result = addLocatie({ naam: input.value });
+                if (result) {
+                    input.value = '';
+                    renderEntityDropdowns();
+                    $('#locatieSelect').value = result.id;
+                    showToast('Locatie toegevoegd');
+                } else if (input.value.trim()) {
+                    showToast('Locatie bestaat al', 'error');
+                }
+            });
+            
+            // Add zorgverlener (melding form)
+            $('#addZorgverlenerBtn').addEventListener('click', () => {
+                const input = $('#nieuwZorgverlenerInput');
+                const isZzp = $('#zorgverlenerIsZzp').checked;
+                const result = addZorgverlener({ naam: input.value, isZzp: isZzp });
+                if (result) {
+                    input.value = '';
+                    $('#zorgverlenerIsZzp').checked = false;
+                    renderEntityDropdowns();
+                    $('#zorgverlenerSelect').value = result.id;
+                    showToast('Zorgverlener toegevoegd');
+                } else if (input.value.trim()) {
+                    showToast('Zorgverlener bestaat al', 'error');
                 }
             });
             
@@ -2255,11 +2893,84 @@
                 const input = $('#nieuwBedrijfSettings');
                 if (addBedrijf(input.value)) {
                     input.value = '';
-                    renderBedrijvenSettings();
-                    renderBedrijvenChips();
+                    renderSettingsLists();
+                    renderEntityDropdowns();
                     showToast('Bedrijf toegevoegd');
                 } else if (input.value.trim()) {
                     showToast('Bedrijf bestaat al', 'error');
+                }
+            });
+            
+            // Add locatie (settings)
+            $('#addLocatieSettingsBtn').addEventListener('click', () => {
+                const naam = $('#nieuwLocatieSettings').value.trim();
+                const adres = $('#nieuwLocatieAdresSettings').value.trim();
+                const result = addLocatie({ naam: naam, adres: adres });
+                if (result) {
+                    $('#nieuwLocatieSettings').value = '';
+                    $('#nieuwLocatieAdresSettings').value = '';
+                    renderSettingsLists();
+                    renderEntityDropdowns();
+                    showToast('Locatie toegevoegd');
+                } else if (naam) {
+                    showToast('Locatie bestaat al', 'error');
+                }
+            });
+            
+            // Add zorgverlener (settings)
+            $('#addZorgverlenerSettingsBtn').addEventListener('click', () => {
+                const naam = $('#nieuwZorgverlenerSettings').value.trim();
+                const functie = $('#nieuwZvFunctieSettings').value.trim();
+                const isZzp = $('#nieuwZvIsZzpSettings').checked;
+                const result = addZorgverlener({ naam: naam, functie: functie, isZzp: isZzp });
+                if (result) {
+                    $('#nieuwZorgverlenerSettings').value = '';
+                    $('#nieuwZvFunctieSettings').value = '';
+                    $('#nieuwZvIsZzpSettings').checked = false;
+                    renderSettingsLists();
+                    renderEntityDropdowns();
+                    showToast('Zorgverlener toegevoegd');
+                } else if (naam) {
+                    showToast('Zorgverlener bestaat al', 'error');
+                }
+            });
+            
+            // Delete buttons (settings)
+            $('#deleteBedrijfBtn').addEventListener('click', () => {
+                const select = $('#bedrijvenBeheerSelect');
+                if (select.value && !select.selectedOptions[0].disabled) {
+                    if (confirm(`Bedrijf "${select.value}" verwijderen?`)) {
+                        removeBedrijf(select.value);
+                        renderSettingsLists();
+                        renderEntityDropdowns();
+                        showToast('Bedrijf verwijderd');
+                    }
+                }
+            });
+            
+            $('#deleteLocatieBtn').addEventListener('click', () => {
+                const select = $('#locatiesBeheerSelect');
+                if (select.value && !select.selectedOptions[0].disabled) {
+                    const loc = getLocaties().find(l => l.id === select.value);
+                    if (confirm(`Locatie "${loc?.naam || select.value}" verwijderen?`)) {
+                        removeLocatie(select.value);
+                        renderSettingsLists();
+                        renderEntityDropdowns();
+                        showToast('Locatie verwijderd');
+                    }
+                }
+            });
+            
+            $('#deleteZorgverlenerBtn').addEventListener('click', () => {
+                const select = $('#zorgverlenersBeheerSelect');
+                if (select.value && !select.selectedOptions[0].disabled) {
+                    const zv = getZorgverleners().find(z => z.id === select.value);
+                    if (confirm(`Zorgverlener "${zv?.naam || select.value}" verwijderen?`)) {
+                        removeZorgverlener(select.value);
+                        renderSettingsLists();
+                        renderEntityDropdowns();
+                        showToast('Zorgverlener verwijderd');
+                    }
                 }
             });
             
