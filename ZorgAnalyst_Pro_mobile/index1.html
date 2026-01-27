@@ -176,14 +176,8 @@
         }
         
         textarea.form-control {
-            min-height: 150px;
+            min-height: 120px;
             resize: vertical;
-            line-height: 1.5;
-        }
-        
-        textarea.form-control.speech-active {
-            border-color: var(--danger);
-            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
         }
         
         /* Row Layout */
@@ -241,19 +235,18 @@
             position: absolute;
             right: 10px;
             top: 10px;
-            width: 50px;
-            height: 50px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             border: none;
             background: var(--primary);
             color: white;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
         }
         
         .speech-btn:hover {
@@ -264,57 +257,23 @@
         .speech-btn.recording {
             background: var(--danger);
             animation: pulse-record 1s infinite;
-            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
         }
         
         @keyframes pulse-record {
-            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.6); }
-            70% { box-shadow: 0 0 0 20px rgba(220, 53, 69, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            50% { box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
         }
         
         .speech-status {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--secondary);
-            margin-top: 8px;
-            min-height: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-top: 5px;
+            min-height: 18px;
         }
         
         .speech-status.recording {
             color: var(--danger);
             font-weight: 500;
-        }
-        
-        .speech-status .audio-bars {
-            display: none;
-            gap: 2px;
-            height: 16px;
-            align-items: flex-end;
-        }
-        
-        .speech-status.recording .audio-bars {
-            display: flex;
-        }
-        
-        .speech-status .audio-bar {
-            width: 3px;
-            background: var(--danger);
-            border-radius: 2px;
-            animation: audioBar 0.5s ease-in-out infinite;
-        }
-        
-        .speech-status .audio-bar:nth-child(1) { animation-delay: 0s; height: 8px; }
-        .speech-status .audio-bar:nth-child(2) { animation-delay: 0.1s; height: 12px; }
-        .speech-status .audio-bar:nth-child(3) { animation-delay: 0.2s; height: 6px; }
-        .speech-status .audio-bar:nth-child(4) { animation-delay: 0.3s; height: 14px; }
-        .speech-status .audio-bar:nth-child(5) { animation-delay: 0.15s; height: 10px; }
-        
-        @keyframes audioBar {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(0.5); }
         }
         
         /* Buttons */
@@ -997,16 +956,7 @@
                                 <i class="fas fa-microphone"></i>
                             </button>
                         </div>
-                        <div class="speech-status" id="speechStatus">
-                            <span class="audio-bars">
-                                <span class="audio-bar"></span>
-                                <span class="audio-bar"></span>
-                                <span class="audio-bar"></span>
-                                <span class="audio-bar"></span>
-                                <span class="audio-bar"></span>
-                            </span>
-                            <span class="status-text">Tik op de microfoon voor spraakherkenning</span>
-                        </div>
+                        <div class="speech-status" id="speechStatus">Tik op de microfoon voor spraakherkenning</div>
                     </div>
                     
                     <button class="btn btn-success" id="saveMeldingBtn">
@@ -1379,382 +1329,103 @@
         }
         
         // =====================================================
-        // SPEECH TO TEXT - ROBUST VERSION 3.0
+        // SPEECH TO TEXT
         // =====================================================
-        // Deze implementatie lost de volgende problemen op:
-        // 1. Verlies van tekst bij auto-restart
-        // 2. Gemiste interim results
-        // 3. Betere buffering en state management
-        // =====================================================
-        
-        const SpeechEngine = {
-            // Core state
-            recognition: null,
-            isListening: false,
-            shouldRestart: false,
-            
-            // Transcript management - KRITIEK voor geen verlies
-            confirmedText: '',      // 100% bevestigde tekst (final results)
-            pendingText: '',        // Nog niet bevestigde tekst (interim)
-            sessionBuffer: [],      // Buffer van alle final results deze sessie
-            
-            // Restart management
-            restartCount: 0,
-            maxRestarts: 50,        // Veel hoger - browser stopt vaak na ~60 sec
-            restartDelay: 50,       // Snellere restart
-            
-            // Timing
-            lastResultTime: 0,
-            sessionStartTime: 0,
-            
-            // UI elements cache
-            textarea: null,
-            statusEl: null,
-            buttonEl: null,
-            
-            init() {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                
-                if (!SpeechRecognition) {
-                    this.showUnsupported();
-                    return false;
-                }
-                
-                // Cache UI elements
-                this.textarea = $('#omschrijvingInput');
-                this.statusEl = $('#speechStatus');
-                this.buttonEl = $('#speechBtn');
-                
-                this.createRecognition();
-                return true;
-            },
-            
-            createRecognition() {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                this.recognition = new SpeechRecognition();
-                
-                // KRITIEKE INSTELLINGEN
-                this.recognition.continuous = true;       // Blijf luisteren
-                this.recognition.interimResults = true;   // Toon live wat je hoort
-                this.recognition.lang = 'nl-NL';          // Nederlands
-                this.recognition.maxAlternatives = 1;     // Sneller met 1 alternatief
-                
-                this.bindEvents();
-            },
-            
-            bindEvents() {
-                // =============== RESULT EVENT ===============
-                // Dit is waar de magie gebeurt
-                this.recognition.onresult = (event) => {
-                    this.lastResultTime = Date.now();
-                    
-                    let newFinalText = '';
-                    let newInterimText = '';
-                    
-                    // Loop door ALLE resultaten (niet alleen vanaf resultIndex)
-                    // Dit voorkomt verlies bij bepaalde edge cases
-                    for (let i = 0; i < event.results.length; i++) {
-                        const result = event.results[i];
-                        const transcript = result[0].transcript;
-                        
-                        if (result.isFinal) {
-                            newFinalText += transcript;
-                        } else {
-                            newInterimText += transcript;
-                        }
-                    }
-                    
-                    // Update confirmed text alleen als er nieuwe final text is
-                    if (newFinalText && newFinalText !== this.confirmedText) {
-                        this.confirmedText = newFinalText;
-                        // Sla ook op in buffer voor extra veiligheid
-                        this.sessionBuffer.push({
-                            text: newFinalText,
-                            time: Date.now()
-                        });
-                    }
-                    
-                    // Update pending (interim) text
-                    this.pendingText = newInterimText;
-                    
-                    // Update UI
-                    this.updateTextarea();
-                    this.updateStatus('speaking');
-                };
-                
-                // =============== START EVENT ===============
-                this.recognition.onstart = () => {
-                    this.isListening = true;
-                    this.shouldRestart = true;
-                    this.lastResultTime = Date.now();
-                    this.updateUI('listening');
-                    console.log('[Speech] Started - session active');
-                };
-                
-                // =============== END EVENT ===============
-                // KRITIEK: Hier gaat het vaak mis. Onze oplossing:
-                // - Bewaar ALLES voordat we herstarten
-                // - Gebruik shouldRestart flag i.p.v. isListening
-                this.recognition.onend = () => {
-                    console.log('[Speech] Ended - shouldRestart:', this.shouldRestart);
-                    
-                    // BELANGRIJK: Als er pending text was, voeg die toe aan confirmed
-                    // Dit voorkomt verlies van de laatste gesproken woorden
-                    if (this.pendingText.trim()) {
-                        // Voeg pending toe als het niet al in confirmed zit
-                        if (!this.confirmedText.endsWith(this.pendingText.trim())) {
-                            this.confirmedText = this.confirmedText.trim() + ' ' + this.pendingText.trim();
-                        }
-                        this.pendingText = '';
-                        this.updateTextarea();
-                    }
-                    
-                    // Auto-restart als we nog moeten luisteren
-                    if (this.shouldRestart && this.restartCount < this.maxRestarts) {
-                        this.restartCount++;
-                        
-                        // Maak nieuwe recognition instance voor schone state
-                        // Dit voorkomt veel bugs met stale state
-                        setTimeout(() => {
-                            if (this.shouldRestart) {
-                                try {
-                                    // Hergebruik bestaande instance
-                                    this.recognition.start();
-                                    console.log('[Speech] Restarted (#' + this.restartCount + ')');
-                                } catch (e) {
-                                    // Als start faalt, maak nieuwe instance
-                                    console.log('[Speech] Restart failed, recreating...');
-                                    this.createRecognition();
-                                    try {
-                                        this.recognition.start();
-                                    } catch (e2) {
-                                        console.error('[Speech] Recreation failed:', e2);
-                                        this.forceStop();
-                                    }
-                                }
-                            }
-                        }, this.restartDelay);
-                    } else if (this.restartCount >= this.maxRestarts) {
-                        console.log('[Speech] Max restarts reached');
-                        this.forceStop();
-                        showToast('Spraakherkenning automatisch gestopt. Druk opnieuw op de microfoon.', 'error');
-                    }
-                };
-                
-                // =============== ERROR EVENT ===============
-                this.recognition.onerror = (event) => {
-                    console.error('[Speech] Error:', event.error);
-                    
-                    switch (event.error) {
-                        case 'not-allowed':
-                        case 'permission-denied':
-                            this.forceStop();
-                            showToast('Microfoon toegang geweigerd', 'error');
-                            this.updateStatus('Geen microfoon toegang. Check browser instellingen.');
-                            break;
-                            
-                        case 'no-speech':
-                            // Normaal - gebruiker is even stil
-                            // Doe niets, laat auto-restart zijn werk doen
-                            this.updateStatus('Geen spraak gedetecteerd...');
-                            break;
-                            
-                        case 'audio-capture':
-                            this.forceStop();
-                            showToast('Microfoon niet beschikbaar', 'error');
-                            this.updateStatus('Microfoon niet gevonden');
-                            break;
-                            
-                        case 'network':
-                            // Tijdelijke netwerkfout - auto-restart zal dit oplossen
-                            this.updateStatus('Netwerkfout, herverbinden...');
-                            break;
-                            
-                        case 'aborted':
-                            // Normaal bij handmatig stoppen
-                            break;
-                            
-                        default:
-                            this.updateStatus('Fout: ' + event.error);
-                    }
-                };
-                
-                // =============== SPEECH EVENTS (voor UI feedback) ===============
-                this.recognition.onspeechstart = () => {
-                    this.updateStatus('Spraak gedetecteerd - aan het transcriberen...');
-                };
-                
-                this.recognition.onspeechend = () => {
-                    if (this.isListening) {
-                        this.updateStatus('Luisteren...');
-                    }
-                };
-                
-                this.recognition.onaudiostart = () => {
-                    console.log('[Speech] Audio capture started');
-                };
-            },
-            
-            updateTextarea() {
-                if (!this.textarea) return;
-                
-                // Combineer bestaande tekst + confirmed + pending
-                let baseText = this.baseText || '';
-                let fullText = baseText;
-                
-                // Voeg confirmed toe
-                if (this.confirmedText.trim()) {
-                    if (fullText && !fullText.endsWith(' ')) {
-                        fullText += ' ';
-                    }
-                    fullText += this.confirmedText.trim();
-                }
-                
-                // Voeg pending (interim) toe met visuele indicator
-                if (this.pendingText.trim()) {
-                    if (fullText && !fullText.endsWith(' ')) {
-                        fullText += ' ';
-                    }
-                    fullText += this.pendingText;
-                }
-                
-                this.textarea.value = fullText;
-                
-                // Auto-scroll naar beneden
-                this.textarea.scrollTop = this.textarea.scrollHeight;
-            },
-            
-            updateUI(state) {
-                if (!this.buttonEl || !this.statusEl) return;
-                
-                switch (state) {
-                    case 'listening':
-                        this.buttonEl.classList.add('recording');
-                        this.buttonEl.innerHTML = '<i class="fas fa-stop"></i>';
-                        this.statusEl.innerHTML = '<span class="audio-bars"><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span></span> <span class="status-text">Luisteren... Spreek nu.</span>';
-                        this.statusEl.classList.add('recording');
-                        if (this.textarea) this.textarea.classList.add('speech-active');
-                        break;
-                        
-                    case 'stopped':
-                        this.buttonEl.classList.remove('recording');
-                        this.buttonEl.innerHTML = '<i class="fas fa-microphone"></i>';
-                        this.statusEl.innerHTML = '<span class="audio-bars"><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span></span> <span class="status-text">Tik op de microfoon voor spraakherkenning</span>';
-                        this.statusEl.classList.remove('recording');
-                        if (this.textarea) this.textarea.classList.remove('speech-active');
-                        break;
-                }
-            },
-            
-            updateStatus(message) {
-                if (!this.statusEl || !this.isListening) return;
-                
-                // Behoud audio bars tijdens luisteren
-                if (this.isListening) {
-                    this.statusEl.innerHTML = '<span class="audio-bars"><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span><span class="audio-bar"></span></span> ' + message;
-                }
-            },
-            
-            showUnsupported() {
-                const btn = $('#speechBtn');
-                const status = $('#speechStatus');
-                if (btn) btn.style.display = 'none';
-                if (status) status.textContent = 'Spraakherkenning niet ondersteund. Gebruik Chrome, Edge of Safari.';
-            },
-            
-            start() {
-                if (!this.recognition) {
-                    showToast('Spraakherkenning niet beschikbaar', 'error');
-                    return;
-                }
-                
-                // Cache UI elements als nog niet gedaan
-                if (!this.textarea) this.textarea = $('#omschrijvingInput');
-                if (!this.statusEl) this.statusEl = $('#speechStatus');
-                if (!this.buttonEl) this.buttonEl = $('#speechBtn');
-                
-                // Sla bestaande tekst op als base
-                this.baseText = this.textarea.value.trim();
-                
-                // Reset session state
-                this.confirmedText = '';
-                this.pendingText = '';
-                this.sessionBuffer = [];
-                this.restartCount = 0;
-                this.sessionStartTime = Date.now();
-                this.lastResultTime = Date.now();
-                this.shouldRestart = true;
-                
-                try {
-                    this.recognition.start();
-                    console.log('[Speech] Starting new session');
-                } catch (e) {
-                    if (e.message && e.message.includes('already started')) {
-                        // Stop en start opnieuw
-                        this.recognition.stop();
-                        setTimeout(() => this.start(), 100);
-                    } else {
-                        console.error('[Speech] Start error:', e);
-                        showToast('Kon spraakherkenning niet starten', 'error');
-                    }
-                }
-            },
-            
-            stop() {
-                console.log('[Speech] Manual stop requested');
-                this.forceStop();
-            },
-            
-            forceStop() {
-                this.shouldRestart = false;
-                this.isListening = false;
-                
-                try {
-                    this.recognition.abort(); // abort is sneller dan stop
-                } catch (e) {
-                    // Ignore
-                }
-                
-                // Zorg dat alle tekst bewaard blijft
-                if (this.pendingText.trim()) {
-                    if (!this.confirmedText.endsWith(this.pendingText.trim())) {
-                        this.confirmedText = this.confirmedText.trim() + ' ' + this.pendingText.trim();
-                    }
-                    this.pendingText = '';
-                    this.updateTextarea();
-                }
-                
-                this.updateUI('stopped');
-                
-                // Log sessie statistieken
-                const duration = Math.round((Date.now() - this.sessionStartTime) / 1000);
-                console.log('[Speech] Session ended. Duration: ' + duration + 's, Restarts: ' + this.restartCount);
-            },
-            
-            toggle() {
-                if (this.isListening) {
-                    this.stop();
-                } else {
-                    this.start();
-                }
-            }
-        };
-        
-        // Backwards compatible functions
         function initSpeechRecognition() {
-            SpeechEngine.init();
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                $('#speechBtn').style.display = 'none';
+                $('#speechStatus').textContent = 'Spraakherkenning niet beschikbaar in deze browser';
+                return;
+            }
+            
+            APP.speechRecognition = new SpeechRecognition();
+            APP.speechRecognition.continuous = true;
+            APP.speechRecognition.interimResults = true;
+            APP.speechRecognition.lang = 'nl-NL';
+            
+            let finalTranscript = '';
+            
+            APP.speechRecognition.onstart = () => {
+                APP.isRecording = true;
+                $('#speechBtn').classList.add('recording');
+                $('#speechBtn').innerHTML = '<i class="fas fa-stop"></i>';
+                $('#speechStatus').textContent = 'Luisteren... Spreek nu.';
+                $('#speechStatus').classList.add('recording');
+                finalTranscript = $('#omschrijvingInput').value;
+            };
+            
+            APP.speechRecognition.onresult = (event) => {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                $('#omschrijvingInput').value = finalTranscript + interimTranscript;
+            };
+            
+            APP.speechRecognition.onerror = (event) => {
+                console.error('Speech error:', event.error);
+                stopSpeechRecognition();
+                
+                if (event.error === 'not-allowed') {
+                    showToast('Microfoon toegang geweigerd', 'error');
+                    $('#speechStatus').textContent = 'Geef toestemming voor microfoon in browser';
+                } else {
+                    $('#speechStatus').textContent = 'Fout bij spraakherkenning: ' + event.error;
+                }
+            };
+            
+            APP.speechRecognition.onend = () => {
+                if (APP.isRecording) {
+                    // Auto restart if still recording
+                    try {
+                        APP.speechRecognition.start();
+                    } catch (e) {
+                        stopSpeechRecognition();
+                    }
+                }
+            };
         }
         
         function toggleSpeechRecognition() {
-            SpeechEngine.toggle();
+            if (!APP.speechRecognition) {
+                showToast('Spraakherkenning niet beschikbaar', 'error');
+                return;
+            }
+            
+            if (APP.isRecording) {
+                stopSpeechRecognition();
+            } else {
+                startSpeechRecognition();
+            }
         }
         
         function startSpeechRecognition() {
-            SpeechEngine.start();
+            try {
+                APP.speechRecognition.start();
+            } catch (e) {
+                console.error('Speech start error:', e);
+            }
         }
         
         function stopSpeechRecognition() {
-            SpeechEngine.stop();
+            APP.isRecording = false;
+            try {
+                APP.speechRecognition.stop();
+            } catch (e) {}
+            
+            $('#speechBtn').classList.remove('recording');
+            $('#speechBtn').innerHTML = '<i class="fas fa-microphone"></i>';
+            $('#speechStatus').textContent = 'Tik op de microfoon voor spraakherkenning';
+            $('#speechStatus').classList.remove('recording');
         }
         
         // =====================================================
