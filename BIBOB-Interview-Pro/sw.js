@@ -1,5 +1,5 @@
 /**
- * ZorgAnalyst Pro Mobile - Service Worker
+ * BIBOB Interview Pro - Service Worker
  * Versie: 1.0.0
  * Knowledge by Data
  * 
@@ -11,7 +11,7 @@
 
 'use strict';
 
-const CACHE_NAME = 'zorganalyst-pwa-v1.0.0';
+const CACHE_NAME = 'bibob-interview-pwa-v1.0.0';
 const OFFLINE_URL = './index.html';
 
 // Bestanden om te cachen bij installatie
@@ -142,14 +142,14 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('sync', (event) => {
     console.log('[SW] Background sync event:', event.tag);
     
-    if (event.tag === 'sync-meldingen') {
-        event.waitUntil(syncMeldingen());
+    if (event.tag === 'sync-interviews') {
+        event.waitUntil(syncInterviews());
     }
 });
 
-async function syncMeldingen() {
+async function syncInterviews() {
     // Placeholder for future sync functionality
-    console.log('[SW] Syncing meldingen...');
+    console.log('[SW] Syncing interviews...');
 }
 
 // ============================================================================
@@ -170,7 +170,7 @@ self.addEventListener('push', (event) => {
     };
     
     event.waitUntil(
-        self.registration.showNotification('ZorgAnalyst Pro', options)
+        self.registration.showNotification('BIBOB Interview Pro', options)
     );
 });
 

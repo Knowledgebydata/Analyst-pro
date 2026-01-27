@@ -1,13 +1,13 @@
 {
-  "name": "ZorgAnalyst Pro Mobile",
-  "short_name": "ZorgAnalyst",
-  "description": "Zorgmeldingen in het veld met GPS-locatie - Knowledge by Data",
+  "name": "BIBOB Interview Pro",
+  "short_name": "BIBOB Interview",
+  "description": "Interview transcriptie met spraakherkenning voor BIBOB onderzoek - Knowledge by Data",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#1a1a2e",
-  "theme_color": "#0d6efd",
+  "theme_color": "#1e3a5f",
   "lang": "nl",
   "categories": ["business", "productivity"],
   "icons": [
@@ -68,10 +68,10 @@
   ],
   "shortcuts": [
     {
-      "name": "Nieuwe Melding",
-      "short_name": "Melding",
-      "description": "Maak een nieuwe zorgmelding aan",
-      "url": "./index.html?action=new-melding",
+      "name": "Nieuw Interview",
+      "short_name": "Interview",
+      "description": "Start een nieuw interview",
+      "url": "./index.html?action=new-interview",
       "icons": [{ "src": "./icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ]
