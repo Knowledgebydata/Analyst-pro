@@ -1,1004 +1,999 @@
 <!DOCTYPE html>
-<!--
-================================================================================
-AP Straat - Waarnemingen op Straat PWA
-Versie: 2.0.0 PWA | Knowledge by Data
-================================================================================
-Copyright (c) 2025 L.P. Antenbrink, Knowledge by Data. Alle rechten voorbehouden.
-================================================================================
--->
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#9b59b6">
-<meta name="description" content="Waarnemingen op straat vastleggen">
-<title>AP Straat - Waarnemingen op Straat</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="./icons/icon-192x192.png">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<style>
-:root {
-    --primary: #9b59b6;
-    --primary-dark: #8e44ad;
-    --primary-light: #a855f7;
-    --accent: #e74c3c;
-    --success: #27ae60;
-    --warning: #f39c12;
-    --danger: #e74c3c;
-    --dark: #1a1a2e;
-    --light: #f5f5f5;
-    --gray: #757575;
-    --gray-light: #e0e0e0;
-    --white: #ffffff;
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--light);
-    min-height: 100vh;
-    color: var(--dark);
-}
-
-.hidden { display: none !important; }
-
-/* Auth Screen */
-.auth-screen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--dark), #16213e);
-    padding: 20px;
-}
-
-.auth-box {
-    background: rgba(255,255,255,0.05);
-    padding: 40px 30px;
-    border-radius: 20px;
-    width: 100%;
-    max-width: 360px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.1);
-    text-align: center;
-}
-
-.auth-box h1 {
-    color: var(--primary-light);
-    font-size: 1.5rem;
-    margin-bottom: 8px;
-}
-
-.auth-box .subtitle {
-    color: var(--gray);
-    font-size: 0.85rem;
-    margin-bottom: 30px;
-}
-
-.auth-box input {
-    width: 100%;
-    padding: 14px 16px;
-    margin-bottom: 15px;
-    border: 2px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    background: rgba(0,0,0,0.3);
-    color: white;
-    font-size: 1rem;
-    text-align: center;
-}
-
-.auth-box input::placeholder { color: rgba(255,255,255,0.4); }
-.auth-box input:focus { outline: none; border-color: var(--primary); }
-
-.auth-box button {
-    width: 100%;
-    padding: 14px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-.auth-box .error-msg {
-    color: var(--danger);
-    font-size: 0.85rem;
-    margin-top: 15px;
-    min-height: 20px;
-}
-
-.auth-box .info {
-    color: var(--gray);
-    font-size: 0.75rem;
-    margin-top: 25px;
-}
-
-.auth-box .setup-note {
-    background: rgba(155,89,182,0.2);
-    border: 1px solid rgba(155,89,182,0.3);
-    border-radius: 10px;
-    padding: 12px;
-    margin-bottom: 25px;
-    color: var(--primary-light);
-    font-size: 0.85rem;
-}
-
-/* App Layout */
-.security-bar {
-    background: var(--success);
-    color: white;
-    padding: 8px 15px;
-    font-size: 0.75rem;
-    text-align: center;
-}
-
-.app-header {
-    background: linear-gradient(135deg, var(--dark), #16213e);
-    color: white;
-    padding: 20px;
-    text-align: center;
-}
-
-.app-header h1 {
-    font-size: 1.3rem;
-    color: var(--primary-light);
-    margin-bottom: 5px;
-}
-
-.app-header p {
-    color: var(--gray);
-    font-size: 0.8rem;
-}
-
-.app-container {
-    padding: 15px;
-    padding-bottom: 100px;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-/* Cards */
-.card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-}
-
-.card h3 {
-    color: var(--dark);
-    margin-bottom: 15px;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.card h3 i {
-    color: var(--primary);
-}
-
-/* Stats */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.stat-card {
-    background: var(--light);
-    border-radius: 12px;
-    padding: 15px;
-    text-align: center;
-}
-
-.stat-card .value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--primary);
-}
-
-.stat-card .label {
-    font-size: 0.75rem;
-    color: var(--gray);
-}
-
-/* Form */
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: var(--dark);
-    margin-bottom: 6px;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    padding: 14px;
-    border: 2px solid var(--gray-light);
-    border-radius: 10px;
-    font-size: 1rem;
-    font-family: inherit;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-}
-
-.form-group textarea {
-    resize: vertical;
-    min-height: 100px;
-}
-
-/* Buttons */
-.btn {
-    padding: 14px 24px;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1rem;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-}
-
-.btn-primary {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-success {
-    background: var(--success);
-    color: white;
-}
-
-.btn-danger {
-    background: var(--danger);
-    color: white;
-}
-
-.btn-outline {
-    background: transparent;
-    border: 2px solid var(--gray-light);
-    color: var(--dark);
-}
-
-/* GPS Button */
-.gps-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 15px;
-    background: var(--light);
-    border: 2px dashed var(--gray-light);
-    border-radius: 10px;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-}
-
-.gps-btn.active {
-    border-color: var(--success);
-    border-style: solid;
-    background: rgba(39, 174, 96, 0.05);
-}
-
-.gps-btn i {
-    font-size: 1.5rem;
-    color: var(--primary);
-}
-
-/* List Items */
-.waarneming-card {
-    background: white;
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 10px;
-    border-left: 4px solid var(--primary);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.waarneming-card h4 {
-    font-size: 0.95rem;
-    margin-bottom: 5px;
-}
-
-.waarneming-card .meta {
-    font-size: 0.75rem;
-    color: var(--gray);
-    margin-bottom: 8px;
-}
-
-.waarneming-card p {
-    font-size: 0.85rem;
-    color: var(--dark);
-}
-
-.waarneming-card .actions {
-    margin-top: 10px;
-    display: flex;
-    gap: 10px;
-}
-
-.waarneming-card .actions button {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-}
-
-/* Empty state */
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--gray);
-}
-
-.empty-state i {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    opacity: 0.5;
-}
-
-/* Toast */
-.toast {
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background: var(--dark);
-    color: white;
-    padding: 14px 24px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    opacity: 0;
-    transition: all 0.3s;
-    z-index: 3000;
-}
-
-.toast.show {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-}
-
-.toast.success { background: var(--success); }
-.toast.error { background: var(--danger); }
-
-/* Bottom Nav */
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: white;
-    padding: 10px 20px;
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
-    box-shadow: 0 -2px 20px rgba(0,0,0,0.1);
-}
-
-.bottom-nav .btn {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-/* Modal */
-.modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    z-index: 2000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
-}
-
-.modal.active {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.modal-content {
-    background: white;
-    width: 100%;
-    max-width: 500px;
-    max-height: 90vh;
-    border-radius: 20px 20px 0 0;
-    overflow-y: auto;
-    transform: translateY(100%);
-    transition: transform 0.3s;
-}
-
-.modal.active .modal-content {
-    transform: translateY(0);
-}
-
-.modal-header {
-    padding: 20px;
-    border-bottom: 1px solid var(--gray-light);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h3 {
-    font-size: 1.1rem;
-}
-
-.modal-header button {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--gray);
-    cursor: pointer;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-/* Tabs */
-.tab-nav {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 20px;
-    background: white;
-    padding: 5px;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.tab-btn {
-    flex: 1;
-    padding: 12px 8px;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.8rem;
-    color: var(--gray);
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.tab-btn i { font-size: 1.1rem; }
-.tab-btn.active { background: var(--primary); color: white; }
-
-.page { display: none; }
-.page.active { display: block; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#9b59b6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AP Straat">
+    <title>AP Straat - Knowledge by Data</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon192x192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #9b59b6;
+            --primary-dark: #8e44ad;
+            --primary-light: #bb8fce;
+            --secondary: #3498db;
+            --bg: #f8f7fa;
+            --card: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #ecf0f1;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --warning: #f39c12;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        }
+        .auth-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 340px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .auth-logo i {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        .auth-logo h1 {
+            font-size: 22px;
+            color: var(--text);
+            font-weight: 600;
+        }
+        .auth-logo p {
+            color: var(--text-light);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .pin-dots {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            background: transparent;
+            transition: all 0.2s;
+        }
+        .pin-dot.filled {
+            background: var(--primary);
+            transform: scale(1.1);
+        }
+        .pin-dot.error {
+            border-color: var(--error);
+            background: var(--error);
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            max-width: 260px;
+            margin: 0 auto;
+        }
+        .numpad button {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 500;
+            background: var(--bg);
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .numpad button:active {
+            background: var(--primary);
+            color: white;
+            transform: scale(0.95);
+        }
+        .numpad button.empty { background: transparent; pointer-events: none; }
+        .numpad button.action {
+            background: transparent;
+            font-size: 20px;
+            color: var(--text-light);
+        }
+        .setup-form { margin-top: 20px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:active {
+            background: var(--primary-dark);
+            transform: scale(0.98);
+        }
+        .hidden { display: none !important; }
+        .app-container { display: none; flex-direction: column; min-height: 100vh; }
+        .app-container.active { display: flex; }
+        .security-bar {
+            background: var(--primary-dark);
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding-top: calc(8px + env(safe-area-inset-top));
+        }
+        .security-bar button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .app-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 60px 20px 20px;
+            text-align: center;
+        }
+        .app-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .app-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 44px;
+            z-index: 50;
+        }
+        .tab {
+            flex: 1;
+            padding: 14px 8px;
+            border: none;
+            background: none;
+            font-size: 12px;
+            color: var(--text-light);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        .tab i { font-size: 18px; }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        .stat-item { text-align: center; }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        .gps-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        .gps-bar.searching { background: #fff3e0; color: #e65100; }
+        .gps-bar.active { background: #e8f5e9; color: var(--success); }
+        .gps-bar.error { background: #ffebee; color: var(--error); }
+        .gps-bar i { font-size: 16px; }
+        .photo-upload {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 15px;
+        }
+        .photo-upload:hover { border-color: var(--primary); background: #f8f0fc; }
+        .photo-upload i { font-size: 32px; color: var(--primary); margin-bottom: 10px; }
+        .photo-upload p { color: var(--text-light); font-size: 14px; }
+        .photo-preview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .photo-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .photo-item button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .obs-list { max-height: 400px; overflow-y: auto; }
+        .obs-item {
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .obs-item:last-child { border-bottom: none; }
+        .obs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .obs-type {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--primary-light);
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .obs-date {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        .obs-address {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        .obs-desc {
+            font-size: 13px;
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+        .obs-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        .obs-meta i { margin-right: 4px; }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .setting-item:last-child { border-bottom: none; }
+        .setting-info h4 {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .setting-info p {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+        }
+        .btn-danger {
+            background: #ffebee;
+            color: var(--error);
+        }
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--text);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            max-width: 90%;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--error); }
+    </style>
 </head>
 <body>
-
-<!-- Auth Screen -->
-<div id="authScreen" class="auth-screen">
-    <div class="auth-box">
-        <h1><i class="fas fa-eye"></i> AP Straat</h1>
-        <p class="subtitle">Waarnemingen op Straat</p>
-        
-        <div id="setupMode" class="hidden">
-            <div class="setup-note">
-                <i class="fas fa-info-circle"></i> Eerste keer? Kies een naam en pincode.
+    <div id="auth-screen" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <i class="fas fa-binoculars"></i>
+                <h1>AP Straat</h1>
+                <p id="auth-subtitle">Voer uw PIN in</p>
             </div>
-            <input type="text" id="setupName" placeholder="Uw naam" autocomplete="name">
-            <input type="password" id="setupPin" placeholder="Kies pincode (4 cijfers)" maxlength="4" inputmode="numeric">
-            <input type="password" id="setupPinConfirm" placeholder="Bevestig pincode" maxlength="4" inputmode="numeric">
-            <button onclick="Auth.setup()"><i class="fas fa-check"></i> Account aanmaken</button>
-            <p class="error-msg" id="setupError"></p>
-        </div>
-        
-        <div id="loginMode" class="hidden">
-            <input type="text" id="loginName" placeholder="Uw naam" autocomplete="name">
-            <input type="password" id="loginPin" placeholder="Pincode" maxlength="4" inputmode="numeric">
-            <button onclick="Auth.login()"><i class="fas fa-sign-in-alt"></i> Inloggen</button>
-            <p class="error-msg" id="loginError"></p>
-        </div>
-        
-        <p class="info">© 2025 Knowledge by Data</p>
-    </div>
-</div>
-
-<!-- App Wrapper -->
-<div id="appWrapper" class="hidden">
-
-<div class="security-bar">
-    <i class="fas fa-shield-alt"></i> <span id="currentUserDisplay"></span> | <a href="#" onclick="Auth.logout();return false;" style="color:white;text-decoration:underline;">Uitloggen</a>
-</div>
-
-<header class="app-header">
-    <h1><i class="fas fa-eye"></i> AP Straat</h1>
-    <p>Waarnemingen op Straat | Knowledge by Data</p>
-</header>
-
-<div class="app-container">
-    <nav class="tab-nav">
-        <button class="tab-btn active" onclick="App.showPage('waarnemingen')">
-            <i class="fas fa-list-alt"></i>
-            <span>Waarnemingen</span>
-        </button>
-        <button class="tab-btn" onclick="App.showPage('export')">
-            <i class="fas fa-download"></i>
-            <span>Export</span>
-        </button>
-    </nav>
-
-    <!-- Waarnemingen Page -->
-    <div id="page-waarnemingen" class="page active">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="value" id="stat-waarnemingen">0</div>
-                <div class="label">Waarnemingen</div>
+            <div id="login-section">
+                <div class="pin-dots">
+                    <div class="pin-dot" data-index="0"></div>
+                    <div class="pin-dot" data-index="1"></div>
+                    <div class="pin-dot" data-index="2"></div>
+                    <div class="pin-dot" data-index="3"></div>
+                </div>
+                <div class="numpad">
+                    <button onclick="Auth.digit(1)">1</button>
+                    <button onclick="Auth.digit(2)">2</button>
+                    <button onclick="Auth.digit(3)">3</button>
+                    <button onclick="Auth.digit(4)">4</button>
+                    <button onclick="Auth.digit(5)">5</button>
+                    <button onclick="Auth.digit(6)">6</button>
+                    <button onclick="Auth.digit(7)">7</button>
+                    <button onclick="Auth.digit(8)">8</button>
+                    <button onclick="Auth.digit(9)">9</button>
+                    <button class="empty"></button>
+                    <button onclick="Auth.digit(0)">0</button>
+                    <button class="action" onclick="Auth.backspace()"><i class="fas fa-delete-left"></i></button>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="value" id="stat-vandaag">0</div>
-                <div class="label">Vandaag</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-clipboard-list"></i> Recente waarnemingen</h3>
-            <div id="waarnemingen-list">
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <h4>Nog geen waarnemingen</h4>
-                    <p>Maak je eerste waarneming aan</p>
+            <div id="setup-section" class="hidden">
+                <div class="setup-form">
+                    <div class="form-group">
+                        <label>Uw naam</label>
+                        <input type="text" id="setup-name" placeholder="Volledige naam">
+                    </div>
+                    <div class="form-group">
+                        <label>Kies een PIN (4 cijfers)</label>
+                        <input type="password" id="setup-pin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                    </div>
+                    <div class="form-group">
+                        <label>Bevestig PIN</label>
+                        <input type="password" id="setup-pin-confirm" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                    </div>
+                    <button class="btn btn-primary" onclick="Auth.completeSetup()">Account aanmaken</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Export Page -->
-    <div id="page-export" class="page">
-        <div class="card">
-            <h3><i class="fas fa-file-export"></i> Exporteren</h3>
-            <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 20px;">
-                Download alle waarnemingen als JSON-bestand.
-            </p>
-            <div class="stats-grid" style="margin-bottom: 20px;">
-                <div class="stat-card">
-                    <div class="value" id="export-count">0</div>
-                    <div class="label">Te exporteren</div>
-                </div>
-            </div>
-            <button class="btn btn-primary" onclick="App.exportData()">
-                <i class="fas fa-download"></i> Download JSON Export
+    <div id="app" class="app-container">
+        <div class="security-bar">
+            <span><i class="fas fa-shield-halved"></i> Beveiligd</span>
+            <span id="current-user"></span>
+            <button onclick="Auth.logout()"><i class="fas fa-sign-out-alt"></i> Uit</button>
+        </div>
+
+        <header class="app-header">
+            <h1>AP Straat</h1>
+            <p>Straatobservaties vastleggen</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
             </button>
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-trash-alt"></i> Gegevens wissen</h3>
-            <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 15px;">
-                Verwijder alle lokale gegevens.
-            </p>
-            <button class="btn btn-danger" onclick="App.clearAllData()">
-                <i class="fas fa-trash"></i> Alles wissen
+            <button class="tab" data-tab="new">
+                <i class="fas fa-plus-circle"></i>
+                <span>Nieuwe</span>
             </button>
-        </div>
-    </div>
-</div>
+            <button class="tab" data-tab="overview">
+                <i class="fas fa-list"></i>
+                <span>Overzicht</span>
+            </button>
+            <button class="tab" data-tab="settings">
+                <i class="fas fa-cog"></i>
+                <span>Instellingen</span>
+            </button>
+        </nav>
 
-<!-- Bottom Nav -->
-<div class="bottom-nav">
-    <button class="btn btn-success" onclick="App.openModal()">
-        <i class="fas fa-plus"></i> Nieuwe waarneming
-    </button>
-</div>
-
-<!-- Modal -->
-<div class="modal" id="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-eye"></i> Nieuwe waarneming</h3>
-            <button onclick="App.closeModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>Datum & tijd</label>
-                <input type="datetime-local" id="waarneming-datetime">
-            </div>
-            
-            <div class="form-group">
-                <label>Locatie (adres/beschrijving)</label>
-                <input type="text" id="waarneming-locatie" placeholder="Straatnaam, huisnummer, plaats">
-            </div>
-            
-            <div class="form-group">
-                <label>GPS Coördinaten</label>
-                <div class="gps-btn" id="gps-btn" onclick="App.captureGPS()">
-                    <i class="fas fa-crosshairs"></i>
-                    <div>
-                        <strong>GPS vastleggen</strong>
-                        <span id="gps-coords">Klik om locatie op te halen</span>
+        <main class="main-content">
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="card">
+                    <div class="card-title">Statistieken</div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-total">0</div>
+                            <div class="stat-label">Totaal</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-photos">0</div>
+                            <div class="stat-label">Met foto</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-gps">0</div>
+                            <div class="stat-label">Met GPS</div>
+                        </div>
                     </div>
                 </div>
-                <input type="hidden" id="waarneming-lat">
-                <input type="hidden" id="waarneming-lng">
-            </div>
-            
-            <div class="form-group">
-                <label>Type waarneming</label>
-                <select id="waarneming-type">
-                    <option value="verdacht-gedrag">Verdacht gedrag</option>
-                    <option value="verdacht-pand">Verdacht pand</option>
-                    <option value="verdacht-voertuig">Verdacht voertuig</option>
-                    <option value="verdachte-persoon">Verdachte persoon</option>
-                    <option value="overig">Overig</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Omschrijving</label>
-                <textarea id="waarneming-omschrijving" placeholder="Beschrijf wat je hebt waargenomen..."></textarea>
-            </div>
-            
-            <button class="btn btn-primary" onclick="App.saveWaarneming()">
-                <i class="fas fa-save"></i> Opslaan
-            </button>
-        </div>
-    </div>
-</div>
-
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-'use strict';
-
-// Storage
-const Storage = {
-    KEYS: { WAARNEMINGEN: 'apstraat_waarnemingen' },
-    get(key) {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : [];
-    },
-    set(key, value) {
-        localStorage.setItem(key, JSON.stringify(value));
-    },
-    clear() {
-        localStorage.removeItem(this.KEYS.WAARNEMINGEN);
-    }
-};
-
-// Auth Module
-const Auth = {
-    STORAGE_KEY: 'apstraat_auth',
-    currentUser: null,
-
-    init() {
-        const saved = localStorage.getItem(this.STORAGE_KEY);
-        if (saved) {
-            document.getElementById('setupMode').classList.add('hidden');
-            document.getElementById('loginMode').classList.remove('hidden');
-            document.getElementById('loginPin').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.login();
-            });
-        } else {
-            document.getElementById('setupMode').classList.remove('hidden');
-            document.getElementById('loginMode').classList.add('hidden');
-            document.getElementById('setupPinConfirm').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.setup();
-            });
-        }
-    },
-
-    setup() {
-        const name = document.getElementById('setupName').value.trim();
-        const pin = document.getElementById('setupPin').value;
-        const pinConfirm = document.getElementById('setupPinConfirm').value;
-        const errorEl = document.getElementById('setupError');
-
-        if (!name) { errorEl.textContent = 'Voer uw naam in'; return; }
-        if (!/^\d{4}$/.test(pin)) { errorEl.textContent = 'Pincode moet 4 cijfers zijn'; return; }
-        if (pin !== pinConfirm) { errorEl.textContent = 'Pincodes komen niet overeen'; return; }
-
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ name, pin }));
-        this.currentUser = name;
-        this.showApp();
-    },
-
-    login() {
-        const name = document.getElementById('loginName').value.trim();
-        const pin = document.getElementById('loginPin').value;
-        const errorEl = document.getElementById('loginError');
-        const saved = JSON.parse(localStorage.getItem(this.STORAGE_KEY));
-
-        if (!name || !pin) { errorEl.textContent = 'Vul naam en pincode in'; return; }
-        if (name === saved.name && pin === saved.pin) {
-            this.currentUser = name;
-            this.showApp();
-        } else {
-            errorEl.textContent = 'Ongeldige naam of pincode';
-            document.getElementById('loginPin').value = '';
-        }
-    },
-
-    showApp() {
-        document.getElementById('authScreen').classList.add('hidden');
-        document.getElementById('appWrapper').classList.remove('hidden');
-        document.getElementById('currentUserDisplay').textContent = this.currentUser;
-        App.init();
-    },
-
-    logout() {
-        if (confirm('Weet u zeker dat u wilt uitloggen?')) {
-            this.currentUser = null;
-            location.reload();
-        }
-    },
-
-    getCurrentUser() {
-        return this.currentUser;
-    }
-};
-
-// App
-const App = {
-    waarnemingen: [],
-    currentGPS: null,
-
-    init() {
-        this.loadData();
-        this.render();
-        this.setDefaultDateTime();
-    },
-
-    loadData() {
-        this.waarnemingen = Storage.get(Storage.KEYS.WAARNEMINGEN);
-    },
-
-    saveData() {
-        Storage.set(Storage.KEYS.WAARNEMINGEN, this.waarnemingen);
-    },
-
-    setDefaultDateTime() {
-        const now = new Date();
-        const offset = now.getTimezoneOffset();
-        const local = new Date(now.getTime() - offset * 60 * 1000);
-        document.getElementById('waarneming-datetime').value = local.toISOString().slice(0, 16);
-    },
-
-    showPage(pageName) {
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        event.currentTarget.classList.add('active');
-        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-        document.getElementById(`page-${pageName}`).classList.add('active');
-    },
-
-    openModal() {
-        document.getElementById('modal').classList.add('active');
-        this.setDefaultDateTime();
-        this.currentGPS = null;
-        document.getElementById('gps-btn').classList.remove('active');
-        document.getElementById('gps-coords').textContent = 'Klik om locatie op te halen';
-    },
-
-    closeModal() {
-        document.getElementById('modal').classList.remove('active');
-    },
-
-    captureGPS() {
-        const btn = document.getElementById('gps-btn');
-        const coordsSpan = document.getElementById('gps-coords');
-        
-        if (!navigator.geolocation) {
-            this.showToast('GPS niet beschikbaar', 'error');
-            return;
-        }
-
-        coordsSpan.textContent = 'Locatie ophalen...';
-        
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude.toFixed(6);
-                const lng = position.coords.longitude.toFixed(6);
-                
-                document.getElementById('waarneming-lat').value = lat;
-                document.getElementById('waarneming-lng').value = lng;
-                coordsSpan.textContent = `${lat}, ${lng}`;
-                btn.classList.add('active');
-                
-                this.currentGPS = { lat: parseFloat(lat), lng: parseFloat(lng) };
-                this.showToast('GPS locatie vastgelegd', 'success');
-            },
-            (error) => {
-                coordsSpan.textContent = 'GPS fout - probeer opnieuw';
-                this.showToast('GPS fout: ' + error.message, 'error');
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    },
-
-    saveWaarneming() {
-        const datetime = document.getElementById('waarneming-datetime').value;
-        const locatie = document.getElementById('waarneming-locatie').value.trim();
-        const type = document.getElementById('waarneming-type').value;
-        const omschrijving = document.getElementById('waarneming-omschrijving').value.trim();
-
-        if (!datetime || !omschrijving) {
-            this.showToast('Vul datum en omschrijving in', 'error');
-            return;
-        }
-
-        const waarneming = {
-            id: 'W-' + Date.now(),
-            medewerker: Auth.getCurrentUser(),
-            datetime: datetime,
-            locatie: locatie || null,
-            gps: this.currentGPS,
-            type: type,
-            omschrijving: omschrijving,
-            createdAt: new Date().toISOString()
-        };
-
-        this.waarnemingen.unshift(waarneming);
-        this.saveData();
-        this.render();
-        this.closeModal();
-        
-        // Reset form
-        document.getElementById('waarneming-locatie').value = '';
-        document.getElementById('waarneming-omschrijving').value = '';
-        this.currentGPS = null;
-
-        this.showToast('Waarneming opgeslagen', 'success');
-    },
-
-    deleteWaarneming(id) {
-        if (!confirm('Weet je zeker dat je deze waarneming wilt verwijderen?')) return;
-        this.waarnemingen = this.waarnemingen.filter(w => w.id !== id);
-        this.saveData();
-        this.render();
-        this.showToast('Waarneming verwijderd', 'success');
-    },
-
-    render() {
-        // Stats
-        const today = new Date().toISOString().split('T')[0];
-        const todayCount = this.waarnemingen.filter(w => w.datetime.startsWith(today)).length;
-        
-        document.getElementById('stat-waarnemingen').textContent = this.waarnemingen.length;
-        document.getElementById('stat-vandaag').textContent = todayCount;
-        document.getElementById('export-count').textContent = this.waarnemingen.length;
-
-        // List
-        const container = document.getElementById('waarnemingen-list');
-        
-        if (this.waarnemingen.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <h4>Nog geen waarnemingen</h4>
-                    <p>Maak je eerste waarneming aan</p>
+                <div class="card">
+                    <div class="card-title">Recente waarnemingen</div>
+                    <div id="recent-obs" class="obs-list"></div>
                 </div>
-            `;
-            return;
-        }
+            </section>
 
-        container.innerHTML = this.waarnemingen.map(w => {
-            const date = new Date(w.datetime);
-            const dateStr = date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
-            const timeStr = date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+            <section id="tab-new" class="tab-content">
+                <div id="gps-status" class="gps-bar searching">
+                    <i class="fas fa-satellite-dish"></i>
+                    <span>GPS zoeken...</span>
+                </div>
 
-            return `
-                <div class="waarneming-card">
-                    <h4>${this.formatType(w.type)}</h4>
-                    <div class="meta">${dateStr} ${timeStr} • ${w.locatie || 'Geen locatie'}</div>
-                    <p>${this.truncate(w.omschrijving, 150)}</p>
-                    <div class="actions">
-                        <button onclick="App.deleteWaarneming('${w.id}')" style="background: var(--danger); color: white;">
-                            <i class="fas fa-trash"></i> Verwijder
-                        </button>
+                <div class="card">
+                    <div class="card-title">Foto's toevoegen</div>
+                    <input type="file" id="photo-input" accept="image/*" multiple capture="environment" class="hidden">
+                    <div class="photo-upload" onclick="document.getElementById('photo-input').click()">
+                        <i class="fas fa-camera"></i>
+                        <p>Tik om foto's te maken of selecteren</p>
+                    </div>
+                    <div id="photo-preview" class="photo-preview"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Waarneming details</div>
+                    <div class="form-group">
+                        <label>Type waarneming</label>
+                        <select id="obs-type">
+                            <option value="verdacht">Verdachte situatie</option>
+                            <option value="hennep">Hennepkwekerij</option>
+                            <option value="drugs">Drugshandel</option>
+                            <option value="overlast">Overlast</option>
+                            <option value="vervuiling">Vervuiling</option>
+                            <option value="illegaal">Illegale bewoning</option>
+                            <option value="ondermijning">Ondermijning</option>
+                            <option value="overig">Overig</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Adres / Locatie</label>
+                        <input type="text" id="obs-address" placeholder="Straat en huisnummer">
+                    </div>
+                    <div class="form-group">
+                        <label>Plaats</label>
+                        <input type="text" id="obs-city" placeholder="Plaatsnaam">
+                    </div>
+                    <div class="form-group">
+                        <label>Beschrijving</label>
+                        <textarea id="obs-description" rows="4" placeholder="Beschrijf wat u heeft waargenomen..."></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="Observations.save()">
+                        <i class="fas fa-save"></i> Waarneming opslaan
+                    </button>
+                </div>
+            </section>
+
+            <section id="tab-overview" class="tab-content">
+                <div class="card">
+                    <div class="card-title">Alle waarnemingen</div>
+                    <div id="all-obs" class="obs-list"></div>
+                </div>
+            </section>
+
+            <section id="tab-settings" class="tab-content">
+                <div class="card">
+                    <div class="card-title">Account</div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Ingelogd als</h4>
+                            <p id="settings-user">-</p>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Totaal waarnemingen</h4>
+                            <p id="settings-total">0 waarnemingen</p>
+                        </div>
                     </div>
                 </div>
-            `;
-        }).join('');
-    },
+                <div class="card">
+                    <div class="card-title">Export</div>
+                    <button class="btn btn-secondary" onclick="App.exportJSON()">
+                        <i class="fas fa-download"></i> Exporteer JSON
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-title">Gegevens</div>
+                    <button class="btn btn-danger" onclick="App.clearData()">
+                        <i class="fas fa-trash"></i> Wis alle gegevens
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-title">App info</div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Versie</h4>
+                            <p>1.2.0</p>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Ontwikkelaar</h4>
+                            <p>Knowledge by Data</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
 
-    formatType(type) {
-        const types = {
-            'verdacht-gedrag': 'Verdacht gedrag',
-            'verdacht-pand': 'Verdacht pand',
-            'verdacht-voertuig': 'Verdacht voertuig',
-            'verdachte-persoon': 'Verdachte persoon',
-            'overig': 'Overig'
+    <div id="toast" class="toast"></div>
+
+    <script>
+        'use strict';
+
+        const K = {
+            PIN: 'apstraat_pin',
+            USER: 'apstraat_user',
+            DATA: 'apstraat_data'
         };
-        return types[type] || type;
-    },
 
-    truncate(str, length) {
-        if (!str) return '';
-        return str.length > length ? str.substring(0, length) + '...' : str;
-    },
+        const Auth = {
+            pin: '',
+            
+            init() {
+                const stored = localStorage.getItem(K.PIN);
+                if (!stored) {
+                    this.showSetup();
+                }
+            },
 
-    exportData() {
-        if (this.waarnemingen.length === 0) {
-            this.showToast('Geen data om te exporteren', 'error');
-            return;
+            showSetup() {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('setup-section').classList.remove('hidden');
+                document.getElementById('auth-subtitle').textContent = 'Maak een account aan';
+            },
+
+            digit(n) {
+                if (this.pin.length >= 4) return;
+                this.pin += n;
+                this.updateDots();
+                if (this.pin.length === 4) {
+                    setTimeout(() => this.verify(), 150);
+                }
+            },
+
+            backspace() {
+                this.pin = this.pin.slice(0, -1);
+                this.updateDots();
+            },
+
+            updateDots() {
+                document.querySelectorAll('.pin-dot').forEach((dot, i) => {
+                    dot.classList.toggle('filled', i < this.pin.length);
+                    dot.classList.remove('error');
+                });
+            },
+
+            verify() {
+                const stored = localStorage.getItem(K.PIN);
+                if (this.pin === stored) {
+                    this.showApp();
+                } else {
+                    this.showError();
+                }
+            },
+
+            showError() {
+                document.querySelectorAll('.pin-dot').forEach(dot => {
+                    dot.classList.add('error');
+                });
+                setTimeout(() => {
+                    this.pin = '';
+                    this.updateDots();
+                }, 500);
+            },
+
+            completeSetup() {
+                const name = document.getElementById('setup-name').value.trim();
+                const pin = document.getElementById('setup-pin').value;
+                const confirm = document.getElementById('setup-pin-confirm').value;
+
+                if (!name) {
+                    Toast.show('Vul uw naam in', 'error');
+                    return;
+                }
+                if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                    Toast.show('PIN moet 4 cijfers zijn', 'error');
+                    return;
+                }
+                if (pin !== confirm) {
+                    Toast.show('PINs komen niet overeen', 'error');
+                    return;
+                }
+
+                localStorage.setItem(K.PIN, pin);
+                localStorage.setItem(K.USER, name);
+                localStorage.setItem(K.DATA, JSON.stringify([]));
+                this.showApp();
+            },
+
+            showApp() {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app').classList.add('active');
+                document.getElementById('current-user').textContent = localStorage.getItem(K.USER);
+                App.init();
+            },
+
+            logout() {
+                this.pin = '';
+                this.updateDots();
+                document.getElementById('app').classList.remove('active');
+                document.getElementById('auth-screen').style.display = 'flex';
+            }
+        };
+
+        const Observations = {
+            photos: [],
+            gpsCoords: null,
+
+            init() {
+                this.initGPS();
+                this.initPhotoInput();
+            },
+
+            initGPS() {
+                if (!navigator.geolocation) {
+                    this.setGPSStatus('error', 'GPS niet ondersteund');
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        this.gpsCoords = {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            accuracy: Math.round(pos.coords.accuracy)
+                        };
+                        this.setGPSStatus('active', 'GPS actief (' + this.gpsCoords.accuracy + 'm)');
+                    },
+                    (err) => this.setGPSStatus('error', 'GPS fout: ' + err.message),
+                    { enableHighAccuracy: true, timeout: 15000 }
+                );
+            },
+
+            setGPSStatus(status, text) {
+                const el = document.getElementById('gps-status');
+                el.className = 'gps-bar ' + status;
+                const icon = status === 'active' ? 'fa-check-circle' : 
+                             status === 'error' ? 'fa-times-circle' : 'fa-satellite-dish';
+                el.innerHTML = '<i class="fas ' + icon + '"></i><span>' + text + '</span>';
+            },
+
+            initPhotoInput() {
+                document.getElementById('photo-input').addEventListener('change', (e) => {
+                    this.handlePhotos(e.target.files);
+                });
+            },
+
+            handlePhotos(files) {
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                
+                Array.from(files).forEach(file => {
+                    if (file.size > maxSize) {
+                        Toast.show('Foto te groot (max 5MB)', 'error');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.photos.push({
+                            data: e.target.result,
+                            name: file.name,
+                            size: file.size,
+                            type: file.type
+                        });
+                        this.renderPhotos();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            },
+
+            renderPhotos() {
+                const container = document.getElementById('photo-preview');
+                container.innerHTML = this.photos.map((photo, i) => 
+                    '<div class="photo-item">' +
+                        '<img src="' + photo.data + '" alt="Foto ' + (i+1) + '">' +
+                        '<button onclick="Observations.removePhoto(' + i + ')"><i class="fas fa-times"></i></button>' +
+                    '</div>'
+                ).join('');
+            },
+
+            removePhoto(index) {
+                this.photos.splice(index, 1);
+                this.renderPhotos();
+            },
+
+            save() {
+                const type = document.getElementById('obs-type').value;
+                const address = document.getElementById('obs-address').value.trim();
+                const city = document.getElementById('obs-city').value.trim();
+                const description = document.getElementById('obs-description').value.trim();
+
+                if (!address || !city) {
+                    Toast.show('Vul adres en plaats in', 'error');
+                    return;
+                }
+                if (!description) {
+                    Toast.show('Vul een beschrijving in', 'error');
+                    return;
+                }
+
+                const obs = {
+                    id: Date.now().toString(36),
+                    datum: new Date().toISOString(),
+                    type: type,
+                    adres: address,
+                    plaats: city,
+                    beschrijving: description,
+                    fotos: this.photos,
+                    gps: this.gpsCoords,
+                    melder: localStorage.getItem(K.USER)
+                };
+
+                const data = JSON.parse(localStorage.getItem(K.DATA) || '[]');
+                data.unshift(obs);
+                localStorage.setItem(K.DATA, JSON.stringify(data));
+
+                // Reset form
+                document.getElementById('obs-address').value = '';
+                document.getElementById('obs-city').value = '';
+                document.getElementById('obs-description').value = '';
+                this.photos = [];
+                this.renderPhotos();
+                document.getElementById('photo-input').value = '';
+
+                App.updateStats();
+                Toast.show('Waarneming opgeslagen', 'success');
+            }
+        };
+
+        const App = {
+            init() {
+                this.initTabs();
+                Observations.init();
+                this.updateStats();
+            },
+
+            initTabs() {
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        tab.classList.add('active');
+                        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+                    });
+                });
+            },
+
+            updateStats() {
+                const data = JSON.parse(localStorage.getItem(K.DATA) || '[]');
+                
+                const withPhotos = data.filter(o => o.fotos && o.fotos.length > 0).length;
+                const withGPS = data.filter(o => o.gps).length;
+
+                document.getElementById('stat-total').textContent = data.length;
+                document.getElementById('stat-photos').textContent = withPhotos;
+                document.getElementById('stat-gps').textContent = withGPS;
+
+                this.renderObs(data.slice(0, 5), 'recent-obs');
+                this.renderObs(data, 'all-obs');
+
+                document.getElementById('settings-user').textContent = localStorage.getItem(K.USER);
+                document.getElementById('settings-total').textContent = data.length + ' waarnemingen';
+            },
+
+            renderObs(observations, containerId) {
+                const container = document.getElementById(containerId);
+                if (observations.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-binoculars"></i><p>Nog geen waarnemingen</p></div>';
+                    return;
+                }
+                container.innerHTML = observations.map(o => this.obsHTML(o)).join('');
+            },
+
+            obsHTML(o) {
+                const date = new Date(o.datum);
+                const dateStr = date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const typeLabels = {
+                    verdacht: 'Verdacht', hennep: 'Hennep', drugs: 'Drugs', overlast: 'Overlast',
+                    vervuiling: 'Vervuiling', illegaal: 'Illegaal', ondermijning: 'Ondermijning', overig: 'Overig'
+                };
+                
+                let meta = '';
+                if (o.fotos && o.fotos.length > 0) {
+                    meta += '<span><i class="fas fa-camera"></i> ' + o.fotos.length + '</span>';
+                }
+                if (o.gps) {
+                    meta += '<span><i class="fas fa-location-dot"></i> GPS</span>';
+                }
+
+                return '<div class="obs-item">' +
+                    '<div class="obs-header">' +
+                        '<span class="obs-type">' + (typeLabels[o.type] || o.type) + '</span>' +
+                        '<span class="obs-date">' + dateStr + '</span>' +
+                    '</div>' +
+                    '<div class="obs-address">' + this.esc(o.adres) + ', ' + this.esc(o.plaats) + '</div>' +
+                    '<div class="obs-desc">' + this.esc(o.beschrijving).substring(0, 100) + (o.beschrijving.length > 100 ? '...' : '') + '</div>' +
+                    (meta ? '<div class="obs-meta">' + meta + '</div>' : '') +
+                '</div>';
+            },
+
+            esc(str) {
+                if (!str) return '';
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            },
+
+            exportJSON() {
+                const data = {
+                    app: 'AP Straat',
+                    version: '1.2.0',
+                    exported: new Date().toISOString(),
+                    user: localStorage.getItem(K.USER),
+                    observations: JSON.parse(localStorage.getItem(K.DATA) || '[]')
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ap-straat-' + new Date().toISOString().split('T')[0] + '.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                Toast.show('Export gedownload', 'success');
+            },
+
+            clearData() {
+                if (confirm('Alle waarnemingen wissen? Dit kan niet ongedaan worden.')) {
+                    localStorage.setItem(K.DATA, JSON.stringify([]));
+                    this.updateStats();
+                    Toast.show('Gegevens gewist', 'success');
+                }
+            }
+        };
+
+        const Toast = {
+            show(message, type = 'info') {
+                const el = document.getElementById('toast');
+                el.textContent = message;
+                el.className = 'toast ' + type + ' show';
+                setTimeout(() => el.classList.remove('show'), 3000);
+            }
+        };
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(console.error);
         }
 
-        const exportData = {
-            type: 'apstraat_export',
-            version: '2.0.0',
-            medewerker: Auth.getCurrentUser(),
-            exportedAt: new Date().toISOString(),
-            source: 'AP Straat PWA',
-            waarnemingen: this.waarnemingen
-        };
-
-        const userName = (Auth.getCurrentUser() || 'export').replace(/\s+/g, '_');
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `APStraat_${userName}_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        this.showToast('Export gedownload', 'success');
-    },
-
-    clearAllData() {
-        if (!confirm('WAARSCHUWING: Alle data wordt verwijderd. Eerst exporteren?')) return;
-        if (!confirm('Weet je het zeker?')) return;
-
-        Storage.clear();
-        this.waarnemingen = [];
-        this.render();
-        this.showToast('Alle data gewist', 'success');
-    },
-
-    showToast(message, type = 'info') {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.className = 'toast ' + type;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-};
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => Auth.init());
-
-// Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW registered'))
-            .catch(err => console.error('SW failed:', err));
-    });
-}
-
-console.log('%c AP Straat v2.0.0', 'font-size:16px;font-weight:bold;color:#9b59b6');
-console.log('%c © 2025 Knowledge by Data', 'font-size:12px;color:#a855f7');
-</script>
+        Auth.init();
+    </script>
 </body>
 </html>
