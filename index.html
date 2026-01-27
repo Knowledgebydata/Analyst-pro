@@ -3,30 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analyst Pro - Knowledge by Data</title>
-    <meta name="description" content="Professionele tools voor analyse, registratie en declaratie">
+    <title>Knowledge by Data - Analyst Pro Apps</title>
+    <meta name="description" content="Professionele offline tools voor analyse, registratie en declaratie">
     <meta name="theme-color" content="#1a1a2e">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
     <style>
         :root {
             --dark: #1a1a2e;
             --accent: #9b59b6;
-            --accent-light: #a855f7;
             --blue: #1a56db;
             --green: #2e7d32;
             --orange: #e67e22;
             --indigo: #3f51b5;
             --purple: #9c27b0;
-            --cyan: #00bcd4;
+            --cyan: #0d6efd;
             --gray: #6b7280;
-            --light: #f9fafb;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -139,7 +133,7 @@
         .app-icon.orange { background: rgba(230, 126, 34, 0.2); }
         .app-icon.indigo { background: rgba(63, 81, 181, 0.2); }
         .app-icon.magenta { background: rgba(156, 39, 176, 0.2); }
-        .app-icon.cyan { background: rgba(0, 188, 212, 0.2); }
+        .app-icon.cyan { background: rgba(13, 110, 253, 0.2); }
 
         .app-info {
             text-align: left;
@@ -163,13 +157,6 @@
         }
 
         .app-card:hover .app-arrow { color: rgba(255,255,255,0.6); }
-        .app-card.purple-hover:hover .app-arrow { color: var(--accent); }
-        .app-card.blue-hover:hover .app-arrow { color: var(--blue); }
-        .app-card.green-hover:hover .app-arrow { color: var(--green); }
-        .app-card.orange-hover:hover .app-arrow { color: var(--orange); }
-        .app-card.indigo-hover:hover .app-arrow { color: var(--indigo); }
-        .app-card.magenta-hover:hover .app-arrow { color: var(--purple); }
-        .app-card.cyan-hover:hover .app-arrow { color: var(--cyan); }
 
         .features {
             display: flex;
@@ -189,6 +176,15 @@
 
         .feature-icon {
             color: #10b981;
+        }
+
+        .version-badge {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
         }
 
         footer {
@@ -232,7 +228,7 @@
     <div class="container">
         <div class="logo">🛡️</div>
         <h1>Knowledge by Data</h1>
-        <p class="subtitle">Professionele tools voor analyse, registratie en declaratie</p>
+        <p class="subtitle">Professionele offline tools voor analyse, registratie en declaratie<span class="version-badge">v2.0.0</span></p>
 
         <!-- Ondermijning Section -->
         <p class="section-title">🔍 Ondermijning</p>
@@ -241,7 +237,7 @@
                 <div class="app-icon purple">👁️</div>
                 <div class="app-info">
                     <div class="app-name">Waarnemingen op Straat</div>
-                    <div class="app-desc">Medewerker module voor waarnemingen op straat</div>
+                    <div class="app-desc">Medewerker module voor straatobservaties</div>
                 </div>
                 <div class="app-arrow">→</div>
             </a>
@@ -250,7 +246,7 @@
                 <div class="app-icon blue">📋</div>
                 <div class="app-info">
                     <div class="app-name">Meldpunt Ondermijning</div>
-                    <div class="app-desc">Burgers melden verdachte situaties</div>
+                    <div class="app-desc">Anoniem verdachte situaties melden</div>
                 </div>
                 <div class="app-arrow">→</div>
             </a>
@@ -275,8 +271,8 @@
             <a href="./ZorgAnalyst-Pro/" class="app-card cyan-hover">
                 <div class="app-icon cyan">🏥</div>
                 <div class="app-info">
-                    <div class="app-name">ZorgAnalyst Pro</div>
-                    <div class="app-desc">Veldrapportage voor zorgfraudeonderzoek</div>
+                    <div class="app-name">ZorgAnalyst Pro Mobile</div>
+                    <div class="app-desc">Zorgmeldingen in het veld met GPS</div>
                 </div>
                 <div class="app-arrow">→</div>
             </a>
@@ -289,7 +285,7 @@
                 <div class="app-icon green">🚗</div>
                 <div class="app-info">
                     <div class="app-name">KM Registratie Pro</div>
-                    <div class="app-desc">Sluitende kilometerregistratie voor DGA's</div>
+                    <div class="app-desc">Sluitende kilometerregistratie</div>
                 </div>
                 <div class="app-arrow">→</div>
             </a>
@@ -298,7 +294,7 @@
                 <div class="app-icon indigo">⏱️</div>
                 <div class="app-info">
                     <div class="app-name">Uren Registratie Pro</div>
-                    <div class="app-desc">Uitgebreide urenregistratie per categorie</div>
+                    <div class="app-desc">Uitgebreide urenregistratie</div>
                 </div>
                 <div class="app-arrow">→</div>
             </a>
@@ -329,6 +325,10 @@
             <div class="feature">
                 <span class="feature-icon">✓</span>
                 <span>Installeerbaar als app</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">✓</span>
+                <span>Zelfgekozen pincode</span>
             </div>
         </div>
     </div>
