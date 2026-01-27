@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<!--
+================================================================================
+KM Registratie Pro - Sluitende Kilometerregistratie voor Zakelijke Ritten
+Versie: 1.0.0 PWA
+================================================================================
+
+Copyright (c) 2025 L.P. Antenbrink, Knowledge by Data. Alle rechten voorbehouden.
+
+ZAKELIJKE RITREGISTRATIE - VOOR DGA'S EN ONDERNEMERS
+Functies:
+- Sluitende kilometerregistratie
+- GPS-locatie bij start en einde
+- Automatische berekening en validatie
+- Export voor belastingaangifte
+
+VERTROUWELIJK - UITSLUITEND VOOR GEAUTORISEERD GEBRUIK
+================================================================================
+-->
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="author" content="L.P. Antenbrink, Knowledge by Data">
+<meta name="application-name" content="KM Registratie Pro">
+<meta name="version" content="1.0.0-PWA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2e7d32">
+<meta name="description" content="Sluitende kilometerregistratie voor zakelijke ritten">
+<title>KM Registratie Pro</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-96x96.png">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+:root {
+    --primary: #2e7d32;
+    --primary-dark: #1b5e20;
+    --primary-light: #4caf50;
+    --accent: #ff9800;
+    --accent-light: #ffb74d;
+    --success: #43a047;
+    --warning: #ffc107;
+    --danger: #e53935;
+    --dark: #1a1a2e;
+    --light: #f5f5f5;
+    --gray: #757575;
+    --gray-light: #e0e0e0;
+    --white: #ffffff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--light);
+    min-height: 100vh;
+    color: var(--dark);
+}
+
+/* Security Bar */
+.security-bar {
+    background: var(--primary);
+    color: white;
+    padding: 8px 15px;
+    font-size: 0.75rem;
+    text-align: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+/* Header */
+.app-header {
+    background: linear-gradient(135deg, var(--dark), #16213e);
+    color: white;
+    padding: 20px;
+    padding-top: 50px;
+    text-align: center;
+}
+
+.app-header h1 {
+    font-size: 1.4rem;
+    color: var(--primary-light);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.app-header p {
+    color: var(--gray);
+    font-size: 0.85rem;
+}
+
+/* Navigation */
+.nav-tabs {
+    display: flex;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 30px;
+    z-index: 100;
+}
+
+.nav-tab {
+    flex: 1;
+    padding: 15px 10px;
+    text-align: center;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--gray);
+    transition: all 0.3s;
+    border-bottom: 3px solid transparent;
+}
+
+.nav-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: rgba(46, 125, 50, 0.05);
+}
+
+.nav-tab i {
+    display: block;
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+}
+
+/* Main Content */
+.main-content {
+    padding: 15px;
+    padding-bottom: 100px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Cards */
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-title i {
+    color: var(--primary);
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-card.accent {
+    background: linear-gradient(135deg, var(--accent), #f57c00);
+}
+
+.stat-card.neutral {
+    background: linear-gradient(135deg, #455a64, #37474f);
+}
+
+.stat-number {
+    font-size: 1.6rem;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 6px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--gray-light);
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+    background: white;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.form-control:disabled {
+    background: var(--light);
+    color: var(--gray);
+}
+
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23757575' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.form-hint {
+    font-size: 0.75rem;
+    color: var(--gray);
+    margin-top: 4px;
+}
+
+/* Autocomplete */
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid var(--gray-light);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+}
+
+.autocomplete-list.active {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+    background: var(--light);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-accent {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn-lg {
+    padding: 16px 24px;
+    font-size: 1.05rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Active Trip Card */
+.active-trip {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.active-trip h3 {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.active-trip .trip-timer {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    margin: 15px 0;
+    font-family: 'Courier New', monospace;
+}
+
+.active-trip .trip-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    font-size: 0.85rem;
+    margin-bottom: 15px;
+}
+
+.active-trip .trip-info div {
+    background: rgba(255,255,255,0.15);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.active-trip .trip-info strong {
+    display: block;
+    font-size: 0.7rem;
+    opacity: 0.8;
+    margin-bottom: 2px;
+}
+
+.pulse-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #f44336;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* Trip List */
+.trip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.trip-item {
+    background: var(--light);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.trip-item:hover {
+    background: var(--gray-light);
+}
+
+.trip-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.trip-item-route {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--dark);
+}
+
+.trip-item-km {
+    background: var(--primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.trip-item-meta {
+    font-size: 0.8rem;
+    color: var(--gray);
+    display: flex;
+    gap: 15px;
+}
+
+/* Validation Status */
+.validation-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-top: 10px;
+}
+
+.validation-status.valid {
+    background: rgba(67, 160, 71, 0.15);
+    color: var(--success);
+}
+
+.validation-status.invalid {
+    background: rgba(229, 57, 53, 0.15);
+    color: var(--danger);
+}
+
+.validation-status.warning {
+    background: rgba(255, 193, 7, 0.2);
+    color: #f57c00;
+}
+
+/* GPS Status */
+.gps-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-top: 6px;
+}
+
+.gps-status.active {
+    color: var(--success);
+}
+
+.gps-status i {
+    font-size: 0.9rem;
+}
+
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--gray-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 1.1rem;
+    color: var(--dark);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--gray-light);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Toast */
+.toast-container {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+}
+
+.toast {
+    background: var(--dark);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    animation: slideUp 0.3s ease;
+    margin-top: 8px;
+}
+
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.warning { background: var(--warning); color: var(--dark); }
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.3;
+}
+
+/* Settings Info */
+.info-box {
+    background: rgba(46, 125, 50, 0.1);
+    border-left: 4px solid var(--primary);
+    padding: 12px 15px;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.85rem;
+    color: var(--dark);
+    margin-bottom: 15px;
+}
+
+/* Responsive */
+@media (max-width: 380px) {
+    .nav-tab {
+        padding: 12px 5px;
+        font-size: 0.7rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="security-bar">
+    <i class="fas fa-lock"></i> Sluitende ritregistratie - Data blijft lokaal
+</div>
+
+<header class="app-header">
+    <h1><i class="fas fa-car"></i> KM Registratie Pro</h1>
+    <p>Sluitende kilometerregistratie voor zakelijke ritten</p>
+</header>
+
+<nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="dashboard">
+        <i class="fas fa-home"></i>
+        Dashboard
+    </button>
+    <button class="nav-tab" data-tab="trip">
+        <i class="fas fa-route"></i>
+        Rit
+    </button>
+    <button class="nav-tab" data-tab="history">
+        <i class="fas fa-history"></i>
+        Overzicht
+    </button>
+    <button class="nav-tab" data-tab="settings">
+        <i class="fas fa-cog"></i>
+        Instellingen
+    </button>
+</nav>
+
+<main class="main-content">
+    <!-- Dashboard Tab -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="stat-trips">0</div>
+                <div class="stat-label">Ritten dit jaar</div>
+            </div>
+            <div class="stat-card accent">
+                <div class="stat-number" id="stat-km">0</div>
+                <div class="stat-label">Totaal km</div>
+            </div>
+            <div class="stat-card neutral">
+                <div class="stat-number" id="stat-current-km">0</div>
+                <div class="stat-label">Huidige stand</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="stat-month-km">0</div>
+                <div class="stat-label">Km deze maand</div>
+            </div>
+        </div>
+
+        <div id="active-trip-display" style="display: none;">
+            <!-- Active trip shown here -->
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-list"></i> Recente Ritten</span>
+            </div>
+            <div id="recent-trips" class="trip-list">
+                <!-- Dynamic -->
+            </div>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" onclick="startNewTrip()">
+            <i class="fas fa-play"></i> Nieuwe Rit Starten
+        </button>
+    </div>
+
+    <!-- Trip Tab -->
+    <div id="tab-trip" class="tab-content">
+        <!-- Start Trip Form -->
+        <div id="trip-start-form">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fas fa-flag-checkered"></i> Rit Starten</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Kilometerstand bij vertrek *</label>
+                    <input type="number" id="start-km" class="form-control" placeholder="Bijv. 45230" step="1" min="0">
+                    <div class="gps-status" id="start-gps-status">
+                        <i class="fas fa-satellite-dish"></i> GPS niet actief
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Vertrekplaats *</label>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="start-place" class="form-control" placeholder="Typ een plaatsnaam..." autocomplete="off">
+                        <div class="autocomplete-list" id="start-place-list"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bestemming *</label>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="end-place" class="form-control" placeholder="Typ een plaatsnaam..." autocomplete="off">
+                        <div class="autocomplete-list" id="end-place-list"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Doel van de rit</label>
+                    <select id="trip-purpose" class="form-control">
+                        <option value="zakelijk">Zakelijk - Klantbezoek</option>
+                        <option value="vergadering">Zakelijk - Vergadering</option>
+                        <option value="kantoor">Zakelijk - Naar kantoor</option>
+                        <option value="inkoop">Zakelijk - Inkoop/leverancier</option>
+                        <option value="training">Zakelijk - Training/cursus</option>
+                        <option value="overig">Zakelijk - Overig</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Opmerking (optioneel)</label>
+                    <input type="text" id="trip-note" class="form-control" placeholder="Bijv. naam klant, project">
+                </div>
+
+                <button class="btn btn-primary btn-block btn-lg" onclick="startTrip()">
+                    <i class="fas fa-play-circle"></i> Start Rit
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Trip Display -->
+        <div id="trip-active-form" style="display: none;">
+            <div class="active-trip">
+                <h3><span class="pulse-dot"></span> Rit Actief</h3>
+                <div class="trip-timer" id="trip-timer">00:00:00</div>
+                <div class="trip-info">
+                    <div>
+                        <strong>Van</strong>
+                        <span id="active-start-place">-</span>
+                    </div>
+                    <div>
+                        <strong>Naar</strong>
+                        <span id="active-end-place">-</span>
+                    </div>
+                    <div>
+                        <strong>Start km</strong>
+                        <span id="active-start-km">-</span>
+                    </div>
+                    <div>
+                        <strong>Starttijd</strong>
+                        <span id="active-start-time">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fas fa-flag"></i> Rit Beëindigen</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Kilometerstand bij aankomst *</label>
+                    <input type="number" id="end-km" class="form-control" placeholder="Bijv. 45280" step="1" min="0">
+                    <div class="gps-status" id="end-gps-status">
+                        <i class="fas fa-satellite-dish"></i> GPS niet actief
+                    </div>
+                </div>
+
+                <div id="km-validation" class="validation-status" style="display: none;">
+                    <!-- Validation message -->
+                </div>
+
+                <button class="btn btn-accent btn-block btn-lg" onclick="endTrip()" style="margin-top: 15px;">
+                    <i class="fas fa-stop-circle"></i> Beëindig Rit
+                </button>
+
+                <button class="btn btn-outline btn-block" onclick="cancelTrip()" style="margin-top: 10px;">
+                    <i class="fas fa-times"></i> Annuleer Rit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Tab -->
+    <div id="tab-history" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-filter"></i> Filter</span>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Van</label>
+                    <input type="date" id="filter-from" class="form-control">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Tot</label>
+                    <input type="date" id="filter-to" class="form-control">
+                </div>
+            </div>
+            <button class="btn btn-outline btn-block" onclick="applyFilter()" style="margin-top: 12px;">
+                <i class="fas fa-search"></i> Filter Toepassen
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-list-alt"></i> Alle Ritten</span>
+                <span id="history-count">0 ritten</span>
+            </div>
+            <div id="history-list" class="trip-list">
+                <!-- Dynamic -->
+            </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="exportData()">
+            <i class="fas fa-file-export"></i> Exporteer naar CSV
+        </button>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="tab-settings" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-car"></i> Voertuig</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Kenteken</label>
+                <input type="text" id="vehicle-plate" class="form-control" placeholder="Bijv. AB-123-CD">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Huidige kilometerstand</label>
+                <input type="number" id="current-odometer" class="form-control" placeholder="Huidige stand">
+                <p class="form-hint">Dit is de actuele stand van uw kilometerteller</p>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="saveVehicleSettings()">
+                <i class="fas fa-save"></i> Opslaan
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-euro-sign"></i> Vergoeding</span>
+            </div>
+            <div class="info-box">
+                <strong>Wettelijk maximum 2024/2025:</strong> €0,23 per kilometer (onbelast)
+            </div>
+            <div class="form-group">
+                <label class="form-label">Kilometervergoeding (€)</label>
+                <input type="number" id="km-rate" class="form-control" value="0.23" step="0.01" min="0" max="0.23">
+                <p class="form-hint">Maximaal €0,23 onbelast</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-database"></i> Data</span>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="exportAllData()">
+                <i class="fas fa-download"></i> Exporteer Alle Data (JSON)
+            </button>
+            <button class="btn btn-outline btn-block" onclick="importData()" style="margin-top: 10px;">
+                <i class="fas fa-upload"></i> Importeer Data
+            </button>
+            <input type="file" id="import-file" accept=".json" style="display: none;" onchange="handleImport(event)">
+            <button class="btn btn-danger btn-block" onclick="clearAllData()" style="margin-top: 10px;">
+                <i class="fas fa-trash"></i> Wis Alle Data
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fas fa-info-circle"></i> Info</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--gray); line-height: 1.6;">
+                <strong>KM Registratie Pro</strong><br>
+                Versie 1.0.0<br><br>
+                © 2025 Knowledge by Data<br><br>
+                <em>Sluitende kilometerregistratie voor DGA's en ondernemers.</em>
+            </p>
+        </div>
+    </div>
+</main>
+
+<!-- Trip Detail Modal -->
+<div class="modal-overlay" id="trip-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Rit Details</h3>
+            <button class="modal-close" onclick="closeTripModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="trip-modal-content">
+            <!-- Dynamic content -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeTripModal()">Sluiten</button>
+            <button class="btn btn-danger" onclick="deleteCurrentTrip()">
+                <i class="fas fa-trash"></i> Verwijderen
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+'use strict';
+
+// ============================================================================
+// Nederlandse Plaatsnamen (top 300+ gemeenten en plaatsen)
+// ============================================================================
+const DUTCH_PLACES = [
+    'Aalsmeer', 'Aalten', 'Achtkarspelen', 'Alblasserdam', 'Albrandswaard', 'Alkmaar', 'Almelo', 'Almere', 'Alphen aan den Rijn', 'Alphen-Chaam',
+    'Altena', 'Ameland', 'Amersfoort', 'Amstelveen', 'Amsterdam', 'Apeldoorn', 'Arnhem', 'Assen', 'Asten', 'Baarle-Nassau',
+    'Baarn', 'Barendrecht', 'Barneveld', 'Beek', 'Beekdaelen', 'Beesel', 'Berg en Dal', 'Bergeijk', 'Bergen (L)', 'Bergen (NH)',
+    'Bergen op Zoom', 'Berkelland', 'Bernheze', 'Best', 'Beuningen', 'Beverwijk', 'Bladel', 'Blaricum', 'Bloemendaal', 'Bodegraven-Reeuwijk',
+    'Boekel', 'Borger-Odoorn', 'Borne', 'Borsele', 'Boxmeer', 'Boxtel', 'Breda', 'Brielle', 'Bronckhorst', 'Brummen',
+    'Brunssum', 'Bunnik', 'Bunschoten', 'Buren', 'Capelle aan den IJssel', 'Castricum', 'Coevorden', 'Cranendonck', 'Cuijk', 'Culemborg',
+    'Dalfsen', 'Dantumadiel', 'De Bilt', 'De Fryske Marren', 'De Ronde Venen', 'De Wolden', 'Delft', 'Den Haag', 'Den Helder', 'Deurne',
+    'Deventer', 'Diemen', 'Dinkelland', 'Doesburg', 'Doetinchem', 'Dongen', 'Dordrecht', 'Drechterland', 'Drimmelen', 'Dronten',
+    'Druten', 'Duiven', 'Echt-Susteren', 'Edam-Volendam', 'Ede', 'Eemnes', 'Eemsdelta', 'Eersel', 'Eijsden-Margraten', 'Eindhoven',
+    'Elburg', 'Emmen', 'Enkhuizen', 'Enschede', 'Epe', 'Ermelo', 'Etten-Leur', 'Geertruidenberg', 'Geldrop-Mierlo', 'Gemert-Bakel',
+    'Gennep', 'Gilze en Rijen', 'Goeree-Overflakkee', 'Goes', 'Goirle', 'Gooise Meren', 'Gorinchem', 'Gouda', 'Grave', 'Groningen',
+    'Gulpen-Wittem', 'Haaksbergen', 'Haarlem', 'Haarlemmermeer', 'Halderberge', 'Hardenberg', 'Harderwijk', 'Hardinxveld-Giessendam', 'Harlingen', 'Hattem',
+    'Heemskerk', 'Heemstede', 'Heerde', 'Heerenveen', 'Heerhugowaard', 'Heerlen', 'Heeze-Leende', 'Heiloo', 'Hellendoorn', 'Hellevoetsluis',
+    'Helmond', 'Hendrik-Ido-Ambacht', 'Hengelo', 'Het Hogeland', 'Heumen', 'Heusden', 'Hillegom', 'Hilvarenbeek', 'Hilversum', 'Hoeksche Waard',
+    'Hof van Twente', 'Hollands Kroon', 'Hoogeveen', 'Hoorn', 'Horst aan de Maas', 'Houten', 'Huizen', 'Hulst', 'IJsselstein', 'Kaag en Braassem',
+    'Kampen', 'Kapelle', 'Katwijk', 'Kerkrade', 'Koggenland', 'Krimpen aan den IJssel', 'Krimpenerwaard', 'Laarbeek', 'Landerd', 'Landgraaf',
+    'Landsmeer', 'Langedijk', 'Lansingerland', 'Laren', 'Leeuwarden', 'Leiden', 'Leiderdorp', 'Leidschendam-Voorburg', 'Lelystad', 'Leudal',
+    'Leusden', 'Lingewaard', 'Lisse', 'Lochem', 'Loon op Zand', 'Lopik', 'Losser', 'Maasdriel', 'Maasgouw', 'Maassluis',
+    'Maastricht', 'Medemblik', 'Meerssen', 'Meierijstad', 'Meppel', 'Middelburg', 'Midden-Delfland', 'Midden-Drenthe', 'Midden-Groningen', 'Mill en Sint Hubert',
+    'Moerdijk', 'Molenlanden', 'Montferland', 'Montfoort', 'Mook en Middelaar', 'Neder-Betuwe', 'Nederweert', 'Nieuwegein', 'Nieuwkoop', 'Nijkerk',
+    'Nijmegen', 'Nissewaard', 'Noardeast-Fryslân', 'Noord-Beveland', 'Noordenveld', 'Noordoostpolder', 'Noordwijk', 'Nuenen', 'Nunspeet', 'Oegstgeest',
+    'Oirschot', 'Oisterwijk', 'Oldambt', 'Oldebroek', 'Oldenzaal', 'Olst-Wijhe', 'Ommen', 'Oost Gelre', 'Oosterhout', 'Ooststellingwerf',
+    'Oostzaan', 'Opmeer', 'Opsterland', 'Oss', 'Oude IJsselstreek', 'Ouder-Amstel', 'Oudewater', 'Overbetuwe', 'Papendrecht', 'Peel en Maas',
+    'Pekela', 'Pijnacker-Nootdorp', 'Purmerend', 'Putten', 'Raalte', 'Reimerswaal', 'Renkum', 'Renswoude', 'Reusel-De Mierden', 'Rheden',
+    'Rhenen', 'Ridderkerk', 'Rijssen-Holten', 'Rijswijk', 'Roerdalen', 'Roermond', 'Roosendaal', 'Rotterdam', 'Rozendaal', 'Rucphen',
+    'Schagen', 'Scherpenzeel', 'Schiedam', 'Schiermonnikoog', 'Schouwen-Duiveland', 'Simpelveld', 'Sint Anthonis', 'Sint-Michielsgestel', 'Sittard-Geleen', 'Sliedrecht',
+    'Sluis', 'Smallingerland', 'Soest', 'Someren', 'Son en Breugel', 'Stadskanaal', 'Staphorst', 'Stede Broec', 'Steenbergen', 'Steenwijkerland',
+    'Stein', 'Stichtse Vecht', 'Súdwest-Fryslân', 'Terneuzen', 'Terschelling', 'Texel', 'Teylingen', 'Tholen', 'Tiel', 'Tilburg',
+    'Tubbergen', 'Twenterand', 'Tynaarlo', 'Tytsjerksteradiel', 'Uden', 'Uitgeest', 'Uithoorn', 'Urk', 'Utrecht', 'Utrechtse Heuvelrug',
+    'Vaals', 'Valkenburg aan de Geul', 'Valkenswaard', 'Veendam', 'Veenendaal', 'Veere', 'Veldhoven', 'Velsen', 'Venlo', 'Venray',
+    'Vijfheerenlanden', 'Vlaardingen', 'Vlieland', 'Vlissingen', 'Voerendaal', 'Voorschoten', 'Voorst', 'Vught', 'Waadhoeke', 'Waalre',
+    'Waalwijk', 'Waddinxveen', 'Wageningen', 'Wassenaar', 'Waterland', 'Weert', 'Weesp', 'West Betuwe', 'West Maas en Waal', 'Westerkwartier',
+    'Westerveld', 'Westervoort', 'Westland', 'Weststellingwerf', 'Westvoorne', 'Wierden', 'Wijchen', 'Wijdemeren', 'Wijk bij Duurstede', 'Winterswijk',
+    'Woensdrecht', 'Woerden', 'Wormerland', 'Woudenberg', 'Zaanstad', 'Zaltbommel', 'Zandvoort', 'Zeewolde', 'Zeist', 'Zevenaar',
+    'Zoetermeer', 'Zoeterwoude', 'Zuidplas', 'Zundert', 'Zutphen', 'Zwartewaterland', 'Zwijndrecht', 'Zwolle'
+].sort();
+
+// ============================================================================
+// Application State
+// ============================================================================
+const APP_STATE = {
+    trips: [],
+    activeTrip: null,
+    settings: {
+        vehiclePlate: '',
+        currentOdometer: 0,
+        kmRate: 0.23
+    },
+    timerInterval: null,
+    startGpsCoords: null,
+    endGpsCoords: null,
+    currentTripId: null
+};
+
+// ============================================================================
+// Initialization
+// ============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    setupTabs();
+    setupAutocomplete('start-place', 'start-place-list');
+    setupAutocomplete('end-place', 'end-place-list');
+    setupValidation();
+    updateUI();
+    checkActiveTrip();
+    setFilterDefaults();
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+});
+
+function setFilterDefaults() {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), 0, 1);
+    document.getElementById('filter-from').value = firstDay.toISOString().split('T')[0];
+    document.getElementById('filter-to').value = now.toISOString().split('T')[0];
+}
+
+// ============================================================================
+// Data Persistence
+// ============================================================================
+function loadData() {
+    try {
+        const trips = localStorage.getItem('km_trips');
+        const settings = localStorage.getItem('km_settings');
+        const activeTrip = localStorage.getItem('km_active_trip');
+        
+        APP_STATE.trips = trips ? JSON.parse(trips) : [];
+        APP_STATE.settings = settings ? JSON.parse(settings) : APP_STATE.settings;
+        APP_STATE.activeTrip = activeTrip ? JSON.parse(activeTrip) : null;
+        
+        // Load settings into form
+        document.getElementById('vehicle-plate').value = APP_STATE.settings.vehiclePlate || '';
+        document.getElementById('current-odometer').value = APP_STATE.settings.currentOdometer || '';
+        document.getElementById('km-rate').value = APP_STATE.settings.kmRate || 0.23;
+    } catch (error) {
+        console.error('Error loading data:', error);
+    }
+}
+
+function saveData() {
+    try {
+        localStorage.setItem('km_trips', JSON.stringify(APP_STATE.trips));
+        localStorage.setItem('km_settings', JSON.stringify(APP_STATE.settings));
+        if (APP_STATE.activeTrip) {
+            localStorage.setItem('km_active_trip', JSON.stringify(APP_STATE.activeTrip));
+        } else {
+            localStorage.removeItem('km_active_trip');
+        }
+    } catch (error) {
+        console.error('Error saving data:', error);
+        showToast('Fout bij opslaan', 'error');
+    }
+}
+
+function handleBeforeUnload(event) {
+    if (APP_STATE.activeTrip) {
+        event.preventDefault();
+        event.returnValue = 'U heeft een actieve rit. Weet u zeker dat u wilt afsluiten?';
+        return event.returnValue;
+    }
+}
+
+// ============================================================================
+// Tab Navigation
+// ============================================================================
+function setupTabs() {
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+}
+
+function switchTab(tabId) {
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `tab-${tabId}`);
+    });
+}
+
+// ============================================================================
+// Autocomplete for Places
+// ============================================================================
+function setupAutocomplete(inputId, listId) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    
+    input.addEventListener('input', () => {
+        const value = input.value.toLowerCase().trim();
+        
+        if (value.length < 1) {
+            list.classList.remove('active');
+            return;
+        }
+        
+        const matches = DUTCH_PLACES.filter(place => 
+            place.toLowerCase().includes(value)
+        ).slice(0, 10);
+        
+        if (matches.length === 0) {
+            list.classList.remove('active');
+            return;
+        }
+        
+        list.innerHTML = matches.map(place => 
+            `<div class="autocomplete-item" data-value="${place}">${place}</div>`
+        ).join('');
+        
+        list.classList.add('active');
+        
+        list.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', () => {
+                input.value = item.dataset.value;
+                list.classList.remove('active');
+            });
+        });
+    });
+    
+    input.addEventListener('blur', () => {
+        setTimeout(() => list.classList.remove('active'), 200);
+    });
+    
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const firstItem = list.querySelector('.autocomplete-item');
+            if (firstItem) {
+                input.value = firstItem.dataset.value;
+                list.classList.remove('active');
+            }
+        }
+    });
+}
+
+// ============================================================================
+// GPS Functions
+// ============================================================================
+function getGPSLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('GPS niet ondersteund'));
+            return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                resolve({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                    timestamp: new Date().toISOString()
+                });
+            },
+            (error) => {
+                reject(error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    });
+}
+
+function updateGPSStatus(elementId, status, coords = null) {
+    const el = document.getElementById(elementId);
+    if (status === 'loading') {
+        el.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GPS ophalen...';
+        el.classList.remove('active');
+    } else if (status === 'success') {
+        el.innerHTML = `<i class="fas fa-check-circle"></i> GPS vastgelegd (±${Math.round(coords.accuracy)}m)`;
+        el.classList.add('active');
+    } else if (status === 'error') {
+        el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> GPS niet beschikbaar';
+        el.classList.remove('active');
+    } else {
+        el.innerHTML = '<i class="fas fa-satellite-dish"></i> GPS niet actief';
+        el.classList.remove('active');
+    }
+}
+
+// ============================================================================
+// Trip Management
+// ============================================================================
+function startNewTrip() {
+    // Pre-fill start km with last known odometer
+    const lastTrip = APP_STATE.trips[0];
+    if (lastTrip && lastTrip.endKm) {
+        document.getElementById('start-km').value = lastTrip.endKm;
+    } else if (APP_STATE.settings.currentOdometer) {
+        document.getElementById('start-km').value = APP_STATE.settings.currentOdometer;
+    }
+    
+    document.getElementById('start-place').value = '';
+    document.getElementById('end-place').value = '';
+    document.getElementById('trip-note').value = '';
+    
+    updateGPSStatus('start-gps-status', 'idle');
+    
+    switchTab('trip');
+}
+
+async function startTrip() {
+    const startKm = parseInt(document.getElementById('start-km').value);
+    const startPlace = document.getElementById('start-place').value.trim();
+    const endPlace = document.getElementById('end-place').value.trim();
+    const purpose = document.getElementById('trip-purpose').value;
+    const note = document.getElementById('trip-note').value.trim();
+    
+    // Validation
+    if (!startKm || startKm < 0) {
+        showToast('Voer een geldige kilometerstand in', 'warning');
+        return;
+    }
+    
+    if (!startPlace) {
+        showToast('Voer een vertrekplaats in', 'warning');
+        return;
+    }
+    
+    if (!endPlace) {
+        showToast('Voer een bestemming in', 'warning');
+        return;
+    }
+    
+    // Check against last trip
+    const lastTrip = APP_STATE.trips[0];
+    if (lastTrip && lastTrip.endKm && startKm < lastTrip.endKm) {
+        showToast(`Kilometerstand moet minimaal ${lastTrip.endKm} zijn (einde vorige rit)`, 'warning');
+        return;
+    }
+    
+    // Get GPS
+    updateGPSStatus('start-gps-status', 'loading');
+    let gpsCoords = null;
+    
+    try {
+        gpsCoords = await getGPSLocation();
+        updateGPSStatus('start-gps-status', 'success', gpsCoords);
+    } catch (error) {
+        console.warn('GPS error:', error);
+        updateGPSStatus('start-gps-status', 'error');
+    }
+    
+    // Create trip
+    APP_STATE.activeTrip = {
+        id: generateId(),
+        startTime: new Date().toISOString(),
+        startKm: startKm,
+        startPlace: startPlace,
+        endPlace: endPlace,
+        purpose: purpose,
+        note: note,
+        startGps: gpsCoords,
+        endTime: null,
+        endKm: null,
+        endGps: null,
+        distance: null,
+        duration: null
+    };
+    
+    APP_STATE.startGpsCoords = gpsCoords;
+    saveData();
+    
+    showActiveTripForm();
+    startTimer();
+    
+    showToast('Rit gestart', 'success');
+}
+
+async function endTrip() {
+    const endKm = parseInt(document.getElementById('end-km').value);
+    
+    if (!endKm || endKm < 0) {
+        showToast('Voer een geldige kilometerstand in', 'warning');
+        return;
+    }
+    
+    if (endKm < APP_STATE.activeTrip.startKm) {
+        showToast('Eindstand kan niet lager zijn dan beginstand', 'error');
+        return;
+    }
+    
+    // Get GPS
+    updateGPSStatus('end-gps-status', 'loading');
+    let gpsCoords = null;
+    
+    try {
+        gpsCoords = await getGPSLocation();
+        updateGPSStatus('end-gps-status', 'success', gpsCoords);
+    } catch (error) {
+        console.warn('GPS error:', error);
+        updateGPSStatus('end-gps-status', 'error');
+    }
+    
+    // Calculate distance and duration
+    const distance = endKm - APP_STATE.activeTrip.startKm;
+    const startTime = new Date(APP_STATE.activeTrip.startTime);
+    const endTime = new Date();
+    const durationMs = endTime - startTime;
+    
+    // Complete trip
+    APP_STATE.activeTrip.endTime = endTime.toISOString();
+    APP_STATE.activeTrip.endKm = endKm;
+    APP_STATE.activeTrip.endGps = gpsCoords;
+    APP_STATE.activeTrip.distance = distance;
+    APP_STATE.activeTrip.duration = formatDuration(durationMs);
+    APP_STATE.activeTrip.durationMinutes = Math.round(durationMs / 60000);
+    
+    // Validate
+    const validation = validateTrip(APP_STATE.activeTrip);
+    APP_STATE.activeTrip.validation = validation;
+    
+    // Save to trips
+    APP_STATE.trips.unshift(APP_STATE.activeTrip);
+    
+    // Update settings
+    APP_STATE.settings.currentOdometer = endKm;
+    
+    // Clear active trip
+    APP_STATE.activeTrip = null;
+    stopTimer();
+    saveData();
+    
+    showTripStartForm();
+    updateUI();
+    switchTab('dashboard');
+    
+    if (validation.valid) {
+        showToast(`Rit opgeslagen: ${distance} km`, 'success');
+    } else {
+        showToast(`Rit opgeslagen met waarschuwing: ${validation.message}`, 'warning');
+    }
+}
+
+function validateTrip(trip) {
+    const result = { valid: true, message: '', warnings: [] };
+    
+    // Check reasonable distance for duration
+    const kmPerHour = trip.distance / (trip.durationMinutes / 60);
+    
+    if (kmPerHour > 150) {
+        result.warnings.push('Hoge gemiddelde snelheid (>150 km/u)');
+    }
+    
+    if (kmPerHour < 5 && trip.distance > 5) {
+        result.warnings.push('Lage gemiddelde snelheid (<5 km/u)');
+    }
+    
+    if (trip.distance > 500) {
+        result.warnings.push('Zeer lange rit (>500 km)');
+    }
+    
+    if (trip.distance === 0) {
+        result.valid = false;
+        result.message = 'Geen kilometers gereden';
+    }
+    
+    if (result.warnings.length > 0 && result.valid) {
+        result.message = result.warnings.join('; ');
+    }
+    
+    return result;
+}
+
+function cancelTrip() {
+    if (!confirm('Weet u zeker dat u deze rit wilt annuleren?')) {
+        return;
+    }
+    
+    APP_STATE.activeTrip = null;
+    stopTimer();
+    saveData();
+    
+    showTripStartForm();
+    showToast('Rit geannuleerd', 'info');
+}
+
+// ============================================================================
+// Validation Display
+// ============================================================================
+function setupValidation() {
+    document.getElementById('end-km').addEventListener('input', () => {
+        const endKm = parseInt(document.getElementById('end-km').value);
+        const validationEl = document.getElementById('km-validation');
+        
+        if (!APP_STATE.activeTrip || !endKm) {
+            validationEl.style.display = 'none';
+            return;
+        }
+        
+        const distance = endKm - APP_STATE.activeTrip.startKm;
+        
+        if (endKm < APP_STATE.activeTrip.startKm) {
+            validationEl.className = 'validation-status invalid';
+            validationEl.innerHTML = '<i class="fas fa-times-circle"></i> Eindstand lager dan beginstand';
+            validationEl.style.display = 'flex';
+        } else if (distance === 0) {
+            validationEl.className = 'validation-status warning';
+            validationEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 0 km - geen afstand';
+            validationEl.style.display = 'flex';
+        } else if (distance > 500) {
+            validationEl.className = 'validation-status warning';
+            validationEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${distance} km - zeer lange rit`;
+            validationEl.style.display = 'flex';
+        } else {
+            validationEl.className = 'validation-status valid';
+            validationEl.innerHTML = `<i class="fas fa-check-circle"></i> ${distance} km gereden`;
+            validationEl.style.display = 'flex';
+        }
+    });
+}
+
+// ============================================================================
+// Timer Functions
+// ============================================================================
+function startTimer() {
+    updateTimerDisplay();
+    APP_STATE.timerInterval = setInterval(updateTimerDisplay, 1000);
+}
+
+function stopTimer() {
+    if (APP_STATE.timerInterval) {
+        clearInterval(APP_STATE.timerInterval);
+        APP_STATE.timerInterval = null;
+    }
+}
+
+function updateTimerDisplay() {
+    if (!APP_STATE.activeTrip) return;
+    
+    const start = new Date(APP_STATE.activeTrip.startTime);
+    const elapsed = Date.now() - start;
+    
+    document.getElementById('trip-timer').textContent = formatDuration(elapsed);
+}
+
+function formatDuration(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    return [hours, minutes, secs]
+        .map(v => v.toString().padStart(2, '0'))
+        .join(':');
+}
+
+// ============================================================================
+// UI Updates
+// ============================================================================
+function showActiveTripForm() {
+    document.getElementById('trip-start-form').style.display = 'none';
+    document.getElementById('trip-active-form').style.display = 'block';
+    
+    document.getElementById('active-start-place').textContent = APP_STATE.activeTrip.startPlace;
+    document.getElementById('active-end-place').textContent = APP_STATE.activeTrip.endPlace;
+    document.getElementById('active-start-km').textContent = APP_STATE.activeTrip.startKm.toLocaleString('nl-NL');
+    document.getElementById('active-start-time').textContent = new Date(APP_STATE.activeTrip.startTime).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    
+    document.getElementById('end-km').value = '';
+    updateGPSStatus('end-gps-status', 'idle');
+    document.getElementById('km-validation').style.display = 'none';
+    
+    // Show on dashboard too
+    updateActiveTripDisplay();
+}
+
+function showTripStartForm() {
+    document.getElementById('trip-start-form').style.display = 'block';
+    document.getElementById('trip-active-form').style.display = 'none';
+    document.getElementById('active-trip-display').style.display = 'none';
+}
+
+function checkActiveTrip() {
+    if (APP_STATE.activeTrip) {
+        showActiveTripForm();
+        startTimer();
+    } else {
+        showTripStartForm();
+    }
+}
+
+function updateActiveTripDisplay() {
+    const container = document.getElementById('active-trip-display');
+    
+    if (!APP_STATE.activeTrip) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
+    container.innerHTML = `
+        <div class="active-trip">
+            <h3><span class="pulse-dot"></span> Actieve Rit</h3>
+            <div class="trip-info">
+                <div>
+                    <strong>Van</strong>
+                    ${escapeHtml(APP_STATE.activeTrip.startPlace)}
+                </div>
+                <div>
+                    <strong>Naar</strong>
+                    ${escapeHtml(APP_STATE.activeTrip.endPlace)}
+                </div>
+            </div>
+            <button class="btn btn-accent btn-block" onclick="switchTab('trip')">
+                <i class="fas fa-flag"></i> Rit Beëindigen
+            </button>
+        </div>
+    `;
+}
+
+function updateUI() {
+    updateStats();
+    updateRecentTrips();
+    updateHistoryList();
+    updateActiveTripDisplay();
+}
+
+function updateStats() {
+    const year = new Date().getFullYear();
+    const month = new Date().getMonth();
+    
+    const yearTrips = APP_STATE.trips.filter(t => new Date(t.startTime).getFullYear() === year);
+    const monthTrips = yearTrips.filter(t => new Date(t.startTime).getMonth() === month);
+    
+    const totalKm = yearTrips.reduce((sum, t) => sum + (t.distance || 0), 0);
+    const monthKm = monthTrips.reduce((sum, t) => sum + (t.distance || 0), 0);
+    
+    document.getElementById('stat-trips').textContent = yearTrips.length;
+    document.getElementById('stat-km').textContent = totalKm.toLocaleString('nl-NL');
+    document.getElementById('stat-current-km').textContent = APP_STATE.settings.currentOdometer ? APP_STATE.settings.currentOdometer.toLocaleString('nl-NL') : '-';
+    document.getElementById('stat-month-km').textContent = monthKm.toLocaleString('nl-NL');
+}
+
+function updateRecentTrips() {
+    const container = document.getElementById('recent-trips');
+    const recent = APP_STATE.trips.slice(0, 5);
+    
+    if (recent.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-car"></i>
+                <p>Nog geen ritten geregistreerd</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = recent.map(trip => renderTripItem(trip)).join('');
+}
+
+function updateHistoryList() {
+    const container = document.getElementById('history-list');
+    const fromDate = document.getElementById('filter-from').value;
+    const toDate = document.getElementById('filter-to').value;
+    
+    let filtered = APP_STATE.trips;
+    
+    if (fromDate) {
+        filtered = filtered.filter(t => t.startTime >= fromDate);
+    }
+    if (toDate) {
+        const toDateEnd = toDate + 'T23:59:59';
+        filtered = filtered.filter(t => t.startTime <= toDateEnd);
+    }
+    
+    document.getElementById('history-count').textContent = `${filtered.length} ritten`;
+    
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <p>Geen ritten gevonden</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filtered.map(trip => renderTripItem(trip)).join('');
+}
+
+function renderTripItem(trip) {
+    const date = new Date(trip.startTime).toLocaleDateString('nl-NL', { 
+        day: 'numeric', 
+        month: 'short' 
+    });
+    const time = new Date(trip.startTime).toLocaleTimeString('nl-NL', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    return `
+        <div class="trip-item" onclick="showTripDetail('${trip.id}')">
+            <div class="trip-item-header">
+                <span class="trip-item-route">${escapeHtml(trip.startPlace)} → ${escapeHtml(trip.endPlace)}</span>
+                <span class="trip-item-km">${trip.distance || 0} km</span>
+            </div>
+            <div class="trip-item-meta">
+                <span><i class="fas fa-calendar"></i> ${date}</span>
+                <span><i class="fas fa-clock"></i> ${time}</span>
+                <span><i class="fas fa-stopwatch"></i> ${trip.duration || '-'}</span>
+            </div>
+        </div>
+    `;
+}
+
+function applyFilter() {
+    updateHistoryList();
+}
+
+// ============================================================================
+// Trip Detail Modal
+// ============================================================================
+function showTripDetail(tripId) {
+    const trip = APP_STATE.trips.find(t => t.id === tripId);
+    if (!trip) return;
+    
+    APP_STATE.currentTripId = tripId;
+    
+    const startDate = new Date(trip.startTime);
+    const endDate = trip.endTime ? new Date(trip.endTime) : null;
+    
+    const purposeLabels = {
+        'zakelijk': 'Klantbezoek',
+        'vergadering': 'Vergadering',
+        'kantoor': 'Naar kantoor',
+        'inkoop': 'Inkoop/leverancier',
+        'training': 'Training/cursus',
+        'overig': 'Overig'
+    };
+    
+    let validationHtml = '';
+    if (trip.validation) {
+        if (trip.validation.valid) {
+            validationHtml = `<div class="validation-status valid"><i class="fas fa-check-circle"></i> Gevalideerd</div>`;
+        } else {
+            validationHtml = `<div class="validation-status invalid"><i class="fas fa-times-circle"></i> ${trip.validation.message}</div>`;
+        }
+        if (trip.validation.warnings && trip.validation.warnings.length > 0) {
+            validationHtml = `<div class="validation-status warning"><i class="fas fa-exclamation-triangle"></i> ${trip.validation.warnings.join('; ')}</div>`;
+        }
+    }
+    
+    document.getElementById('trip-modal-content').innerHTML = `
+        <div class="form-group">
+            <label class="form-label">Route</label>
+            <p style="font-size: 1.1rem; font-weight: 600;">${escapeHtml(trip.startPlace)} → ${escapeHtml(trip.endPlace)}</p>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Datum</label>
+                <p>${startDate.toLocaleDateString('nl-NL')}</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Duur</label>
+                <p>${trip.duration || '-'}</p>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Vertrektijd</label>
+                <p>${startDate.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Aankomsttijd</label>
+                <p>${endDate ? endDate.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : '-'}</p>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Begin km-stand</label>
+                <p>${trip.startKm.toLocaleString('nl-NL')}</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Eind km-stand</label>
+                <p>${trip.endKm ? trip.endKm.toLocaleString('nl-NL') : '-'}</p>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Afstand</label>
+            <p style="font-size: 1.3rem; font-weight: bold; color: var(--primary);">${trip.distance || 0} km</p>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Doel</label>
+            <p>${purposeLabels[trip.purpose] || trip.purpose}</p>
+        </div>
+        
+        ${trip.note ? `
+        <div class="form-group">
+            <label class="form-label">Opmerking</label>
+            <p>${escapeHtml(trip.note)}</p>
+        </div>
+        ` : ''}
+        
+        ${trip.startGps ? `
+        <div class="form-group">
+            <label class="form-label">GPS Start</label>
+            <p class="form-hint">${trip.startGps.latitude.toFixed(6)}, ${trip.startGps.longitude.toFixed(6)}</p>
+        </div>
+        ` : ''}
+        
+        ${trip.endGps ? `
+        <div class="form-group">
+            <label class="form-label">GPS Einde</label>
+            <p class="form-hint">${trip.endGps.latitude.toFixed(6)}, ${trip.endGps.longitude.toFixed(6)}</p>
+        </div>
+        ` : ''}
+        
+        ${validationHtml}
+    `;
+    
+    document.getElementById('trip-modal').classList.add('active');
+}
+
+function closeTripModal() {
+    document.getElementById('trip-modal').classList.remove('active');
+    APP_STATE.currentTripId = null;
+}
+
+function deleteCurrentTrip() {
+    if (!APP_STATE.currentTripId) return;
+    
+    if (!confirm('Weet u zeker dat u deze rit wilt verwijderen?')) {
+        return;
+    }
+    
+    APP_STATE.trips = APP_STATE.trips.filter(t => t.id !== APP_STATE.currentTripId);
+    saveData();
+    updateUI();
+    closeTripModal();
+    showToast('Rit verwijderd', 'success');
+}
+
+// ============================================================================
+// Settings
+// ============================================================================
+function saveVehicleSettings() {
+    APP_STATE.settings.vehiclePlate = document.getElementById('vehicle-plate').value.trim();
+    APP_STATE.settings.currentOdometer = parseInt(document.getElementById('current-odometer').value) || 0;
+    APP_STATE.settings.kmRate = parseFloat(document.getElementById('km-rate').value) || 0.23;
+    
+    // Validate km rate
+    if (APP_STATE.settings.kmRate > 0.23) {
+        showToast('Let op: tarief boven €0,23 is belast', 'warning');
+    }
+    
+    saveData();
+    updateUI();
+    showToast('Instellingen opgeslagen', 'success');
+}
+
+// ============================================================================
+// Export Functions
+// ============================================================================
+function exportData() {
+    const fromDate = document.getElementById('filter-from').value;
+    const toDate = document.getElementById('filter-to').value;
+    
+    let filtered = APP_STATE.trips;
+    
+    if (fromDate) {
+        filtered = filtered.filter(t => t.startTime >= fromDate);
+    }
+    if (toDate) {
+        const toDateEnd = toDate + 'T23:59:59';
+        filtered = filtered.filter(t => t.startTime <= toDateEnd);
+    }
+    
+    if (filtered.length === 0) {
+        showToast('Geen ritten om te exporteren', 'warning');
+        return;
+    }
+    
+    // Create CSV
+    const headers = ['Datum', 'Vertrektijd', 'Aankomsttijd', 'Van', 'Naar', 'Begin KM', 'Eind KM', 'Afstand', 'Duur', 'Doel', 'Opmerking', 'GPS Start', 'GPS Eind'];
+    
+    const rows = filtered.map(trip => {
+        const startDate = new Date(trip.startTime);
+        const endDate = trip.endTime ? new Date(trip.endTime) : null;
+        
+        return [
+            startDate.toLocaleDateString('nl-NL'),
+            startDate.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }),
+            endDate ? endDate.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : '',
+            trip.startPlace,
+            trip.endPlace,
+            trip.startKm,
+            trip.endKm || '',
+            trip.distance || 0,
+            trip.duration || '',
+            trip.purpose,
+            trip.note || '',
+            trip.startGps ? `${trip.startGps.latitude.toFixed(6)},${trip.startGps.longitude.toFixed(6)}` : '',
+            trip.endGps ? `${trip.endGps.latitude.toFixed(6)},${trip.endGps.longitude.toFixed(6)}` : ''
+        ];
+    });
+    
+    const csv = [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+        .join('\n');
+    
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `km_registratie_${fromDate}_${toDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast(`${filtered.length} ritten geëxporteerd`, 'success');
+}
+
+function exportAllData() {
+    const data = {
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        settings: APP_STATE.settings,
+        trips: APP_STATE.trips
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `km_registratie_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast('Backup geëxporteerd', 'success');
+}
+
+function importData() {
+    document.getElementById('import-file').click();
+}
+
+function handleImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            if (!data.trips || !Array.isArray(data.trips)) {
+                throw new Error('Ongeldig bestandsformaat');
+            }
+            
+            if (!confirm(`${data.trips.length} ritten importeren? Dit vervangt alle bestaande data.`)) {
+                return;
+            }
+            
+            APP_STATE.trips = data.trips;
+            if (data.settings) {
+                APP_STATE.settings = { ...APP_STATE.settings, ...data.settings };
+            }
+            
+            saveData();
+            loadData();
+            updateUI();
+            
+            showToast(`${data.trips.length} ritten geïmporteerd`, 'success');
+        } catch (error) {
+            console.error('Import error:', error);
+            showToast('Fout bij importeren: ' + error.message, 'error');
+        }
+    };
+    reader.readAsText(file);
+    
+    event.target.value = '';
+}
+
+function clearAllData() {
+    if (!confirm('WAARSCHUWING: Dit verwijdert alle ritten permanent!')) {
+        return;
+    }
+    if (!confirm('Laatste kans: Heeft u een backup gemaakt?')) {
+        return;
+    }
+    
+    APP_STATE.trips = [];
+    APP_STATE.activeTrip = null;
+    saveData();
+    updateUI();
+    showToast('Alle data verwijderd', 'success');
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ============================================================================
+// Service Worker Registration
+// ============================================================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW registered'))
+            .catch(err => console.error('SW registration failed:', err));
+    });
+}
+
+console.log('%c KM Registratie Pro v1.0.0', 'font-size:16px;font-weight:bold;color:#2e7d32');
+console.log('%c © 2025 Knowledge by Data', 'font-size:12px;color:#757575');
+</script>
+</body>
+</html>
