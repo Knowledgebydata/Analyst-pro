@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Schouw-app">
+    <meta name="description" content="Veldinspectie voor Dynamische Binnensteden - Beoordeling van pandkwaliteit en ondermijningsrisico's">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e293b">
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%2310b981' width='180' height='180'/><text x='90' y='110' font-size='100' font-weight='bold' text-anchor='middle' fill='white' font-family='serif'>S</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%2310b981' width='180' height='180'/><text x='90' y='110' font-size='100' font-weight='bold' text-anchor='middle' fill='white' font-family='serif'>S</text></svg>">
+
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+    <title>Schouw-app</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-bg: #f8fafc;
+            --color-surface: #ffffff;
+            --color-surface-alt: #f1f5f9;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-muted: #64748b;
+            --color-accent: #10b981;
+            --color-accent-hover: #059669;
+            --color-danger: #dc2626;
+            --color-danger-light: #fee2e2;
+            --color-warning: #d97706;
+            --color-info: #0284c7;
+            --color-success: #16a34a;
+            --color-neutral-50: #f9fafb;
+            --color-neutral-100: #f3f4f6;
+            --color-neutral-200: #e5e7eb;
+            --color-neutral-300: #d1d5db;
+            --color-neutral-400: #9ca3af;
+            --color-neutral-500: #6b7280;
+            --color-neutral-600: #4b5563;
+            --color-neutral-700: #374151;
+            --color-neutral-800: #1f2937;
+            --color-neutral-900: #111827;
+            --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] {
+            --color-bg: #0f172a;
+            --color-surface: #1e293b;
+            --color-surface-alt: #334155;
+            --color-border: #475569;
+            --color-text: #f1f5f9;
+            --color-text-muted: #cbd5e1;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: var(--font-sans);
+            background: var(--color-bg);
+            color: var(--color-text);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+        #root {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+            gap: 8px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .container {
+            max-width: 768px;
+            margin: 0 auto;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            min-height: 100%;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 500;
+            font-family: var(--font-sans);
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 44px;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--color-accent);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary:active {
+            background: var(--color-accent-hover);
+            transform: scale(0.98);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--color-surface-alt);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:active {
+            background: var(--color-border);
+            transform: scale(0.98);
+        }
+
+        .btn-danger {
+            background: var(--color-danger);
+            color: white;
+        }
+
+        .btn-danger:active {
+            background: #b91c1c;
+            transform: scale(0.98);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-accent);
+            padding: 8px 12px;
+        }
+
+        .btn-ghost:active {
+            background: var(--color-surface-alt);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            min-height: 40px;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        /* FAB - Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
+            right: 16px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            z-index: 40;
+            touch-action: manipulation;
+        }
+
+        .fab:active {
+            background: var(--color-accent-hover);
+            transform: scale(0.9);
+        }
+
+        .fab.hidden {
+            display: none;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--color-text);
+        }
+
+        .form-label.required::after {
+            content: '*';
+            color: var(--color-danger);
+            margin-left: 4px;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-family: var(--font-sans);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            background: var(--color-surface);
+            color: var(--color-text);
+            transition: border-color 0.2s;
+            min-height: 44px;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: var(--font-sans);
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-top: 4px;
+        }
+
+        .form-error {
+            color: var(--color-danger);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* Rating component */
+        .rating-group {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-start;
+        }
+
+        .rating-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--color-border);
+            background: var(--color-surface);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--color-text-muted);
+        }
+
+        .rating-btn:active {
+            transform: scale(0.95);
+        }
+
+        .rating-btn[data-value="1"] {
+            --rating-color: #ef4444;
+        }
+        .rating-btn[data-value="2"] {
+            --rating-color: #f97316;
+        }
+        .rating-btn[data-value="3"] {
+            --rating-color: #eab308;
+        }
+        .rating-btn[data-value="4"] {
+            --rating-color: #84cc16;
+        }
+        .rating-btn[data-value="5"] {
+            --rating-color: #22c55e;
+        }
+
+        .rating-btn.selected {
+            background: var(--rating-color);
+            border-color: var(--rating-color);
+            color: white;
+        }
+
+        /* Slider */
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--color-surface-alt);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-accent);
+            cursor: pointer;
+            box-shadow: var(--shadow);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: var(--shadow);
+        }
+
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-border);
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--color-surface);
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--color-accent);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Wizard tabs */
+        .wizard-header {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+        }
+
+        .wizard-tab {
+            flex-shrink: 0;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            background: var(--color-surface-alt);
+            color: var(--color-text-muted);
+            font-size: 12px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .wizard-tab.active {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        /* Wizard steps */
+        .wizard-step {
+            display: none;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        .wizard-nav {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        /* Checkbox group */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: var(--radius);
+            background: var(--color-surface-alt);
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .checkbox-item:active {
+            background: var(--color-border);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--color-accent);
+        }
+
+        /* Card */
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .card:active {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .card-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--color-surface-alt);
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Login screen */
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            min-height: 100%;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            background: var(--color-accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: var(--color-text-muted);
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-form {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        /* Dashboard */
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--color-border);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            font-weight: 500;
+        }
+
+        .dashboard-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            margin-bottom: 12px;
+            margin-top: 24px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 200px;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            margin-bottom: 16px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            color: var(--color-text-muted);
+        }
+
+        /* Detail view */
+        .detail-header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: 16px;
+            margin: -16px -16px 16px -16px;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+
+        .detail-field {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .detail-field:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+            color: var(--color-text);
+            word-break: break-word;
+        }
+
+        /* Score summary */
+        .score-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0;
+            padding: 12px;
+            background: var(--color-surface-alt);
+            border-radius: var(--radius);
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 11px;
+            color: var(--color-text-muted);
+            font-weight: 500;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .score-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-accent);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 16px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .modal-text {
+            font-size: 14px;
+            color: var(--color-text-muted);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        /* Loading state */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--color-border);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Success animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text);
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .dashboard-stats {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            .score-summary {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            .map-container {
+                height: 300px;
+            }
+        }
+
+        /* Safe area padding */
+        @supports (padding: max(0px)) {
+            .main {
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .header, .fab, .wizard-nav, .btn-block {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <header class="header">
+            <h1 class="header-title" id="headerTitle">Schouw-app</h1>
+            <div class="header-actions">
+                <button class="theme-toggle" id="themeToggle" title="Wissel thema">🌙</button>
+            </div>
+        </header>
+
+        <main class="main">
+            <!-- Screen 1: Login -->
+            <div class="screen active" id="loginScreen" data-screen="login">
+                <div class="container">
+                    <div class="login-container">
+                        <div class="login-logo">S</div>
+                        <h2 class="login-title">Schouw-app</h2>
+                        <p class="login-subtitle">Veldinspectie voor Dynamische Binnensteden</p>
+
+                        <form class="login-form" id="loginForm">
+                            <div class="form-group">
+                                <label class="form-label required" for="inspectorName">Inspecteur naam</label>
+                                <input
+                                    type="text"
+                                    id="inspectorName"
+                                    class="form-input"
+                                    placeholder="Voer uw naam in"
+                                    required
+                                    minlength="2"
+                                    maxlength="100"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="organization">Organisatie</label>
+                                <input
+                                    type="text"
+                                    id="organization"
+                                    class="form-input"
+                                    placeholder="Voer uw organisatie in"
+                                    required
+                                    minlength="2"
+                                    maxlength="100"
+                                >
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block">
+                                Start inspectie
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 2: Dashboard -->
+            <div class="screen" id="dashboardScreen" data-screen="dashboard">
+                <div class="container">
+                    <div class="dashboard-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="todayCount">0</div>
+                            <div class="stat-label">Vandaag</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalCount">0</div>
+                            <div class="stat-label">Totaal</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avgScore">-</div>
+                            <div class="stat-label">Gem. pand</div>
+                        </div>
+                    </div>
+
+                    <div id="mapContainer" class="map-container" style="display: none;"></div>
+
+                    <div class="dashboard-section-title">Recente inspecties</div>
+                    <div id="recentList"></div>
+
+                    <button class="btn btn-secondary btn-block" id="exportBtn" style="margin-top: 24px;">
+                        📥 Exporteer data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Screen 3: New Inspection (Wizard) -->
+            <div class="screen" id="wizardScreen" data-screen="wizard">
+                <div class="container">
+                    <div class="wizard-header" id="wizardHeader"></div>
+
+                    <form id="wizardForm">
+                        <!-- Step 1: Locatie -->
+                        <div class="wizard-step active" data-step="1">
+                            <h2 style="margin-bottom: 16px;">Stap 1: Locatie</h2>
+
+                            <div class="form-group">
+                                <button type="button" class="btn btn-secondary btn-block" id="gpsBtn">
+                                    📍 Detecteer GPS-locatie
+                                </button>
+                                <div id="gpsStatus" class="form-help" style="text-align: center; margin-top: 8px;"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="postcode">Postcode (6)</label>
+                                <input
+                                    type="text"
+                                    id="postcode"
+                                    class="form-input"
+                                    placeholder="1441AD"
+                                    maxlength="6"
+                                    required
+                                    pattern="[0-9]{4}[A-Z]{2}"
+                                >
+                                <div class="form-error" id="postcodeError"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="street">Straat</label>
+                                <input
+                                    type="text"
+                                    id="street"
+                                    class="form-input"
+                                    placeholder="Kaasmarkt"
+                                    required
+                                    maxlength="100"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="houseNumber">Huisnummer</label>
+                                <input
+                                    type="number"
+                                    id="houseNumber"
+                                    class="form-input"
+                                    placeholder="12"
+                                    required
+                                    min="1"
+                                    max="99999"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="houseLetter">Huisletter</label>
+                                <input
+                                    type="text"
+                                    id="houseLetter"
+                                    class="form-input"
+                                    placeholder="A"
+                                    maxlength="2"
+                                >
+                            </div>
+
+                            <div id="smallMap" style="width: 100%; height: 200px; border-radius: 8px; margin-top: 16px; border: 1px solid var(--color-border); display: none;"></div>
+                        </div>
+
+                        <!-- Step 2: Pandbeoordeling -->
+                        <div class="wizard-step" data-step="2">
+                            <h2 style="margin-bottom: 16px;">Stap 2: Pandbeoordeling</h2>
+
+                            <div class="form-group">
+                                <label class="form-label required">Conditie</label>
+                                <div class="rating-group" data-field="panelCondition"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required">Gevel</label>
+                                <div class="rating-group" data-field="panelFacade"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Reclame</label>
+                                <div class="rating-group" data-field="panelAdvertising"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Verlichting</label>
+                                <div class="rating-group" data-field="panelLighting"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Toegankelijkheid</label>
+                                <div class="rating-group" data-field="panelAccessibility"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="floors">Aantal verdiepingen</label>
+                                <input
+                                    type="number"
+                                    id="floors"
+                                    class="form-input"
+                                    placeholder="2"
+                                    required
+                                    min="1"
+                                    max="30"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="upperUsage">Gebruik bovenverdieping</label>
+                                <select id="upperUsage" class="form-select" required>
+                                    <option value="">Selecteer...</option>
+                                    <option value="wonen">Wonen</option>
+                                    <option value="kantoor">Kantoor</option>
+                                    <option value="leeg">Leeg</option>
+                                    <option value="onbekend">Onbekend</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Afwijkingen geconstateerd</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="panelDeviation">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="form-group" id="deviationNotes" style="display: none;">
+                                <label class="form-label" for="deviationText">Toelichting afwijkingen</label>
+                                <textarea
+                                    id="deviationText"
+                                    class="form-textarea"
+                                    placeholder="Beschrijf de waargenomen afwijkingen..."
+                                    maxlength="500"
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Omgeving -->
+                        <div class="wizard-step" data-step="3">
+                            <h2 style="margin-bottom: 16px;">Stap 3: Omgeving</h2>
+
+                            <div class="form-group">
+                                <label class="form-label required">Schoon</label>
+                                <div class="rating-group" data-field="envCleanliness"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Groen</label>
+                                <div class="rating-group" data-field="envGreen"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required">Verlichting</label>
+                                <div class="rating-group" data-field="envLighting"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required">Sociale controle</label>
+                                <div class="rating-group" data-field="envSocialControl"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Verkeer</label>
+                                <div class="rating-group" data-field="envTraffic"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Overlast waargenomen</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="envNuisance">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="form-group" id="nuisanceTypes" style="display: none;">
+                                <label class="form-label">Type overlast</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="nuisanceType" value="geluid">
+                                        <span>Geluid</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="nuisanceType" value="afval">
+                                        <span>Afval</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="nuisanceType" value="vervuiling">
+                                        <span>Vervuiling</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="nuisanceType" value="hanggedrag">
+                                        <span>Hanggedrag</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="nuisanceType" value="drugsgebruik">
+                                        <span>Drugsgebruik</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="nuisanceType" value="anders">
+                                        <span>Anders</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Ondermijning -->
+                        <div class="wizard-step" data-step="4">
+                            <h2 style="margin-bottom: 16px;">Stap 4: Ondermijning</h2>
+
+                            <div class="form-group" style="padding: 16px; background: var(--color-danger-light); border-radius: var(--radius); margin-bottom: 24px;">
+                                <label class="form-label" style="margin-bottom: 12px;">Verdachte signalen waargenomen</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="undermineingSuspicious">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="form-group" id="underminingIndicators" style="display: none;">
+                                <label class="form-label">Indicatoren</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="afgedekt">
+                                        <span>Afgedekte/geblindeerde ramen</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="contant">
+                                        <span>Alleen contante betaling</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="openingstijden">
+                                        <span>Onlogische openingstijden</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="klanten">
+                                        <span>Weinig klanten, vermoedelijk hoge omzet</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="geldverkeer">
+                                        <span>Veel contant geldverkeer</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="camera">
+                                        <span>Camera-surveillance gericht op straat</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="wisselingen">
+                                        <span>Snelle wisselingen van eigenaar/huurder</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="auto">
+                                        <span>Luxe auto's die niet bij bedrijf passen</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="activiteit">
+                                        <span>Onduidelijke bedrijfsactiviteit</span>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" name="underminingIndicator" value="taal">
+                                        <span>Taalbarrière / communicatieproblemen</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="riskScore">Risicoscore (1-10)</label>
+                                <div style="display: flex; gap: 12px; align-items: center;">
+                                    <input
+                                        type="range"
+                                        id="riskScore"
+                                        class="slider"
+                                        min="1"
+                                        max="10"
+                                        value="1"
+                                        style="flex: 1;"
+                                    >
+                                    <span id="riskScoreDisplay" style="font-weight: 600; min-width: 24px; text-align: right;">1</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="industryRisk">Brancherisico</label>
+                                <select id="industryRisk" class="form-select" required>
+                                    <option value="">Selecteer...</option>
+                                    <option value="laag">Laag</option>
+                                    <option value="gemiddeld">Gemiddeld</option>
+                                    <option value="hoog">Hoog</option>
+                                    <option value="zeer_hoog">Zeer hoog</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Barrièremodel -->
+                        <div class="wizard-step" data-step="5">
+                            <h2 style="margin-bottom: 16px;">Stap 5: Barrièremodel</h2>
+                            <p style="color: var(--color-text-muted); margin-bottom: 20px; font-size: 14px;">
+                                Beoordeel de zichtbare signalen volgens het CCV Barrièremodel
+                            </p>
+
+                            <div class="form-group">
+                                <label class="form-label required">Verhulling/afscherming</label>
+                                <div class="rating-group" data-field="barrierConceal"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required">Logistieke afwijkingen</label>
+                                <div class="rating-group" data-field="barrierLogistics"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required">Financiële anomalieën</label>
+                                <div class="rating-group" data-field="barrierFinancial"></div>
+                            </div>
+                        </div>
+
+                        <!-- Step 6: Afronden -->
+                        <div class="wizard-step" data-step="6">
+                            <h2 style="margin-bottom: 16px;">Stap 6: Afronden</h2>
+
+                            <div class="form-group">
+                                <label class="form-label" for="remarks">Opmerkingen</label>
+                                <textarea
+                                    id="remarks"
+                                    class="form-textarea"
+                                    placeholder="Aanvullende opmerkingen..."
+                                    maxlength="1000"
+                                ></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="weather">Weersomstandigheden</label>
+                                <select id="weather" class="form-select">
+                                    <option value="droog">Droog</option>
+                                    <option value="regen">Regen</option>
+                                    <option value="sneeuw">Sneeuw</option>
+                                    <option value="bewolkt">Bewolkt</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="daypart">Dagdeel</label>
+                                <select id="daypart" class="form-select" required>
+                                    <option value="ochtend">Ochtend (6-12)</option>
+                                    <option value="middag">Middag (12-17)</option>
+                                    <option value="avond">Avond (17-21)</option>
+                                    <option value="nacht">Nacht (21-6)</option>
+                                </select>
+                            </div>
+
+                            <div style="background: var(--color-surface-alt); border-radius: var(--radius); padding: 16px; margin: 20px 0;">
+                                <div style="font-size: 12px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 12px;">Samenvatting scores</div>
+                                <div class="score-summary">
+                                    <div class="score-item">
+                                        <div class="score-label">Pand</div>
+                                        <div class="score-value" id="summaryScorePand">-</div>
+                                    </div>
+                                    <div class="score-item">
+                                        <div class="score-label">Omgeving</div>
+                                        <div class="score-value" id="summaryScoreEnv">-</div>
+                                    </div>
+                                    <div class="score-item">
+                                        <div class="score-label">Ondermijning</div>
+                                        <div class="score-value" id="summaryScoreUndermine">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="wizard-nav">
+                        <button class="btn btn-secondary" id="prevBtn" style="display: none;">← Vorige</button>
+                        <button class="btn btn-primary" id="nextBtn">Volgende →</button>
+                        <button class="btn btn-primary" id="saveBtn" style="display: none;">✓ Opslaan</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 4: Inspection Detail -->
+            <div class="screen" id="detailScreen" data-screen="detail">
+                <div class="container">
+                    <div class="detail-header">
+                        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                            <button class="btn btn-secondary btn-small" id="editBtn">✎ Bewerk</button>
+                            <button class="btn btn-danger btn-small" id="deleteBtn">🗑 Verwijder</button>
+                        </div>
+                    </div>
+
+                    <div id="detailContent"></div>
+                </div>
+            </div>
+
+            <!-- Screen 5: Export -->
+            <div class="screen" id="exportScreen" data-screen="export">
+                <div class="container">
+                    <h2 style="margin-bottom: 20px;">Exporteer data</h2>
+
+                    <div class="form-group">
+                        <label class="form-label">Exporteeroptie</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="radio" name="exportType" value="all" checked>
+                                <span>Alle inspecties</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="radio" name="exportType" value="today">
+                                <span>Alleen vandaag</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="radio" name="exportType" value="selection">
+                                <span>Selectie</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="exportSelection" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Selecteer inspecties</label>
+                            <div id="exportCheckboxes" class="checkbox-group"></div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <button class="btn btn-primary btn-block" id="downloadBtn">📥 Download JSON</button>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--color-border); margin-top: 32px; padding-top: 24px;">
+                        <h3 style="margin-bottom: 16px; color: var(--color-danger);">Gevaarlijke zone</h3>
+                        <button class="btn btn-danger btn-block" id="clearAllBtn">🗑 Wis alle data</button>
+                        <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 8px;">
+                            Dit kan niet ongedaan worden gemaakt.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 class="modal-title" id="modalTitle"></h3>
+            <p class="modal-text" id="modalText"></p>
+            <div class="modal-actions" id="modalActions"></div>
+        </div>
+    </div>
+
+    <button class="fab" id="fab" title="Nieuwe inspectie">+</button>
+
+    <script>
+        'use strict';
+
+        // ========== CONSTANTS ==========
+        const DB_NAME = 'schouw-app-db';
+        const DB_VERSION = 1;
+        const OBJECT_STORE = 'inspecties';
+        const APP_VERSION = '1.0.0';
+        const PC6_REGEX = /^[0-9]{4}[A-Z]{2}$/;
+
+        // ========== STATE ==========
+        let db = null;
+        let currentScreen = 'login';
+        let currentStep = 1;
+        let currentInspectionId = null;
+        let formData = {
+            postcode: '',
+            street: '',
+            houseNumber: '',
+            houseLetter: '',
+            latitude: null,
+            longitude: null,
+            panelCondition: null,
+            panelFacade: null,
+            panelAdvertising: null,
+            panelLighting: null,
+            panelAccessibility: null,
+            floors: '',
+            upperUsage: '',
+            panelDeviation: false,
+            deviationText: '',
+            envCleanliness: null,
+            envGreen: null,
+            envLighting: null,
+            envSocialControl: null,
+            envTraffic: null,
+            envNuisance: false,
+            envNuisanceTypes: [],
+            undermineingSuspicious: false,
+            underminingIndicators: [],
+            riskScore: 1,
+            industryRisk: '',
+            barrierConceal: null,
+            barrierLogistics: null,
+            barrierFinancial: null,
+            remarks: '',
+            weather: 'droog',
+            daypart: ''
+        };
+
+        let inspectorName = '';
+        let organization = '';
+        let smallMapInstance = null;
+        let dashboardMapInstance = null;
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initDB();
+            restoreInspector();
+            setupEventListeners();
+            initTheme();
+            calculateDaypart();
+            showScreen('login');
+        });
+
+        // ========== DATABASE ==========
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve();
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const store = event.target.result.createObjectStore(OBJECT_STORE, {
+                        keyPath: 'schouwId'
+                    });
+                    store.createIndex('datum', 'datum', { unique: false });
+                };
+            });
+        }
+
+        async function saveInspection(data) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([OBJECT_STORE], 'readwrite');
+                const store = transaction.objectStore(OBJECT_STORE);
+
+                const inspection = {
+                    schouwId: data.schouwId || crypto.randomUUID(),
+                    datum: new Date().toISOString(),
+                    inspecteur: inspectorName,
+                    organisatie: organization,
+                    postcode6: data.postcode,
+                    straat: data.street,
+                    huisnummer: parseInt(data.houseNumber),
+                    huisletter: data.houseLetter || '',
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    pandConditie: data.panelCondition,
+                    pandGevel: data.panelFacade,
+                    pandReclame: data.panelAdvertising,
+                    pandVerlichting: data.panelLighting,
+                    pandToegankelijkheid: data.panelAccessibility,
+                    pandVerdiepingen: parseInt(data.floors),
+                    pandGebruikBoven: data.upperUsage,
+                    pandAfwijking: data.panelDeviation,
+                    pandAfwijkingToelichting: data.deviationText || '',
+                    omgevingSchoon: data.envCleanliness,
+                    omgevingGroen: data.envGreen,
+                    omgevingVerlichting: data.envLighting,
+                    omgevingSocialeControle: data.envSocialControl,
+                    omgevingVerkeer: data.envTraffic,
+                    omgevingOverlast: data.envNuisance,
+                    omgevingOverlastType: data.envNuisanceTypes.join(', '),
+                    ondermijningVerdacht: data.undermineingSuspicious,
+                    ondermijningIndicatoren: data.underminingIndicators.join(', '),
+                    ondermijningRisicoscore: parseInt(data.riskScore),
+                    ondermijningBrancherisico: data.industryRisk,
+                    barriereVerhulling: data.barrierConceal,
+                    barriereLogistiek: data.barrierLogistics,
+                    barriereFinancieel: data.barrierFinancial,
+                    opmerkingen: data.remarks || '',
+                    fotoReferenties: '',
+                    weersomstandigheden: data.weather,
+                    dagdeel: data.daypart,
+                    appVersie: APP_VERSION
+                };
+
+                // Calculate total scores
+                inspection.totaalscorePand = calculateAverageScore([
+                    data.panelCondition,
+                    data.panelFacade,
+                    data.panelAdvertising,
+                    data.panelLighting,
+                    data.panelAccessibility
+                ]);
+                inspection.totaalscoreOmgeving = calculateAverageScore([
+                    data.envCleanliness,
+                    data.envGreen,
+                    data.envLighting,
+                    data.envSocialControl,
+                    data.envTraffic
+                ]);
+                inspection.totaalscoreOndermijning = parseInt(data.riskScore);
+
+                const putRequest = store.put(inspection);
+                putRequest.onerror = () => reject(putRequest.error);
+                putRequest.onsuccess = () => resolve(inspection);
+            });
+        }
+
+        async function getInspections() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([OBJECT_STORE], 'readonly');
+                const store = transaction.objectStore(OBJECT_STORE);
+                const request = store.getAll();
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result.reverse());
+            });
+        }
+
+        async function getInspectionById(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([OBJECT_STORE], 'readonly');
+                const store = transaction.objectStore(OBJECT_STORE);
+                const request = store.get(id);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+            });
+        }
+
+        async function deleteInspection(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([OBJECT_STORE], 'readwrite');
+                const store = transaction.objectStore(OBJECT_STORE);
+                const request = store.delete(id);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve();
+            });
+        }
+
+        async function clearAllData() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([OBJECT_STORE], 'readwrite');
+                const store = transaction.objectStore(OBJECT_STORE);
+                const request = store.clear();
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve();
+            });
+        }
+
+        // ========== UI MANAGEMENT ==========
+        function showScreen(screenName) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenName + 'Screen').classList.add('active');
+            currentScreen = screenName;
+            updateHeaderTitle();
+            updateFabVisibility();
+
+            if (screenName === 'dashboard') {
+                refreshDashboard();
+            } else if (screenName === 'wizard') {
+                currentStep = 1;
+                showStep(1);
+                renderWizardHeader();
+            } else if (screenName === 'export') {
+                renderExportScreen();
+            }
+        }
+
+        function updateHeaderTitle() {
+            const titles = {
+                login: 'Schouw-app',
+                dashboard: 'Mijn inspecties',
+                wizard: 'Nieuwe inspectie',
+                detail: 'Inspectie detail',
+                export: 'Exporteer'
+            };
+            document.getElementById('headerTitle').textContent = titles[currentScreen] || 'Schouw-app';
+        }
+
+        function updateFabVisibility() {
+            const fab = document.getElementById('fab');
+            fab.classList.toggle('hidden', currentScreen !== 'dashboard');
+        }
+
+        // ========== FORM MANAGEMENT ==========
+        function setupEventListeners() {
+            // Login
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+
+            // Theme
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+            // GPS
+            document.getElementById('gpsBtn').addEventListener('click', detectGPS);
+
+            // Postcode validation
+            document.getElementById('postcode').addEventListener('change', validatePostcode);
+            document.getElementById('postcode').addEventListener('input', (e) => {
+                e.target.value = e.target.value.toUpperCase();
+            });
+
+            // Rating controls
+            document.querySelectorAll('.rating-group').forEach(group => {
+                for (let i = 1; i <= 5; i++) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'rating-btn';
+                    btn.setAttribute('data-value', i);
+                    btn.textContent = i;
+
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        selectRating(group, i);
+                    });
+
+                    group.appendChild(btn);
+                }
+            });
+
+            // Toggle switches
+            document.getElementById('panelDeviation').addEventListener('change', (e) => {
+                document.getElementById('deviationNotes').style.display = e.target.checked ? 'block' : 'none';
+                formData.panelDeviation = e.target.checked;
+            });
+
+            document.getElementById('envNuisance').addEventListener('change', (e) => {
+                document.getElementById('nuisanceTypes').style.display = e.target.checked ? 'block' : 'none';
+                formData.envNuisance = e.target.checked;
+            });
+
+            document.getElementById('undermineingSuspicious').addEventListener('change', (e) => {
+                document.getElementById('underminingIndicators').style.display = e.target.checked ? 'block' : 'none';
+                formData.undermineingSuspicious = e.target.checked;
+            });
+
+            // Risk score slider
+            document.getElementById('riskScore').addEventListener('input', (e) => {
+                document.getElementById('riskScoreDisplay').textContent = e.target.value;
+                formData.riskScore = e.target.value;
+                updateSummaryScores();
+            });
+
+            // Nuisance type checkboxes
+            document.querySelectorAll('input[name="nuisanceType"]').forEach(cb => {
+                cb.addEventListener('change', updateNuisanceTypes);
+            });
+
+            // Undermining indicators checkboxes
+            document.querySelectorAll('input[name="underminingIndicator"]').forEach(cb => {
+                cb.addEventListener('change', updateUnderminingIndicators);
+            });
+
+            // Wizard navigation
+            document.getElementById('prevBtn').addEventListener('click', () => prevStep());
+            document.getElementById('nextBtn').addEventListener('click', () => nextStep());
+            document.getElementById('saveBtn').addEventListener('click', () => saveInspection());
+
+            // FAB
+            document.getElementById('fab').addEventListener('click', () => {
+                currentInspectionId = null;
+                resetForm();
+                showScreen('wizard');
+            });
+
+            // Export
+            document.getElementById('exportBtn').addEventListener('click', () => showScreen('export'));
+
+            document.querySelectorAll('input[name="exportType"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    document.getElementById('exportSelection').style.display =
+                        e.target.value === 'selection' ? 'block' : 'none';
+                });
+            });
+
+            document.getElementById('downloadBtn').addEventListener('click', exportData);
+            document.getElementById('clearAllBtn').addEventListener('click', confirmClearData);
+
+            // Form field binding
+            document.getElementById('postcode').addEventListener('input', (e) => {
+                formData.postcode = e.target.value.toUpperCase();
+            });
+            document.getElementById('street').addEventListener('input', (e) => {
+                formData.street = e.target.value;
+            });
+            document.getElementById('houseNumber').addEventListener('input', (e) => {
+                formData.houseNumber = e.target.value;
+            });
+            document.getElementById('houseLetter').addEventListener('input', (e) => {
+                formData.houseLetter = e.target.value;
+            });
+            document.getElementById('floors').addEventListener('input', (e) => {
+                formData.floors = e.target.value;
+            });
+            document.getElementById('upperUsage').addEventListener('change', (e) => {
+                formData.upperUsage = e.target.value;
+            });
+            document.getElementById('deviationText').addEventListener('input', (e) => {
+                formData.deviationText = e.target.value;
+            });
+            document.getElementById('industryRisk').addEventListener('change', (e) => {
+                formData.industryRisk = e.target.value;
+            });
+            document.getElementById('remarks').addEventListener('input', (e) => {
+                formData.remarks = e.target.value;
+            });
+            document.getElementById('weather').addEventListener('change', (e) => {
+                formData.weather = e.target.value;
+            });
+            document.getElementById('daypart').addEventListener('change', (e) => {
+                formData.daypart = e.target.value;
+            });
+        }
+
+        function selectRating(group, value) {
+            const field = group.getAttribute('data-field');
+            formData[field] = value;
+
+            group.querySelectorAll('.rating-btn').forEach(btn => {
+                btn.classList.toggle('selected', parseInt(btn.getAttribute('data-value')) === value);
+            });
+
+            updateSummaryScores();
+        }
+
+        function updateNuisanceTypes() {
+            const types = [];
+            document.querySelectorAll('input[name="nuisanceType"]:checked').forEach(cb => {
+                types.push(cb.value);
+            });
+            formData.envNuisanceTypes = types;
+        }
+
+        function updateUnderminingIndicators() {
+            const indicators = [];
+            document.querySelectorAll('input[name="underminingIndicator"]:checked').forEach(cb => {
+                indicators.push(cb.value);
+            });
+            formData.underminingIndicators = indicators;
+        }
+
+        function validatePostcode() {
+            const postcode = document.getElementById('postcode').value;
+            const error = document.getElementById('postcodeError');
+
+            if (postcode && !PC6_REGEX.test(postcode)) {
+                error.textContent = 'Ongeldige postcode (bijv. 1441AD)';
+                return false;
+            } else {
+                error.textContent = '';
+                return true;
+            }
+        }
+
+        // ========== WIZARD ==========
+        function renderWizardHeader() {
+            const header = document.getElementById('wizardHeader');
+            header.innerHTML = '';
+
+            for (let i = 1; i <= 6; i++) {
+                const tab = document.createElement('button');
+                tab.type = 'button';
+                tab.className = 'wizard-tab' + (i === currentStep ? ' active' : '');
+                tab.textContent = i;
+                tab.addEventListener('click', () => goToStep(i));
+                header.appendChild(tab);
+            }
+        }
+
+        function showStep(step) {
+            document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+            document.querySelector(`[data-step="${step}"]`).classList.add('active');
+
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const saveBtn = document.getElementById('saveBtn');
+
+            prevBtn.style.display = step > 1 ? 'block' : 'none';
+            nextBtn.style.display = step < 6 ? 'block' : 'none';
+            saveBtn.style.display = step === 6 ? 'block' : 'none';
+
+            renderWizardHeader();
+
+            if (step === 1) {
+                setTimeout(initSmallMap, 100);
+            }
+
+            if (step === 6) {
+                updateSummaryScores();
+            }
+        }
+
+        function nextStep() {
+            if (validateStep(currentStep)) {
+                currentStep++;
+                if (currentStep <= 6) {
+                    showStep(currentStep);
+                }
+            }
+        }
+
+        function prevStep() {
+            currentStep--;
+            if (currentStep >= 1) {
+                showStep(currentStep);
+            }
+        }
+
+        function goToStep(step) {
+            if (step < currentStep || validateStep(currentStep)) {
+                currentStep = step;
+                showStep(currentStep);
+            }
+        }
+
+        function validateStep(step) {
+            const errors = [];
+
+            if (step === 1) {
+                if (!formData.postcode) errors.push('Postcode is verplicht');
+                if (!validatePostcode()) errors.push('Postcode is ongeldig');
+                if (!formData.street) errors.push('Straat is verplicht');
+                if (!formData.houseNumber) errors.push('Huisnummer is verplicht');
+            } else if (step === 2) {
+                if (formData.panelCondition === null) errors.push('Conditie is verplicht');
+                if (formData.panelFacade === null) errors.push('Gevel is verplicht');
+                if (!formData.floors) errors.push('Aantal verdiepingen is verplicht');
+                if (!formData.upperUsage) errors.push('Gebruik bovenverdieping is verplicht');
+            } else if (step === 3) {
+                if (formData.envCleanliness === null) errors.push('Schoon is verplicht');
+                if (formData.envLighting === null) errors.push('Verlichting is verplicht');
+                if (formData.envSocialControl === null) errors.push('Sociale controle is verplicht');
+            } else if (step === 4) {
+                if (!formData.industryRisk) errors.push('Brancherisico is verplicht');
+            } else if (step === 5) {
+                if (formData.barrierConceal === null) errors.push('Verhulling/afscherming is verplicht');
+                if (formData.barrierLogistics === null) errors.push('Logistieke afwijkingen is verplicht');
+                if (formData.barrierFinancial === null) errors.push('Financiële anomalieën is verplicht');
+            } else if (step === 6) {
+                if (!formData.daypart) errors.push('Dagdeel is verplicht');
+            }
+
+            if (errors.length > 0) {
+                showModal('Validatie', errors.join('\n'), [
+                    { text: 'OK', handler: () => closeModal() }
+                ]);
+                return false;
+            }
+
+            return true;
+        }
+
+        function resetForm() {
+            formData = {
+                postcode: '',
+                street: '',
+                houseNumber: '',
+                houseLetter: '',
+                latitude: null,
+                longitude: null,
+                panelCondition: null,
+                panelFacade: null,
+                panelAdvertising: null,
+                panelLighting: null,
+                panelAccessibility: null,
+                floors: '',
+                upperUsage: '',
+                panelDeviation: false,
+                deviationText: '',
+                envCleanliness: null,
+                envGreen: null,
+                envLighting: null,
+                envSocialControl: null,
+                envTraffic: null,
+                envNuisance: false,
+                envNuisanceTypes: [],
+                undermineingSuspicious: false,
+                underminingIndicators: [],
+                riskScore: 1,
+                industryRisk: '',
+                barrierConceal: null,
+                barrierLogistics: null,
+                barrierFinancial: null,
+                remarks: '',
+                weather: 'droog',
+                daypart: ''
+            };
+
+            document.getElementById('wizardForm').reset();
+            document.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('riskScore').value = 1;
+            document.getElementById('riskScoreDisplay').textContent = 1;
+            document.getElementById('deviationNotes').style.display = 'none';
+            document.getElementById('nuisanceTypes').style.display = 'none';
+            document.getElementById('underminingIndicators').style.display = 'none';
+            calculateDaypart();
+        }
+
+        // ========== INSPECTION SAVE/LOAD ==========
+        async function saveInspectionForm() {
+            if (!validateStep(6)) return;
+
+            try {
+                const inspection = await saveInspection(formData);
+                showModal(
+                    'Succes',
+                    'Inspectie is opgeslagen.',
+                    [{ text: 'Dashboard', handler: () => { closeModal(); showScreen('dashboard'); } }]
+                );
+            } catch (err) {
+                console.error('Save error:', err);
+                showModal('Fout', 'Fout bij opslaan: ' + err.message, [
+                    { text: 'OK', handler: () => closeModal() }
+                ]);
+            }
+        }
+
+        async function loadInspectionForEdit(id) {
+            try {
+                const inspection = await getInspectionById(id);
+                if (!inspection) {
+                    showModal('Fout', 'Inspectie niet gevonden', [
+                        { text: 'OK', handler: () => { closeModal(); showScreen('dashboard'); } }
+                    ]);
+                    return;
+                }
+
+                currentInspectionId = id;
+                formData = {
+                    postcode: inspection.postcode6,
+                    street: inspection.straat,
+                    houseNumber: inspection.huisnummer.toString(),
+                    houseLetter: inspection.huisletter,
+                    latitude: inspection.latitude,
+                    longitude: inspection.longitude,
+                    panelCondition: inspection.pandConditie,
+                    panelFacade: inspection.pandGevel,
+                    panelAdvertising: inspection.pandReclame,
+                    panelLighting: inspection.pandVerlichting,
+                    panelAccessibility: inspection.pandToegankelijkheid,
+                    floors: inspection.pandVerdiepingen.toString(),
+                    upperUsage: inspection.pandGebruikBoven,
+                    panelDeviation: inspection.pandAfwijking,
+                    deviationText: inspection.pandAfwijkingToelichting,
+                    envCleanliness: inspection.omgevingSchoon,
+                    envGreen: inspection.omgevingGroen,
+                    envLighting: inspection.omgevingVerlichting,
+                    envSocialControl: inspection.omgevingSocialeControle,
+                    envTraffic: inspection.omgevingVerkeer,
+                    envNuisance: inspection.omgevingOverlast,
+                    envNuisanceTypes: inspection.omgevingOverlastType.split(', ').filter(x => x),
+                    undermineingSuspicious: inspection.ondermijningVerdacht,
+                    underminingIndicators: inspection.ondermijningIndicatoren.split(', ').filter(x => x),
+                    riskScore: inspection.ondermijningRisicoscore.toString(),
+                    industryRisk: inspection.ondermijningBrancherisico,
+                    barrierConceal: inspection.barriereVerhulling,
+                    barrierLogistics: inspection.barriereLogistiek,
+                    barriereFinancieel: inspection.barriereFinancieel,
+                    remarks: inspection.opmerkingen,
+                    weather: inspection.weersomstandigheden,
+                    daypart: inspection.dagdeel
+                };
+
+                // Populate form
+                document.getElementById('postcode').value = formData.postcode;
+                document.getElementById('street').value = formData.street;
+                document.getElementById('houseNumber').value = formData.houseNumber;
+                document.getElementById('houseLetter').value = formData.houseLetter;
+                document.getElementById('floors').value = formData.floors;
+                document.getElementById('upperUsage').value = formData.upperUsage;
+                document.getElementById('panelDeviation').checked = formData.panelDeviation;
+                document.getElementById('deviationText').value = formData.deviationText;
+                document.getElementById('deviationNotes').style.display = formData.panelDeviation ? 'block' : 'none';
+                document.getElementById('envNuisance').checked = formData.envNuisance;
+                document.getElementById('nuisanceTypes').style.display = formData.envNuisance ? 'block' : 'none';
+                document.getElementById('undermineingSuspicious').checked = formData.undermineingSuspicious;
+                document.getElementById('underminingIndicators').style.display = formData.undermineingSuspicious ? 'block' : 'none';
+                document.getElementById('riskScore').value = formData.riskScore;
+                document.getElementById('riskScoreDisplay').textContent = formData.riskScore;
+                document.getElementById('industryRisk').value = formData.industryRisk;
+                document.getElementById('remarks').value = formData.remarks;
+                document.getElementById('weather').value = formData.weather;
+                document.getElementById('daypart').value = formData.daypart;
+
+                // Set ratings
+                updateRatingDisplay('panelCondition', formData.panelCondition);
+                updateRatingDisplay('panelFacade', formData.panelFacade);
+                updateRatingDisplay('panelAdvertising', formData.panelAdvertising);
+                updateRatingDisplay('panelLighting', formData.panelLighting);
+                updateRatingDisplay('panelAccessibility', formData.panelAccessibility);
+                updateRatingDisplay('envCleanliness', formData.envCleanliness);
+                updateRatingDisplay('envGreen', formData.envGreen);
+                updateRatingDisplay('envLighting', formData.envLighting);
+                updateRatingDisplay('envSocialControl', formData.envSocialControl);
+                updateRatingDisplay('envTraffic', formData.envTraffic);
+                updateRatingDisplay('barrierConceal', formData.barrierConceal);
+                updateRatingDisplay('barrierLogistics', formData.barrierLogistics);
+                updateRatingDisplay('barrierFinancial', formData.barrierFinancial);
+
+                // Set checkboxes
+                document.querySelectorAll('input[name="nuisanceType"]').forEach(cb => {
+                    cb.checked = formData.envNuisanceTypes.includes(cb.value);
+                });
+                document.querySelectorAll('input[name="underminingIndicator"]').forEach(cb => {
+                    cb.checked = formData.underminingIndicators.includes(cb.value);
+                });
+
+                showScreen('wizard');
+            } catch (err) {
+                console.error('Load error:', err);
+                showModal('Fout', 'Fout bij laden inspectie', [
+                    { text: 'OK', handler: () => closeModal() }
+                ]);
+            }
+        }
+
+        function updateRatingDisplay(field, value) {
+            const group = document.querySelector(`[data-field="${field}"]`);
+            if (group) {
+                group.querySelectorAll('.rating-btn').forEach(btn => {
+                    btn.classList.toggle('selected', parseInt(btn.getAttribute('data-value')) === value);
+                });
+            }
+        }
+
+        // ========== DASHBOARD ==========
+        async function refreshDashboard() {
+            try {
+                const inspections = await getInspections();
+
+                // Update counts
+                const today = new Date().toDateString();
+                const todayCount = inspections.filter(i => new Date(i.datum).toDateString() === today).length;
+                document.getElementById('todayCount').textContent = todayCount;
+                document.getElementById('totalCount').textContent = inspections.length;
+
+                // Average score
+                const scores = inspections
+                    .filter(i => i.totaalscorePand !== undefined && i.totaalscorePand !== null)
+                    .map(i => i.totaalscorePand);
+                const avgScore = scores.length > 0
+                    ? (scores.reduce((a, b) => a + b) / scores.length).toFixed(1)
+                    : '-';
+                document.getElementById('avgScore').textContent = avgScore;
+
+                // Recent list
+                const recentList = document.getElementById('recentList');
+                if (inspections.length === 0) {
+                    recentList.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Geen inspecties</div><div class="empty-text">Start uw eerste inspectie met de + knop</div></div>';
+                } else {
+                    recentList.innerHTML = inspections.slice(0, 10).map(i => `
+                        <div class="card" onclick="viewInspection('${i.schouwId}')">
+                            <div class="card-title">${i.postcode6} ${i.straat} ${i.huisnummer}${i.huisletter}</div>
+                            <div class="card-subtitle">${new Date(i.datum).toLocaleString('nl-NL')}</div>
+                            <div class="card-meta">
+                                <div class="card-badge">Pand: <strong>${i.totaalscorePand?.toFixed(1) || '-'}</strong></div>
+                                <div class="card-badge">Omgev: <strong>${i.totaalscoreOmgeving?.toFixed(1) || '-'}</strong></div>
+                                <div class="card-badge">Risico: <strong>${i.totaalscoreOndermijning || '-'}</strong></div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Map (if we have coordinates)
+                const withCoords = inspections.filter(i => i.latitude && i.longitude);
+                if (withCoords.length > 0) {
+                    document.getElementById('mapContainer').style.display = 'block';
+                    setTimeout(initDashboardMap, 100);
+                }
+            } catch (err) {
+                console.error('Dashboard error:', err);
+            }
+        }
+
+        // ========== DETAIL VIEW ==========
+        async function viewInspection(id) {
+            try {
+                const inspection = await getInspectionById(id);
+                if (!inspection) return;
+
+                const html = `
+                    <div class="detail-field">
+                        <div class="detail-label">Inspecteur</div>
+                        <div class="detail-value">${inspection.inspecteur}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Datum</div>
+                        <div class="detail-value">${new Date(inspection.datum).toLocaleString('nl-NL')}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Locatie</div>
+                        <div class="detail-value">${inspection.postcode6} ${inspection.straat} ${inspection.huisnummer}${inspection.huisletter}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Coördinaten</div>
+                        <div class="detail-value">${inspection.latitude ? inspection.latitude.toFixed(4) + ', ' + inspection.longitude.toFixed(4) : '-'}</div>
+                    </div>
+
+                    <h3 style="margin-top: 20px; margin-bottom: 12px; font-size: 16px;">Pandbeoordeling</h3>
+                    <div class="detail-field">
+                        <div class="detail-label">Conditie</div>
+                        <div class="detail-value">${inspection.pandConditie || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Gevel</div>
+                        <div class="detail-value">${inspection.pandGevel || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Reclame</div>
+                        <div class="detail-value">${inspection.pandReclame || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Verlichting</div>
+                        <div class="detail-value">${inspection.pandVerlichting || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Toegankelijkheid</div>
+                        <div class="detail-value">${inspection.pandToegankelijkheid || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Verdiepingen</div>
+                        <div class="detail-value">${inspection.pandVerdiepingen}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Gebruik bovenverdieping</div>
+                        <div class="detail-value">${inspection.pandGebruikBoven}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Afwijkingen</div>
+                        <div class="detail-value">${inspection.pandAfwijking ? 'Ja' : 'Nee'}</div>
+                    </div>
+                    ${inspection.pandAfwijkingToelichting ? `<div class="detail-field">
+                        <div class="detail-label">Toelichting afwijkingen</div>
+                        <div class="detail-value">${inspection.pandAfwijkingToelichting}</div>
+                    </div>` : ''}
+
+                    <h3 style="margin-top: 20px; margin-bottom: 12px; font-size: 16px;">Omgeving</h3>
+                    <div class="detail-field">
+                        <div class="detail-label">Schoon</div>
+                        <div class="detail-value">${inspection.omgevingSchoon || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Groen</div>
+                        <div class="detail-value">${inspection.omgevingGroen || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Verlichting</div>
+                        <div class="detail-value">${inspection.omgevingVerlichting || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Sociale controle</div>
+                        <div class="detail-value">${inspection.omgevingSocialeControle || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Verkeer</div>
+                        <div class="detail-value">${inspection.omgevingVerkeer || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Overlast</div>
+                        <div class="detail-value">${inspection.omgevingOverlast ? 'Ja' : 'Nee'}</div>
+                    </div>
+                    ${inspection.omgevingOverlastType ? `<div class="detail-field">
+                        <div class="detail-label">Type overlast</div>
+                        <div class="detail-value">${inspection.omgevingOverlastType}</div>
+                    </div>` : ''}
+
+                    <h3 style="margin-top: 20px; margin-bottom: 12px; font-size: 16px;">Ondermijning</h3>
+                    <div class="detail-field">
+                        <div class="detail-label">Verdachte signalen</div>
+                        <div class="detail-value">${inspection.ondermijningVerdacht ? 'Ja' : 'Nee'}</div>
+                    </div>
+                    ${inspection.ondermijningIndicatoren ? `<div class="detail-field">
+                        <div class="detail-label">Indicatoren</div>
+                        <div class="detail-value">${inspection.ondermijningIndicatoren}</div>
+                    </div>` : ''}
+                    <div class="detail-field">
+                        <div class="detail-label">Risicoscore</div>
+                        <div class="detail-value">${inspection.ondermijningRisicoscore}/10</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Brancherisico</div>
+                        <div class="detail-value">${inspection.ondermijningBrancherisico}</div>
+                    </div>
+
+                    <h3 style="margin-top: 20px; margin-bottom: 12px; font-size: 16px;">Barrièremodel</h3>
+                    <div class="detail-field">
+                        <div class="detail-label">Verhulling/afscherming</div>
+                        <div class="detail-value">${inspection.barriereVerhulling || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Logistieke afwijkingen</div>
+                        <div class="detail-value">${inspection.barriereLogistiek || '-'}/5</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Financiële anomalieën</div>
+                        <div class="detail-value">${inspection.barriereFinancieel || '-'}/5</div>
+                    </div>
+
+                    <h3 style="margin-top: 20px; margin-bottom: 12px; font-size: 16px;">Afronding</h3>
+                    <div class="detail-field">
+                        <div class="detail-label">Dagdeel</div>
+                        <div class="detail-value">${inspection.dagdeel}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">Weer</div>
+                        <div class="detail-value">${inspection.weersomstandigheden}</div>
+                    </div>
+                    ${inspection.opmerkingen ? `<div class="detail-field">
+                        <div class="detail-label">Opmerkingen</div>
+                        <div class="detail-value">${inspection.opmerkingen}</div>
+                    </div>` : ''}
+
+                    <div class="score-summary" style="margin-top: 20px;">
+                        <div class="score-item">
+                            <div class="score-label">Pand</div>
+                            <div class="score-value">${inspection.totaalscorePand?.toFixed(1) || '-'}</div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">Omgeving</div>
+                            <div class="score-value">${inspection.totaalscoreOmgeving?.toFixed(1) || '-'}</div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">Ondermijning</div>
+                            <div class="score-value">${inspection.totaalscoreOndermijning}</div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('detailContent').innerHTML = html;
+
+                document.getElementById('editBtn').onclick = () => loadInspectionForEdit(id);
+                document.getElementById('deleteBtn').onclick = () => confirmDelete(id);
+
+                showScreen('detail');
+            } catch (err) {
+                console.error('Detail error:', err);
+            }
+        }
+
+        function confirmDelete(id) {
+            showModal('Verwijderen', 'Weet u zeker dat u deze inspectie wilt verwijderen?', [
+                { text: 'Annuleer', handler: () => closeModal() },
+                {
+                    text: 'Verwijder', handler: async () => {
+                        closeModal();
+                        try {
+                            await deleteInspection(id);
+                            showScreen('dashboard');
+                        } catch (err) {
+                            console.error('Delete error:', err);
+                        }
+                    }
+                }
+            ]);
+        }
+
+        // ========== EXPORT ==========
+        async function renderExportScreen() {
+            const inspections = await getInspections();
+            const checkboxes = document.getElementById('exportCheckboxes');
+            checkboxes.innerHTML = inspections.map(i => `
+                <label class="checkbox-item">
+                    <input type="checkbox" value="${i.schouwId}" class="export-checkbox" checked>
+                    <span>${i.postcode6} ${i.straat} ${i.huisnummer}</span>
+                </label>
+            `).join('');
+        }
+
+        async function exportData() {
+            const exportType = document.querySelector('input[name="exportType"]:checked').value;
+            let inspections = await getInspections();
+
+            if (exportType === 'today') {
+                const today = new Date().toDateString();
+                inspections = inspections.filter(i => new Date(i.datum).toDateString() === today);
+            } else if (exportType === 'selection') {
+                const selected = Array.from(document.querySelectorAll('.export-checkbox:checked')).map(cb => cb.value);
+                inspections = inspections.filter(i => selected.includes(i.schouwId));
+            }
+
+            const exportData = {
+                schouwplaatsen: inspections.map(i => ({
+                    'Schouw ID': i.schouwId,
+                    'Datum': i.datum,
+                    'Inspecteur': i.inspecteur,
+                    'Postcode 6': i.postcode6,
+                    'Straat': i.straat,
+                    'Huisnummer': i.huisnummer,
+                    'Huisletter': i.huisletter,
+                    'Latitude': i.latitude,
+                    'Longitude': i.longitude,
+                    'Pand conditie': i.pandConditie,
+                    'Pand gevel': i.pandGevel,
+                    'Pand reclame': i.pandReclame,
+                    'Pand verlichting': i.pandVerlichting,
+                    'Pand toegankelijkheid': i.pandToegankelijkheid,
+                    'Pand verdiepingen': i.pandVerdiepingen,
+                    'Pand gebruik boven': i.pandGebruikBoven,
+                    'Pand afwijking': i.pandAfwijking,
+                    'Pand afwijking toelichting': i.pandAfwijkingToelichting,
+                    'Omgeving schoon': i.omgevingSchoon,
+                    'Omgeving groen': i.omgevingGroen,
+                    'Omgeving verlichting': i.omgevingVerlichting,
+                    'Omgeving sociale controle': i.omgevingSocialeControle,
+                    'Omgeving verkeer': i.omgevingVerkeer,
+                    'Omgeving overlast': i.omgevingOverlast,
+                    'Omgeving overlast type': i.omgevingOverlastType,
+                    'Ondermijning verdacht': i.ondermijningVerdacht,
+                    'Ondermijning indicatoren': i.ondermijningIndicatoren,
+                    'Ondermijning risicoscore': i.ondermijningRisicoscore,
+                    'Ondermijning brancherisico': i.ondermijningBrancherisico,
+                    'Barrière verhulling': i.barriereVerhulling,
+                    'Barrière logistiek': i.barriereLogistiek,
+                    'Barrière financieel': i.barriereFinancieel,
+                    'Totaalscore pand': i.totaalscorePand,
+                    'Totaalscore omgeving': i.totaalscoreOmgeving,
+                    'Totaalscore ondermijning': i.totaalscoreOndermijning,
+                    'Opmerkingen': i.opmerkingen,
+                    'Foto referenties': i.fotoReferenties || '',
+                    'Weersomstandigheden': i.weersomstandigheden,
+                    'Dagdeel': i.dagdeel,
+                    'App versie': i.appVersie
+                })),
+                meta: {
+                    exportDatum: new Date().toISOString(),
+                    inspecteur: inspectorName,
+                    organisatie: organization,
+                    appVersie: APP_VERSION,
+                    aantalInspecties: inspections.length
+                }
+            };
+
+            const json = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `schouwplaatsen-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showModal('Succes', 'Data geëxporteerd naar JSON', [
+                { text: 'OK', handler: () => { closeModal(); showScreen('dashboard'); } }
+            ]);
+        }
+
+        function confirmClearData() {
+            showModal('Waarschuwing', 'Dit zal ALLE inspecties verwijderen. Dit kan niet ongedaan worden gemaakt!', [
+                { text: 'Annuleer', handler: () => closeModal() },
+                {
+                    text: 'Verwijder alles', handler: () => {
+                        closeModal();
+                        showModal('Bevestiging', 'Weet u dit zeker? Type "ja" om te bevestigen.', [
+                            {
+                                text: 'OK', handler: async () => {
+                                    closeModal();
+                                    try {
+                                        await clearAllData();
+                                        showModal('Succes', 'Alle data is verwijderd', [
+                                            { text: 'OK', handler: () => { closeModal(); showScreen('dashboard'); } }
+                                        ]);
+                                    } catch (err) {
+                                        console.error('Clear error:', err);
+                                    }
+                                }
+                            }
+                        ]);
+                    }
+                }
+            ]);
+        }
+
+        // ========== HELPERS ==========
+        function calculateAverageScore(scores) {
+            const valid = scores.filter(s => s !== null && s !== undefined);
+            if (valid.length === 0) return null;
+            return valid.reduce((a, b) => a + b) / valid.length;
+        }
+
+        function updateSummaryScores() {
+            const pandScore = calculateAverageScore([
+                formData.panelCondition,
+                formData.panelFacade,
+                formData.panelAdvertising,
+                formData.panelLighting,
+                formData.panelAccessibility
+            ]);
+            const envScore = calculateAverageScore([
+                formData.envCleanliness,
+                formData.envGreen,
+                formData.envLighting,
+                formData.envSocialControl,
+                formData.envTraffic
+            ]);
+
+            document.getElementById('summaryScorePand').textContent = pandScore ? pandScore.toFixed(1) : '-';
+            document.getElementById('summaryScoreEnv').textContent = envScore ? envScore.toFixed(1) : '-';
+            document.getElementById('summaryScoreUndermine').textContent = formData.riskScore;
+        }
+
+        function calculateDaypart() {
+            const hour = new Date().getHours();
+            let daypart = 'ochtend';
+            if (hour >= 12 && hour < 17) daypart = 'middag';
+            else if (hour >= 17 && hour < 21) daypart = 'avond';
+            else if (hour >= 21 || hour < 6) daypart = 'nacht';
+
+            formData.daypart = daypart;
+            if (document.getElementById('daypart')) {
+                document.getElementById('daypart').value = daypart;
+            }
+        }
+
+        // ========== GPS ==========
+        function detectGPS() {
+            const status = document.getElementById('gpsStatus');
+            const btn = document.getElementById('gpsBtn');
+            btn.disabled = true;
+            status.textContent = 'Locatie detecteren...';
+
+            if (!navigator.geolocation) {
+                status.textContent = 'GPS niet beschikbaar';
+                btn.disabled = false;
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    formData.latitude = position.coords.latitude;
+                    formData.longitude = position.coords.longitude;
+                    status.textContent = `✓ ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
+                    btn.disabled = false;
+                    setTimeout(initSmallMap, 100);
+                },
+                (error) => {
+                    status.textContent = 'Fout: ' + error.message;
+                    btn.disabled = false;
+                }
+            );
+        }
+
+        // ========== MAPS ==========
+        function initSmallMap() {
+            if (!document.getElementById('smallMap').style.display || document.getElementById('smallMap').style.display === 'none') {
+                document.getElementById('smallMap').style.display = 'block';
+            }
+
+            const mapElement = document.getElementById('smallMap');
+            if (!mapElement) return;
+
+            if (smallMapInstance) {
+                smallMapInstance.remove();
+            }
+
+            const lat = formData.latitude || 52.5050;
+            const lng = formData.longitude || 4.9531;
+
+            smallMapInstance = L.map('smallMap').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(smallMapInstance);
+
+            L.marker([lat, lng]).addTo(smallMapInstance);
+        }
+
+        function initDashboardMap() {
+            const mapElement = document.getElementById('mapContainer');
+            if (!mapElement) return;
+
+            if (dashboardMapInstance) {
+                dashboardMapInstance.remove();
+            }
+
+            dashboardMapInstance = L.map('mapContainer').setView([52.5050, 4.9531], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(dashboardMapInstance);
+
+            getInspections().then(inspections => {
+                inspections.forEach(i => {
+                    if (i.latitude && i.longitude) {
+                        L.circleMarker([i.latitude, i.longitude], {
+                            radius: 6,
+                            fillColor: '#10b981',
+                            color: '#059669',
+                            weight: 2,
+                            opacity: 0.8,
+                            fillOpacity: 0.8
+                        }).bindPopup(`${i.postcode6} ${i.straat} ${i.huisnummer}`).addTo(dashboardMapInstance);
+                    }
+                });
+            });
+        }
+
+        // ========== AUTH ==========
+        function handleLogin(e) {
+            e.preventDefault();
+            const name = document.getElementById('inspectorName').value.trim();
+            const org = document.getElementById('organization').value.trim();
+
+            if (!name || !org) {
+                showModal('Validatie', 'Vul alle velden in', [
+                    { text: 'OK', handler: () => closeModal() }
+                ]);
+                return;
+            }
+
+            inspectorName = name;
+            organization = org;
+            sessionStorage.setItem('inspectorName', name);
+            sessionStorage.setItem('organization', org);
+
+            showScreen('dashboard');
+        }
+
+        function restoreInspector() {
+            const saved = sessionStorage.getItem('inspectorName');
+            if (saved) {
+                inspectorName = saved;
+                organization = sessionStorage.getItem('organization') || '';
+                showScreen('dashboard');
+            }
+        }
+
+        // ========== THEME ==========
+        function initTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeToggle();
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = current === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeToggle();
+        }
+
+        function updateThemeToggle() {
+            const theme = document.documentElement.getAttribute('data-theme') || 'light';
+            document.getElementById('themeToggle').textContent = theme === 'light' ? '🌙' : '☀️';
+        }
+
+        // ========== MODAL ==========
+        function showModal(title, text, actions = []) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').textContent = text;
+
+            const actionsContainer = document.getElementById('modalActions');
+            actionsContainer.innerHTML = '';
+            actions.forEach(action => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-primary';
+                btn.textContent = action.text;
+                btn.addEventListener('click', action.handler);
+                actionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {
+                console.log('Service worker registration failed');
+            });
+        }
+    </script>
+</body>
+</html>
