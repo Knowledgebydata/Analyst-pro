@@ -171,8 +171,11 @@ var MapModule = (function () {
         });
         html += '</div>';
 
-        // Bevinding knop
-        html += '<div class="popup__actions"><button class="btn btn--sm btn--primary" onclick="BevModule.openForm(\'' + pand.locatie_slug + '\',\'' + (pand.locatie_naam || '').replace(/'/g, "\\'") + '\',\'' + pand.label.replace(/'/g, "\\'") + '\')">+ Bevinding</button></div>';
+        // Actie knoppen: bevinding + vragenlijst
+        html += '<div class="popup__actions">';
+        html += '<button class="btn btn--sm btn--primary" onclick="BevModule.openForm(\'' + pand.locatie_slug + '\',\'' + (pand.locatie_naam || '').replace(/'/g, "\\'") + '\',\'' + pand.label.replace(/'/g, "\\'") + '\')">+ Bevinding</button>';
+        html += '<button class="btn btn--sm" onclick="VragenlijstModule.openForm(\'' + pand.locatie_slug + '\',\'' + (pand.locatie_naam || '').replace(/'/g, "\\'") + '\',\'' + pand.label.replace(/'/g, "\\'") + '\')" style="margin-left:4px">Vragenlijst</button>';
+        html += '</div>';
 
         if (pand.status_updated_by_naam) {
             html += '<div class="popup__note">Laatst door: ' + pand.status_updated_by_naam + '</div>';

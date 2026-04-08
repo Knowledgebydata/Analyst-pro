@@ -6,17 +6,18 @@
  * Werkt in een subdirectory (/wijdemeren/) op GitHub Pages.
  * API-calls gaan cross-origin naar vakantieparken.knowledgebydata.nl.
  */
-var CACHE_NAME = 'wijdemeren-v5';
+var CACHE_NAME = 'wijdemeren-v6';
 
 // Relatieve paden — werken vanuit de SW scope (de map waar sw.js staat)
 var PRECACHE = [
     './',
     './index.html',
-    './css/app.css?v=4',
-    './js/api.js?v=4',
-    './js/map.js?v=4',
-    './js/bevindingen.js?v=4',
-    './js/app.js?v=4',
+    './css/app.css?v=5',
+    './js/api.js?v=5',
+    './js/map.js?v=5',
+    './js/bevindingen.js?v=5',
+    './js/vragenlijst.js?v=5',
+    './js/app.js?v=5',
     './manifest.json',
     './icons/favicon.svg',
 ];

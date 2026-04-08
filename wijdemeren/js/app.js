@@ -23,10 +23,12 @@
         await loadGemeenteConfig();
         MapModule.init(gemeenteConfig.kaart);
         BevModule.init();
+        if (typeof VragenlijstModule !== 'undefined') { VragenlijstModule.init(); }
         bindTabs();
         bindLogin();
         bindAdmin();
         bindInstellingen();
+        bindVragenlijsten();
 
         var savedToken = localStorage.getItem('wh_token');
         if (savedToken) {
@@ -109,6 +111,11 @@
                     BevModule.renderList('bev-list');
                 }
 
+                // Vragenlijsten lijst renderen bij tab switch
+                if (targetId === 'tab-vragenlijsten' && typeof VragenlijstModule !== 'undefined') {
+                    VragenlijstModule.renderList('vl-list');
+                }
+
                 // Controleur naam laden bij instellingen
                 if (targetId === 'tab-instellingen') {
                     document.getElementById('setting-naam').value = BevModule.getControleurNaam();
@@ -169,7 +176,11 @@
         document.getElementById('login-screen').classList.remove('screen--active');
         document.getElementById('main-screen').classList.add('screen--active');
         document.getElementById('user-display').textContent = currentUser.displayName;
-        document.getElementById('btn-admin').hidden = (currentUser.role !== 'beheerder');
+        // Admin alleen tonen voor beheerders EN alleen op de server (niet op handheld/PWA)
+        var isPWA = window.matchMedia('(display-mode: standalone)').matches
+            || window.navigator.standalone === true
+            || window.location.hostname === 'app.knowledgebydata.nl';
+        document.getElementById('btn-admin').hidden = (currentUser.role !== 'beheerder' || isPWA);
 
         // Auto-set controleur naam als die nog leeg is
         if (!BevModule.getControleurNaam() && currentUser.displayName) {
@@ -294,12 +305,49 @@
     async function loadUsers() {
         try {
             var data = await API.getUsers();
-            var html = '<table class="user-table"><thead><tr><th>Naam</th><th>Gebruikersnaam</th><th>Rol</th><th>Actief</th></tr></thead><tbody>';
+            var html = '<table class="user-table"><thead><tr><th>Naam</th><th>Gebruikersnaam</th><th>Rol</th><th>Actief</th><th></th></tr></thead><tbody>';
             data.users.forEach(function (u) {
-                html += '<tr><td>' + u.display_name + '</td><td>' + u.username + '</td><td>' + u.role + '</td><td>' + (u.is_active ? 'Ja' : 'Nee') + '</td></tr>';
+                var isCurrentUser = currentUser && u.username === currentUser.username;
+                html += '<tr>';
+                html += '<td>' + u.display_name + '</td>';
+                html += '<td>' + u.username + '</td>';
+                html += '<td>' + u.role + '</td>';
+                html += '<td>' + (u.is_active ? 'Ja' : 'Nee') + '</td>';
+                html += '<td>';
+                if (!isCurrentUser) {
+                    if (u.is_active) {
+                        html += '<button class="btn btn--sm btn--danger" data-deactivate-user="' + u.id + '" data-user-name="' + u.display_name + '">Deactiveer</button>';
+                    } else {
+                        html += '<button class="btn btn--sm btn--primary" data-activate-user="' + u.id + '" data-user-name="' + u.display_name + '">Activeer</button>';
+                    }
+                }
+                html += '</td>';
+                html += '</tr>';
             });
             html += '</tbody></table>';
             document.getElementById('users-list').innerHTML = html;
+
+            document.querySelectorAll('[data-deactivate-user]').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    var userId = btn.getAttribute('data-deactivate-user');
+                    var naam = btn.getAttribute('data-user-name');
+                    if (!confirm('Gebruiker "' + naam + '" deactiveren?')) return;
+                    try {
+                        await API.updateUser(userId, { isActive: false });
+                        loadUsers();
+                    } catch (err) { alert(err.message); }
+                });
+            });
+
+            document.querySelectorAll('[data-activate-user]').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    var userId = btn.getAttribute('data-activate-user');
+                    try {
+                        await API.updateUser(userId, { isActive: true });
+                        loadUsers();
+                    } catch (err) { alert(err.message); }
+                });
+            });
         } catch (err) {
             document.getElementById('users-list').innerHTML = '<p class="text-muted">' + err.message + '</p>';
         }
@@ -356,6 +404,16 @@
             await API.changePassword(cur, nw);
             alert('Wachtwoord gewijzigd');
         } catch (err) { alert(err.message); }
+    }
+
+    // === Vragenlijsten ===
+    function bindVragenlijsten() {
+        var exportBtn = document.getElementById('btn-export-vl');
+        if (exportBtn && typeof VragenlijstModule !== 'undefined') {
+            exportBtn.addEventListener('click', function () {
+                VragenlijstModule.exportJSON();
+            });
+        }
     }
 
     // === PWA ===
