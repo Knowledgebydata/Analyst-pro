@@ -189,6 +189,12 @@
 
         loadLocaties();
         connectSocket();
+
+        // Kaart moet herladen na screen-switch, anders heeft Leaflet 0x0 container
+        var map = MapModule.getMap();
+        if (map) {
+            setTimeout(function () { map.invalidateSize(); }, 200);
+        }
     }
 
     async function loadLocaties() {
@@ -327,11 +333,12 @@
             html += '</tbody></table>';
             document.getElementById('users-list').innerHTML = html;
 
+            // Deactiveer handlers
             document.querySelectorAll('[data-deactivate-user]').forEach(function (btn) {
                 btn.addEventListener('click', async function () {
                     var userId = btn.getAttribute('data-deactivate-user');
                     var naam = btn.getAttribute('data-user-name');
-                    if (!confirm('Gebruiker "' + naam + '" deactiveren?')) return;
+                    if (!confirm('Gebruiker "' + naam + '" deactiveren? Deze kan dan niet meer inloggen.')) return;
                     try {
                         await API.updateUser(userId, { isActive: false });
                         loadUsers();
@@ -339,6 +346,7 @@
                 });
             });
 
+            // Activeer handlers
             document.querySelectorAll('[data-activate-user]').forEach(function (btn) {
                 btn.addEventListener('click', async function () {
                     var userId = btn.getAttribute('data-activate-user');

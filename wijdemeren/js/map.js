@@ -389,28 +389,50 @@ var MapModule = (function () {
             renderSidebar();
         });
 
-        document.getElementById('btn-filter-parks').addEventListener('click', function () {
-            showParks = !showParks;
-            this.classList.toggle('btn--primary', !showParks);
-            // Toon/verberg locatiemarkers van dit type
-            Object.keys(locatieMarkers).forEach(function (slug) {
-                var entry = locatieMarkers[slug];
-                if (entry.loc.type === 'vakantiepark') {
-                    if (showParks) { grpLocaties.addLayer(entry.marker); } else { grpLocaties.removeLayer(entry.marker); }
-                }
-            });
+        var btnParken = document.getElementById('btn-filter-parks');
+        var btnHavens = document.getElementById('btn-filter-havens');
+
+        // Filter logica: klik op "Parken" toont alleen parken, "Havens" alleen havens
+        // Klik nogmaals op actieve filter → toon alles
+        btnParken.addEventListener('click', function () {
+            if (showParks && !showHavens) {
+                // Was al gefilterd op parken → toon alles
+                showParks = true;
+                showHavens = true;
+            } else {
+                // Filter op alleen parken
+                showParks = true;
+                showHavens = false;
+            }
+            btnParken.classList.toggle('btn--primary', showParks && !showHavens);
+            btnHavens.classList.toggle('btn--primary', showHavens && !showParks);
+            applyTypeFilter();
         });
 
-        document.getElementById('btn-filter-havens').addEventListener('click', function () {
-            showHavens = !showHavens;
-            this.classList.toggle('btn--primary', !showHavens);
+        btnHavens.addEventListener('click', function () {
+            if (showHavens && !showParks) {
+                // Was al gefilterd op havens → toon alles
+                showParks = true;
+                showHavens = true;
+            } else {
+                // Filter op alleen havens
+                showHavens = true;
+                showParks = false;
+            }
+            btnParken.classList.toggle('btn--primary', showParks && !showHavens);
+            btnHavens.classList.toggle('btn--primary', showHavens && !showParks);
+            applyTypeFilter();
+        });
+
+        function applyTypeFilter() {
             Object.keys(locatieMarkers).forEach(function (slug) {
                 var entry = locatieMarkers[slug];
-                if (entry.loc.type === 'jachthaven') {
-                    if (showHavens) { grpLocaties.addLayer(entry.marker); } else { grpLocaties.removeLayer(entry.marker); }
-                }
+                var isPark = entry.loc.type === 'vakantiepark';
+                var show = isPark ? showParks : showHavens;
+                if (show) { grpLocaties.addLayer(entry.marker); } else { grpLocaties.removeLayer(entry.marker); }
             });
-        });
+            if (sidebarOpen) { renderSidebar(); }
+        }
 
         document.getElementById('btn-reset-view').addEventListener('click', function () {
             if (allBounds) { map.fitBounds(allBounds, { padding: [60, 40] }); }
