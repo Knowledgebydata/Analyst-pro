@@ -1,6 +1,6 @@
 {
-    "name": "Wijdemeren Handhaving",
-    "short_name": "Handhaving",
+    "name": "Vakantieparken Wijdemeren",
+    "short_name": "Vakantieparken",
     "description": "Handhavingsapplicatie vakantieparken en jachthavens gemeente Wijdemeren",
     "start_url": "./",
     "scope": "./",
