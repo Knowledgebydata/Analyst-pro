@@ -382,7 +382,12 @@ var BevModule = (function () {
             '  </div>' +
             '</div>';
 
-        modal.hidden = false;
+        modal.classList.add('modal--open');
+
+        // Sluit bij klik op overlay
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) { modal.classList.remove('modal--open'); }
+        });
 
         // GPS ophalen
         const gpsEl = document.getElementById('bev-gps-info');
@@ -408,7 +413,7 @@ var BevModule = (function () {
         });
 
         // Sluiten
-        const closeModal = () => { modal.hidden = true; };
+        const closeModal = () => { modal.classList.remove('modal--open'); };
         document.getElementById('bev-modal-close').addEventListener('click', closeModal);
         document.getElementById('bev-cancel-btn').addEventListener('click', closeModal);
 

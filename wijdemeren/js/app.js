@@ -274,12 +274,18 @@
     // === Admin beheer ===
     function bindAdmin() {
         document.getElementById('btn-admin').addEventListener('click', function () {
-            document.getElementById('admin-modal').hidden = false;
+            document.getElementById('admin-modal').classList.add('modal--open');
             loadUsers();
             loadSamenvatting();
         });
         document.getElementById('admin-modal-close').addEventListener('click', function () {
-            document.getElementById('admin-modal').hidden = true;
+            document.getElementById('admin-modal').classList.remove('modal--open');
+        });
+        // Sluit modal bij klik op overlay (buiten de content)
+        document.getElementById('admin-modal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                this.classList.remove('modal--open');
+            }
         });
         document.getElementById('btn-add-user').addEventListener('click', addUser);
         document.getElementById('btn-geocode-all').addEventListener('click', geocodeAll);
