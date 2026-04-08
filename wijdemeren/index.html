@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#154273">
+    <meta name="description" content="Handhavingsapplicatie — locatie-registratie, controle-status en bevindingen">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>Vakantieparken Wijdemeren</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="css/app.css?v=6">
+</head>
+<body>
+    <!-- Login scherm -->
+    <div id="login-screen" class="screen screen--active">
+        <div class="login">
+            <div class="login__logo">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="10" fill="#154273"/><path d="M24 12l10 8v14H14V20l10-8z" fill="#fff"/><rect x="20" y="26" width="8" height="8" rx="1" fill="#154273"/></svg>
+            </div>
+            <h1 class="login__title">Vakantieparken Wijdemeren</h1>
+            <p class="login__sub">Vakantieparken &amp; Jachthavens</p>
+            <form id="login-form" class="login__form">
+                <div class="form-group">
+                    <label for="login-user">Gebruikersnaam</label>
+                    <input type="text" id="login-user" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-pass">Wachtwoord</label>
+                    <input type="password" id="login-pass" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn--primary btn--full" id="login-btn">Inloggen</button>
+                <div id="login-error" class="form-error" hidden></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hoofdscherm -->
+    <div id="main-screen" class="screen">
+        <header class="header">
+            <div class="header__left">
+                <div>
+                    <div class="header__title">Vakantieparken Wijdemeren</div>
+                    <div class="header__subtitle" id="header-info"></div>
+                </div>
+            </div>
+            <div class="header__right">
+                <span class="header__online" id="online-count" title="Online gebruikers"></span>
+                <span class="header__user" id="user-display"></span>
+                <button class="btn btn--sm" id="btn-admin" hidden>Beheer</button>
+                <button class="btn btn--sm" id="btn-logout">Uit</button>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tabs__btn tabs__btn--active" data-tab="tab-kaart">Kaart</button>
+            <button class="tabs__btn" data-tab="tab-bevindingen">Bevindingen <span id="bev-count-badge" class="tabs__badge" hidden></span></button>
+            <button class="tabs__btn" data-tab="tab-vragenlijsten">Vragenlijsten <span id="vl-count-badge" class="tabs__badge" hidden></span></button>
+            <button class="tabs__btn" data-tab="tab-instellingen">Instellingen</button>
+        </div>
+
+        <!-- Tab: Kaart -->
+        <div id="tab-kaart" class="tab-content tab-content--active">
+            <div id="map-container" class="map-container">
+                <div id="map"></div>
+
+                <div class="map-legend" id="map-legend">
+                    <div class="map-legend__title">Controle-status</div>
+                    <div class="map-legend__items" id="legend-items"></div>
+                    <button class="map-legend__toggle" id="legend-toggle">&#9660;</button>
+                </div>
+
+                <div class="map-sidebar" id="map-sidebar">
+                    <div class="map-sidebar__header">
+                        <span>Locaties</span>
+                        <button class="map-sidebar__close" id="sidebar-close">&times;</button>
+                    </div>
+                    <div class="map-sidebar__filter">
+                        <input type="text" id="sidebar-search" placeholder="Zoeken..." class="input input--sm">
+                    </div>
+                    <div class="map-sidebar__list" id="sidebar-list"></div>
+                </div>
+
+                <div class="map-controls">
+                    <button class="btn btn--sm" id="btn-sidebar-toggle">Lijst</button>
+                    <button class="btn btn--sm" id="btn-filter-parks">Parken</button>
+                    <button class="btn btn--sm" id="btn-filter-havens">Havens</button>
+                    <button class="btn btn--sm" id="btn-reset-view">Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Bevindingen -->
+        <div id="tab-bevindingen" class="tab-content">
+            <div class="panel">
+                <div class="panel__header">
+                    <h2>Mijn bevindingen</h2>
+                    <div class="panel__actions">
+                        <button class="btn btn--sm btn--primary" id="btn-export-bev">Exporteer JSON</button>
+                    </div>
+                </div>
+                <div id="bev-list"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Vragenlijsten -->
+        <div id="tab-vragenlijsten" class="tab-content">
+            <div class="panel">
+                <div class="panel__header">
+                    <h2>Vragenlijsten</h2>
+                    <div class="panel__actions">
+                        <button class="btn btn--sm btn--primary" id="btn-export-vl">Exporteer JSON</button>
+                    </div>
+                </div>
+                <div id="vl-list"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Instellingen -->
+        <div id="tab-instellingen" class="tab-content">
+            <div class="panel">
+                <div class="panel__header">
+                    <h2>Instellingen</h2>
+                </div>
+
+                <div class="beheer-section">
+                    <h4>Controleur gegevens</h4>
+                    <div class="form-group">
+                        <label for="setting-naam">Jouw naam (wordt opgeslagen bij bevindingen)</label>
+                        <input type="text" id="setting-naam" class="input" placeholder="J. de Vries">
+                    </div>
+                    <button class="btn btn--sm btn--primary" id="btn-save-naam" style="margin-top:8px">Opslaan</button>
+                    <div id="setting-naam-msg" class="text-muted" style="margin-top:4px"></div>
+                </div>
+
+                <div class="beheer-section">
+                    <h4>Wachtwoord wijzigen</h4>
+                    <button class="btn btn--sm" id="btn-change-password">Wachtwoord wijzigen</button>
+                </div>
+
+                <div class="beheer-section">
+                    <h4>Lokale data</h4>
+                    <p class="text-muted">Bevindingen worden lokaal op dit device opgeslagen en niet naar de server verstuurd.</p>
+                    <button class="btn btn--sm btn--danger" id="btn-clear-bev" style="margin-top:8px">Alle bevindingen wissen</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin modal -->
+        <div id="admin-modal" class="modal">
+            <div class="modal__content">
+                <div class="modal__header">
+                    <h3>Beheer</h3>
+                    <button class="modal__close" id="admin-modal-close">&times;</button>
+                </div>
+                <div class="modal__body">
+                    <div class="beheer-section">
+                        <h4>Gebruikers</h4>
+                        <button class="btn btn--sm btn--primary" id="btn-add-user">Nieuwe gebruiker</button>
+                        <div id="users-list"></div>
+                    </div>
+                    <div class="beheer-section">
+                        <h4>Geocoding</h4>
+                        <p class="text-muted">Werk niet-exacte co&ouml;rdinaten bij via PDOK.</p>
+                        <button class="btn btn--sm" id="btn-geocode-all">Alle locaties geocoderen</button>
+                        <div id="geocode-result"></div>
+                    </div>
+                    <div class="beheer-section">
+                        <h4>Samenvatting</h4>
+                        <div id="admin-samenvatting"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="js/api.js?v=6"></script>
+    <script src="js/map.js?v=6"></script>
+    <script src="js/bevindingen.js?v=6"></script>
+    <script src="js/vragenlijst.js?v=6"></script>
+    <script src="js/app.js?v=6"></script>
+</body>
+</html>
