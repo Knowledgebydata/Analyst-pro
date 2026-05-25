@@ -4,7 +4,7 @@
  */
 'use strict';
 
-const VPT_SW_VERSION = 'vpt-v3.0.0-2026-05-25';
+const VPT_SW_VERSION = 'vpt-v3.1.0-2026-05-25';
 const VPT_CACHE_SHELL = `${VPT_SW_VERSION}-shell`;
 const VPT_CACHE_RUNTIME = `${VPT_SW_VERSION}-runtime`;
 

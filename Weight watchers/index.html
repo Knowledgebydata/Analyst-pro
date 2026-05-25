@@ -17,8 +17,8 @@
 
 <!-- CDN's -->
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- ZXing fallback voor barcode-scan op Safari/Firefox (Chrome/Edge gebruiken native BarcodeDetector) -->
-<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js" defer></script>
+<!-- html5-qrcode: werkt op Safari/Firefox/Chrome/Edge/iOS — voor barcode + QR scan -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
   tailwind.config = {
     darkMode: 'class',
@@ -195,7 +195,7 @@
               <i class="fas fa-barcode mr-1"></i>Scan
             </button>
           </div>
-          <select id="vpt-product-select" size="6" class="vpt-list-container w-full mt-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-1 text-sm hidden absolute z-50 shadow-xl max-h-72 bg-white dark:bg-slate-800" onchange="vptSelectProduct()"></select>
+          <div id="vpt-product-select" class="vpt-list-container hidden absolute top-full left-0 right-0 mt-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-md text-sm shadow-xl max-h-72 overflow-y-auto bg-white z-50"></div>
           <div id="vpt-selected-display" class="mt-2 text-sm font-semibold text-brand-600 dark:text-blue-400 min-h-[20px]"></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -681,12 +681,10 @@
       <button onclick="vptCloseScanner()" class="text-white hover:text-amber-100"><i class="fas fa-times text-xl"></i></button>
     </div>
     <div class="p-4">
-      <div class="bg-black rounded-lg overflow-hidden mb-3 aspect-video relative">
-        <video id="vpt-scanner-video" class="w-full h-full object-cover" autoplay playsinline muted></video>
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div class="border-4 border-amber-400 w-3/4 h-1/3 rounded shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]"></div>
-        </div>
-        <div id="vpt-scanner-status" class="absolute bottom-2 left-2 right-2 text-white text-xs bg-black/60 px-2 py-1 rounded text-center">
+      <div class="bg-black rounded-lg overflow-hidden mb-3 relative" style="min-height: 240px;">
+        <!-- html5-qrcode rendert hier de video-stream + scan-loop -->
+        <div id="vpt-scanner-reader" style="width: 100%;"></div>
+        <div id="vpt-scanner-status" class="absolute bottom-2 left-2 right-2 text-white text-xs bg-black/70 px-2 py-1 rounded text-center pointer-events-none z-10">
           Camera laden…
         </div>
       </div>
@@ -2317,15 +2315,17 @@ function vptFilterProducts() {
 function vptRenderProductSelect(items) {
   const sel = document.getElementById('vpt-product-select');
   if (!items.length) {
-    sel.innerHTML = '<option disabled>Geen resultaten — gebruik handmatig</option>';
+    sel.innerHTML = '<div class="px-3 py-2 text-slate-400 italic">Geen resultaten — klik op "Handmatig" om zelf in te voeren</div>';
     return;
   }
+  // Gebruik <button>-elementen i.p.v. <option>. Werkt overal, ook op iOS Safari.
   sel.innerHTML = items.map(p =>
-    `<option value="${p.id}">${p.points === 0 ? '🟢 ' : ''}${p.name} (${p.points} pt) ${p.source === 'eigen' ? '⭐' : ''}</option>`
+    `<button type="button" data-product-id="${p.id}" onclick="vptSelectProduct('${p.id}')" class="block w-full text-left px-3 py-2 hover:bg-brand-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 last:border-b-0 dark:text-slate-100">
+      ${p.points === 0 ? '<span class="text-emerald-500 mr-1">🟢</span>' : ''}<span class="font-medium">${p.name}</span> <span class="text-xs text-slate-500 dark:text-slate-400">(${p.points} pt)</span>${p.source === 'eigen' ? ' <span class="text-amber-500">⭐</span>' : ''}
+    </button>`
   ).join('');
 }
-function vptSelectProduct() {
-  const id = document.getElementById('vpt-product-select').value;
+function vptSelectProduct(id) {
   const p = vptFoodDb.find(x => x.id === id);
   if (!p) return;
   vptSelectedProduct = p;
@@ -2335,6 +2335,7 @@ function vptSelectProduct() {
   document.getElementById('vpt-amount').value = p.unitWeight;
   document.getElementById('vpt-input-label').textContent = p.unitType === 'gram' ? 'Gewicht (gram)' : p.unitType === 'ml' ? 'Volume (ml)' : 'Aantal';
   document.getElementById('vpt-product-select').classList.add('hidden');
+  document.getElementById('vpt-search').value = p.name;
   vptUpdatePointsPreview();
 }
 function vptUpdatePointsPreview() {
@@ -3538,11 +3539,8 @@ function vptUseSmartPoints() {
   vptUpdateManualLabel();
 }
 
-// ─── BARCODE SCANNER ────────────────────────────────────────────────────
-let vptScannerCtrl = null; // ZXing IScannerControls of MediaStream
-let vptScannerStream = null;
-let vptScannerDetector = null;
-let vptScannerActive = false;
+// ─── BARCODE SCANNER (html5-qrcode, robuust op Safari/iOS/Chrome/Edge) ──
+let vptHtml5QrCode = null;
 
 async function vptOpenScanner() {
   const modal = document.getElementById('vpt-scanner-modal');
@@ -3551,6 +3549,8 @@ async function vptOpenScanner() {
   document.getElementById('vpt-scanner-result').classList.add('hidden');
   document.getElementById('vpt-scanner-result').innerHTML = '';
   document.getElementById('vpt-scanner-manual').value = '';
+  // Wacht 1 frame zodat de modal eerst rendert (anders kan html5-qrcode geen video-element plaatsen)
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   await vptStartScanner();
 }
 function vptCloseScanner() {
@@ -3559,76 +3559,91 @@ function vptCloseScanner() {
   modal.classList.add('hidden');
   modal.classList.remove('flex');
 }
+
 async function vptStartScanner() {
-  const video = document.getElementById('vpt-scanner-video');
   const status = document.getElementById('vpt-scanner-status');
-  status.textContent = 'Camera vragen…';
+  status.textContent = 'Scanner starten…';
 
-  // Native BarcodeDetector (Chrome/Edge/Android)
-  const hasNative = 'BarcodeDetector' in window;
-  // ZXing als fallback
-  const hasZxing = typeof window.ZXingBrowser !== 'undefined';
+  // Library-check
+  if (typeof Html5Qrcode === 'undefined') {
+    status.textContent = 'Scanner-library niet geladen. Controleer internet of voer barcode handmatig in.';
+    console.error('VPT: Html5Qrcode niet beschikbaar');
+    return;
+  }
 
-  if (!hasNative && !hasZxing) {
-    status.textContent = 'Scanner niet ondersteund — gebruik handmatige invoer hieronder.';
+  // HTTPS-check (camera werkt alleen op secure context)
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    status.textContent = 'Camera vereist HTTPS. Voer barcode handmatig in.';
     return;
   }
 
   try {
-    vptScannerStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    video.srcObject = vptScannerStream;
-    await video.play();
-    vptScannerActive = true;
-    status.textContent = 'Houd de barcode in beeld…';
+    vptHtml5QrCode = new Html5Qrcode("vpt-scanner-reader", { verbose: false });
 
-    if (hasNative) {
-      vptScannerDetector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code', 'itf']
-      });
-      vptScanLoopNative(video);
-    } else {
-      // ZXing fallback
-      const reader = new window.ZXingBrowser.BrowserMultiFormatReader();
-      vptScannerCtrl = await reader.decodeFromStream(vptScannerStream, video, (result, err) => {
-        if (result && vptScannerActive) {
-          vptOnBarcodeDetected(result.getText());
-        }
-      });
-    }
+    // Lijst van ondersteunde barcode-formaten
+    const formats = [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.ITF,
+    ];
+
+    const config = {
+      fps: 10,
+      qrbox: function(viewfinderWidth, viewfinderHeight) {
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        const size = Math.floor(minEdge * 0.8);
+        return { width: size, height: Math.floor(size * 0.6) };
+      },
+      formatsToSupport: formats,
+      aspectRatio: 1.7777778,
+    };
+
+    await vptHtml5QrCode.start(
+      { facingMode: { ideal: 'environment' } },
+      config,
+      (decodedText) => {
+        // Success-callback (eenmalig)
+        vptOnBarcodeDetected(decodedText);
+      },
+      (errorMessage) => {
+        // Per-frame error (negeer — alleen voor debug interessant)
+      }
+    );
+
+    status.textContent = 'Houd de barcode horizontaal in beeld…';
   } catch (err) {
-    console.error('VPT: scanner error', err);
-    status.textContent = 'Kon camera niet openen: ' + (err.message || err.name || 'onbekende fout');
-  }
-}
-async function vptScanLoopNative(video) {
-  if (!vptScannerActive || !vptScannerDetector) return;
-  try {
-    const codes = await vptScannerDetector.detect(video);
-    if (codes.length > 0) {
-      vptOnBarcodeDetected(codes[0].rawValue);
-      return;
+    console.error('VPT: scanner start error', err);
+    let msg = err.message || err.name || String(err);
+    if (msg.includes('Permission') || msg.includes('NotAllowed')) {
+      msg = 'Geen camera-toestemming. Controleer browser-instellingen.';
+    } else if (msg.includes('NotFound') || msg.includes('NotReadable')) {
+      msg = 'Geen camera gevonden. Voer de barcode handmatig in.';
     }
-  } catch (err) { /* swallow per-frame errors */ }
-  requestAnimationFrame(() => vptScanLoopNative(video));
-}
-function vptStopScanner() {
-  vptScannerActive = false;
-  if (vptScannerCtrl && typeof vptScannerCtrl.stop === 'function') {
-    try { vptScannerCtrl.stop(); } catch (e) {}
-    vptScannerCtrl = null;
+    status.textContent = msg;
   }
-  if (vptScannerStream) {
-    vptScannerStream.getTracks().forEach(t => t.stop());
-    vptScannerStream = null;
-  }
-  const video = document.getElementById('vpt-scanner-video');
-  if (video) video.srcObject = null;
-  vptScannerDetector = null;
 }
+
+async function vptStopScanner() {
+  if (vptHtml5QrCode) {
+    try {
+      if (vptHtml5QrCode.isScanning) {
+        await vptHtml5QrCode.stop();
+      }
+      vptHtml5QrCode.clear();
+    } catch (err) {
+      console.warn('VPT: scanner stop error', err);
+    }
+    vptHtml5QrCode = null;
+  }
+}
+
 async function vptOnBarcodeDetected(code) {
-  vptStopScanner();
+  await vptStopScanner();
   document.getElementById('vpt-scanner-status').textContent = 'Barcode: ' + code + ' — opzoeken…';
   await vptLookupBarcode(code);
 }
