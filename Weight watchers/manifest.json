@@ -1,0 +1,57 @@
+{
+  "name": "Voedingspunten Tracker",
+  "short_name": "VPT",
+  "description": "Voedingspunten Tracker — Weight Watchers-stijl, 100% lokaal in de browser",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a2540",
+  "theme_color": "#1d4ed8",
+  "lang": "nl",
+  "dir": "ltr",
+  "categories": ["health", "lifestyle", "food", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dagboek",
+      "short_name": "Dagboek",
+      "description": "Open direct het dagboek voor vandaag",
+      "url": "./index.html#dagboek",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Barcode scannen",
+      "short_name": "Scan",
+      "description": "Scan direct een productbarcode",
+      "url": "./index.html#scan",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

@@ -1,0 +1,3834 @@
+<!DOCTYPE html>
+<html lang="nl" class="">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1d4ed8">
+<title>Voedingspunten Tracker — Knowledge by Data</title>
+
+<!-- PWA manifest + icons -->
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VPT">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- CDN's -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- ZXing fallback voor barcode-scan op Safari/Firefox (Chrome/Edge gebruiken native BarcodeDetector) -->
+<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js" defer></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: { colors: { brand: { 50: '#eef5ff', 500: '#3b6ea5', 600: '#1d4ed8', 700: '#1e40af', 900: '#0a2540' } } } }
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+  /* BEM-naamgeving voor custom CSS — Tailwind blijft eerste keus */
+  :root {
+    --vpt-radius: 0.75rem;
+    --vpt-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  .vpt-fade-in { animation: vptFadeIn 0.25s ease-in-out; }
+  @keyframes vptFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .vpt-list-container::-webkit-scrollbar { width: 8px; }
+  .vpt-list-container::-webkit-scrollbar-track { background: transparent; }
+  .vpt-list-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+  .vpt-list-container::-webkit-scrollbar-thumb:hover { background: #64748b; }
+  .vpt-tab--active { border-bottom-color: #1d4ed8; color: #1d4ed8; font-weight: 600; }
+  .dark .vpt-tab--active { border-bottom-color: #60a5fa; color: #60a5fa; }
+  .vpt-zero-badge { background: #10b981; color: #fff; font-size: 0.6rem; padding: 1px 6px; border-radius: 999px; font-weight: 700; letter-spacing: 0.05em; }
+  .vpt-fav-star { cursor: pointer; transition: transform 0.15s; }
+  .vpt-fav-star:hover { transform: scale(1.25); }
+  .vpt-fav-star--on { color: #f59e0b; }
+  .vpt-fav-star--off { color: #cbd5e1; }
+  .dark .vpt-fav-star--off { color: #475569; }
+  /* Print: alleen dagboek-content */
+  @media print {
+    .vpt-no-print { display: none !important; }
+    body { background: white !important; }
+  }
+</style>
+</head>
+
+<body id="vpt-body" class="bg-slate-100 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen">
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- HEADER + TAB NAVIGATIE                                                -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<header class="bg-gradient-to-r from-brand-600 to-brand-900 text-white shadow-lg vpt-no-print">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <i class="fas fa-utensils text-2xl"></i>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold leading-tight">Voedingspunten Tracker</h1>
+        <p class="text-xs text-blue-200 leading-tight">Knowledge by Data &middot; WeightWatchers-stijl &middot; lokaal &amp; privé</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <button onclick="vptInstallPwa()" id="vpt-install-btn" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-md text-sm font-medium" title="App installeren">
+        <i class="fas fa-download"></i> <span class="hidden sm:inline">Installeer</span>
+      </button>
+      <button onclick="vptOpenScanner()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-md text-sm" title="Barcode scannen">
+        <i class="fas fa-barcode"></i> <span class="hidden sm:inline">Scan</span>
+      </button>
+      <button onclick="vptToggleTheme()" id="vpt-theme-btn" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm" title="Wissel licht/donker">
+        <i class="fas fa-moon" id="vpt-theme-icon"></i>
+      </button>
+      <button onclick="vptToggleFullscreen()" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm" title="Volledig scherm">
+        <i class="fas fa-expand" id="vpt-fs-icon"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab-navigatie -->
+  <nav class="max-w-6xl mx-auto px-2 sm:px-6 flex gap-1 overflow-x-auto" role="tablist">
+    <button class="vpt-tab vpt-tab--active px-3 sm:px-4 py-3 border-b-2 border-transparent text-sm whitespace-nowrap flex items-center gap-2" data-tab="dagboek" onclick="vptShowTab('dagboek')">
+      <i class="fas fa-book"></i> Dagboek
+    </button>
+    <button class="vpt-tab px-3 sm:px-4 py-3 border-b-2 border-transparent text-sm whitespace-nowrap flex items-center gap-2 text-blue-100 hover:text-white" data-tab="recepten" onclick="vptShowTab('recepten')">
+      <i class="fas fa-blender"></i> Recepten
+    </button>
+    <button class="vpt-tab px-3 sm:px-4 py-3 border-b-2 border-transparent text-sm whitespace-nowrap flex items-center gap-2 text-blue-100 hover:text-white" data-tab="gewicht" onclick="vptShowTab('gewicht')">
+      <i class="fas fa-weight-scale"></i> Gewicht
+    </button>
+    <button class="vpt-tab px-3 sm:px-4 py-3 border-b-2 border-transparent text-sm whitespace-nowrap flex items-center gap-2 text-blue-100 hover:text-white" data-tab="statistieken" onclick="vptShowTab('statistieken')">
+      <i class="fas fa-chart-column"></i> Statistieken
+    </button>
+    <button class="vpt-tab px-3 sm:px-4 py-3 border-b-2 border-transparent text-sm whitespace-nowrap flex items-center gap-2 text-blue-100 hover:text-white" data-tab="database" onclick="vptShowTab('database')">
+      <i class="fas fa-database"></i> Database
+    </button>
+    <button class="vpt-tab px-3 sm:px-4 py-3 border-b-2 border-transparent text-sm whitespace-nowrap flex items-center gap-2 text-blue-100 hover:text-white" data-tab="instellingen" onclick="vptShowTab('instellingen')">
+      <i class="fas fa-gear"></i> Instellingen
+    </button>
+  </nav>
+</header>
+
+<main class="max-w-6xl mx-auto p-3 sm:p-6">
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB: DAGBOEK                                                          -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<section id="vpt-tab-dagboek" class="vpt-tab-content vpt-fade-in" role="tabpanel">
+
+  <!-- KPI-cards + datumkiezer -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4 sm:p-5 mb-4">
+    <div class="flex flex-col md:flex-row md:items-end gap-4 mb-4">
+      <div class="flex-1">
+        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Datum</label>
+        <div class="flex items-center gap-3">
+          <input type="date" id="vpt-date-picker" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 font-medium" onchange="vptOnDateChange()">
+          <span id="vpt-date-text" class="text-sm text-slate-500 dark:text-slate-400"></span>
+          <button onclick="vptShiftDate(-1)" class="text-slate-500 hover:text-brand-600 px-2" title="Vorige dag"><i class="fas fa-chevron-left"></i></button>
+          <button onclick="vptShiftDate(1)" class="text-slate-500 hover:text-brand-600 px-2" title="Volgende dag"><i class="fas fa-chevron-right"></i></button>
+          <button onclick="vptShiftDate(0)" class="text-xs text-brand-600 hover:underline">vandaag</button>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <div class="bg-brand-600 text-white rounded-lg p-3 min-w-[110px] text-center shadow">
+          <div class="text-xs uppercase opacity-80">Dagdoel</div>
+          <div class="text-2xl font-bold" id="vpt-kpi-target">28</div>
+          <div class="text-xs opacity-80">punten</div>
+        </div>
+        <div class="bg-white dark:bg-slate-700 border-2 border-brand-600 rounded-lg p-3 min-w-[110px] text-center shadow">
+          <div class="text-xs uppercase text-slate-500 dark:text-slate-400">Gegeten</div>
+          <div class="text-2xl font-bold text-brand-600 dark:text-blue-400" id="vpt-kpi-consumed">0</div>
+          <div class="text-xs text-slate-400">vandaag</div>
+        </div>
+        <div class="rounded-lg p-3 min-w-[110px] text-center shadow text-white" id="vpt-kpi-remaining-card" style="background:#1e40af;">
+          <div class="text-xs uppercase opacity-80">Over</div>
+          <div class="text-2xl font-bold" id="vpt-kpi-remaining">28</div>
+          <div class="text-xs opacity-80">vandaag</div>
+        </div>
+        <div class="bg-amber-500 text-white rounded-lg p-3 min-w-[110px] text-center shadow">
+          <div class="text-xs uppercase opacity-90">Weekbonus</div>
+          <div class="text-2xl font-bold" id="vpt-kpi-weekbonus">42</div>
+          <div class="text-xs opacity-90" id="vpt-kpi-weekbonus-used">0 gebruikt</div>
+        </div>
+        <div class="bg-emerald-600 text-white rounded-lg p-3 min-w-[110px] text-center shadow">
+          <div class="text-xs uppercase opacity-90">Activiteit</div>
+          <div class="text-2xl font-bold" id="vpt-kpi-activity">0</div>
+          <div class="text-xs opacity-90">verdiend</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress-bar -->
+    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+      <div id="vpt-progress-bar" class="h-full bg-gradient-to-r from-brand-600 to-brand-900 transition-all" style="width:0%"></div>
+    </div>
+
+    <div id="vpt-limit-warning" class="hidden mt-3 bg-red-500 text-white text-sm font-bold px-4 py-2 rounded animate-pulse text-center">
+      <i class="fas fa-triangle-exclamation mr-2"></i> Daglimiet overschreden — gebruik je weekbonus
+    </div>
+  </div>
+
+  <!-- Input-blokken: Voeding + Activiteit -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
+
+    <!-- VOEDING -->
+    <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300"><i class="fas fa-apple-whole mr-1 text-brand-600"></i> Voeding toevoegen</h2>
+        <div class="flex gap-2">
+          <button onclick="vptToggleFilter('favorites')" id="vpt-filter-fav-btn" class="text-xs text-slate-500 hover:text-amber-500 px-2 py-1 rounded">
+            <i class="fas fa-star"></i> Alleen favorieten
+          </button>
+          <button onclick="vptToggleMode('manual')" class="text-xs text-brand-600 hover:underline">Handmatig</button>
+        </div>
+      </div>
+
+      <!-- ZOEK-MODUS -->
+      <div id="vpt-mode-search">
+        <div class="relative mb-3">
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Product zoeken</label>
+          <div class="flex gap-2">
+            <input type="text" id="vpt-search" placeholder="Typ om te zoeken (bv. appel, brood)..." class="flex-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 focus:ring-2 focus:ring-brand-600" oninput="vptFilterProducts()">
+            <button onclick="vptOpenScanner()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 rounded-md text-sm whitespace-nowrap" title="Barcode scannen">
+              <i class="fas fa-barcode mr-1"></i>Scan
+            </button>
+          </div>
+          <select id="vpt-product-select" size="6" class="vpt-list-container w-full mt-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-1 text-sm hidden absolute z-50 shadow-xl max-h-72 bg-white dark:bg-slate-800" onchange="vptSelectProduct()"></select>
+          <div id="vpt-selected-display" class="mt-2 text-sm font-semibold text-brand-600 dark:text-blue-400 min-h-[20px]"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1" id="vpt-input-label">Aantal / Gewicht</label>
+            <div class="flex">
+              <input type="number" id="vpt-amount" step="0.1" placeholder="1" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-l-md p-2 focus:ring-2 focus:ring-brand-600">
+              <span class="bg-slate-100 dark:bg-slate-600 border border-l-0 border-slate-300 dark:border-slate-600 rounded-r-md px-3 flex items-center text-slate-600 dark:text-slate-300 text-xs" id="vpt-unit-label">stuks</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Moment</label>
+            <select id="vpt-meal-select" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 focus:ring-2 focus:ring-brand-600">
+              <option value="Ochtend">Ochtend</option>
+              <option value="Middag">Middag</option>
+              <option value="Avond">Avond</option>
+              <option value="Extra">Tussendoor</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-between items-center mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+          <span id="vpt-points-preview" class="text-sm font-bold text-slate-600 dark:text-slate-300"></span>
+          <button onclick="vptAddFromSearch()" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold py-2 px-6 rounded-md shadow">
+            <i class="fas fa-plus mr-1"></i> Toevoegen
+          </button>
+        </div>
+      </div>
+
+      <!-- HANDMATIGE MODUS -->
+      <div id="vpt-mode-manual" class="hidden vpt-fade-in">
+        <div class="flex justify-between items-center mb-3 bg-orange-50 dark:bg-orange-900/30 p-2 rounded border border-orange-200 dark:border-orange-800">
+          <h3 class="text-sm font-bold text-orange-800 dark:text-orange-300"><i class="fas fa-pen mr-1"></i> Handmatige invoer</h3>
+          <button onclick="vptToggleMode('search')" class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"><i class="fas fa-times"></i> Annuleren</button>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Productnaam</label>
+            <input type="text" id="vpt-manual-name" placeholder="Bijv. Broodje shoarma" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 focus:ring-2 focus:ring-orange-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-50 dark:bg-slate-700/50 p-2 rounded border border-slate-200 dark:border-slate-600">
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Waarde per portie</label>
+              <div class="flex gap-2 mb-2 text-xs">
+                <label class="flex items-center gap-1"><input type="radio" name="vpt-val-type" value="pts" checked onchange="vptUpdateManualLabel()"> Punten</label>
+                <label class="flex items-center gap-1"><input type="radio" name="vpt-val-type" value="kcal" onchange="vptUpdateManualLabel()"> Kcal</label>
+              </div>
+              <input type="number" id="vpt-manual-value" step="0.5" placeholder="0" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 focus:ring-2 focus:ring-orange-500 text-right">
+              <div class="text-[10px] text-slate-400 mt-1 text-right" id="vpt-manual-helper">Voer direct punten in</div>
+            </div>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Aantal</label>
+                <input type="number" id="vpt-manual-amount" value="1" step="0.5" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 focus:ring-2 focus:ring-orange-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Moment</label>
+                <select id="vpt-manual-meal" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 focus:ring-2 focus:ring-orange-500">
+                  <option value="Ochtend">Ochtend</option>
+                  <option value="Middag">Middag</option>
+                  <option value="Avond">Avond</option>
+                  <option value="Extra">Tussendoor</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+            <input type="checkbox" id="vpt-manual-save-db"> Toevoegen aan eigen database voor later gebruik
+          </label>
+
+          <!-- Nutrifacts-uitklap (SmartPoints-berekening) -->
+          <details class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-2">
+            <summary class="text-xs font-bold text-blue-800 dark:text-blue-300 cursor-pointer">
+              <i class="fas fa-flask mr-1"></i> Nutrifacts gebruiken (auto-bereken SmartPoints)
+            </summary>
+            <p class="text-[10px] text-blue-700 dark:text-blue-300 mt-2 mb-2">
+              Voer voedingswaarden per portie in. SmartPoints worden automatisch berekend volgens:
+              <code>round((kcal × 0.0305) + (verz_vet × 0.275) + (suiker × 0.12) − (eiwit × 0.098))</code>
+            </p>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <label class="block text-[10px] text-slate-500 dark:text-slate-400">Kcal</label>
+                <input type="number" id="vpt-nf-kcal" step="1" min="0" placeholder="0" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" oninput="vptCalcSmartPoints()">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-500 dark:text-slate-400">Verz. vet (g)</label>
+                <input type="number" id="vpt-nf-satfat" step="0.1" min="0" placeholder="0" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" oninput="vptCalcSmartPoints()">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-500 dark:text-slate-400">Suiker (g)</label>
+                <input type="number" id="vpt-nf-sugar" step="0.1" min="0" placeholder="0" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" oninput="vptCalcSmartPoints()">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-500 dark:text-slate-400">Eiwit (g)</label>
+                <input type="number" id="vpt-nf-protein" step="0.1" min="0" placeholder="0" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" oninput="vptCalcSmartPoints()">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-500 dark:text-slate-400">Vet totaal (g)</label>
+                <input type="number" id="vpt-nf-fat" step="0.1" min="0" placeholder="0" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" oninput="vptCalcSmartPoints()">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-500 dark:text-slate-400">Vezels (g)</label>
+                <input type="number" id="vpt-nf-fiber" step="0.1" min="0" placeholder="0" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" oninput="vptCalcSmartPoints()">
+              </div>
+            </div>
+            <div class="mt-2 flex justify-between items-center bg-white dark:bg-slate-800 rounded p-2">
+              <span class="text-xs text-slate-500 dark:text-slate-400">Berekend:</span>
+              <span class="font-bold text-blue-700 dark:text-blue-300"><span id="vpt-nf-pts">0</span> pt (SmartPoints)</span>
+              <button type="button" onclick="vptUseSmartPoints()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Gebruik dit</button>
+            </div>
+          </details>
+
+          <button onclick="vptAddManual()" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold py-2 rounded-md shadow">
+            <i class="fas fa-plus mr-1"></i> Opslaan in dagboek
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITEIT + NOTITIE -->
+    <div class="lg:col-span-5 space-y-4">
+      <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl shadow p-4">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300 mb-2"><i class="fas fa-person-running mr-1"></i> Activiteit</h2>
+        <p class="text-xs text-emerald-600 dark:text-emerald-400 mb-3">Verbrande kcal → extra weekbonus-punten (verhoogt het dagdoel niet).</p>
+        <div class="flex gap-2 items-end">
+          <div class="w-full">
+            <label class="block text-xs font-medium text-emerald-700 dark:text-emerald-300 mb-1">Verbrande kcal</label>
+            <input type="number" id="vpt-sport-kcal" placeholder="bv. 300" class="w-full border border-emerald-300 dark:border-emerald-700 dark:bg-slate-700 rounded-md p-2 focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <button onclick="vptAddActivity()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2 px-4 rounded-md shadow h-[42px]">Invoeren</button>
+        </div>
+        <div class="text-right mt-2 text-xs text-emerald-700 dark:text-emerald-300" id="vpt-kcal-per-pt-text">~70 kcal = 1 punt</div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-2"><i class="fas fa-note-sticky mr-1"></i> Dagnotitie</h2>
+        <textarea id="vpt-day-note" rows="3" placeholder="Honger, energie, sport, gevoel..." class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 text-sm focus:ring-2 focus:ring-brand-600" oninput="vptSaveNote()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dagoverzicht-tabel per maaltijd -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4 sm:p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">Dagoverzicht</h2>
+      <div class="flex gap-2 vpt-no-print">
+        <button onclick="vptCopyPreviousDay()" class="text-xs text-slate-600 dark:text-slate-300 hover:text-brand-600 px-3 py-1.5 border border-slate-200 dark:border-slate-600 rounded">
+          <i class="fas fa-copy mr-1"></i> Vorige dag kopiëren
+        </button>
+        <button onclick="window.print()" class="text-xs text-slate-600 dark:text-slate-300 hover:text-brand-600 px-3 py-1.5 border border-slate-200 dark:border-slate-600 rounded">
+          <i class="fas fa-print mr-1"></i> Print
+        </button>
+        <button onclick="vptClearDay()" class="text-xs text-red-600 hover:text-red-700 px-3 py-1.5 border border-red-200 dark:border-red-800 rounded">
+          <i class="fas fa-trash-can mr-1"></i> Dag wissen
+        </button>
+      </div>
+    </div>
+    <div id="vpt-log-by-meal"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB: RECEPTEN                                                         -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<section id="vpt-tab-recepten" class="vpt-tab-content hidden vpt-fade-in" role="tabpanel">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- Recept-bouwer -->
+    <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+      <h2 class="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100"><i class="fas fa-blender mr-2 text-brand-600"></i> Recept samenstellen</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Receptnaam</label>
+          <input type="text" id="vpt-recipe-name" placeholder="Bijv. Pasta bolognese voor 4" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Porties</label>
+          <input type="number" id="vpt-recipe-portions" value="4" min="1" step="1" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptRenderRecipeIngredients()">
+        </div>
+      </div>
+
+      <div class="bg-slate-50 dark:bg-slate-700/40 p-3 rounded border border-slate-200 dark:border-slate-600 mb-3">
+        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Ingrediënt zoeken &amp; toevoegen</label>
+        <div class="relative">
+          <input type="text" id="vpt-recipe-search" placeholder="Typ om te zoeken..." class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptFilterRecipeProducts()">
+          <select id="vpt-recipe-select" size="5" class="vpt-list-container w-full mt-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-1 text-sm hidden absolute z-50 shadow-xl max-h-60 bg-white dark:bg-slate-800" onchange="vptAddIngredient()"></select>
+        </div>
+      </div>
+
+      <div id="vpt-recipe-ingredients" class="space-y-2 mb-3 min-h-[60px]"></div>
+
+      <div class="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-700">
+        <div class="text-sm">
+          <div class="text-slate-500 dark:text-slate-400">Totaal: <span class="font-bold text-brand-600 dark:text-blue-400" id="vpt-recipe-total">0</span> pt</div>
+          <div class="text-slate-500 dark:text-slate-400">Per portie: <span class="font-bold text-brand-600 dark:text-blue-400" id="vpt-recipe-per-portion">0</span> pt</div>
+        </div>
+        <button onclick="vptSaveRecipe()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-5 rounded-md shadow"><i class="fas fa-save mr-1"></i> Recept opslaan</button>
+      </div>
+    </div>
+
+    <!-- Opgeslagen recepten -->
+    <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+      <h2 class="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100"><i class="fas fa-bookmark mr-2 text-brand-600"></i> Mijn recepten</h2>
+      <div id="vpt-recipes-list" class="space-y-2 max-h-[500px] overflow-y-auto vpt-list-container"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB: GEWICHT                                                          -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<section id="vpt-tab-gewicht" class="vpt-tab-content hidden vpt-fade-in" role="tabpanel">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- Invoer -->
+    <div class="lg:col-span-5 space-y-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <h2 class="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100"><i class="fas fa-weight-scale mr-2 text-brand-600"></i> Weging invoeren</h2>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Datum</label>
+            <input type="date" id="vpt-weight-date" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Gewicht (kg)</label>
+            <input type="number" id="vpt-weight-kg" step="0.1" placeholder="bv. 78.5" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2">
+          </div>
+        </div>
+        <button onclick="vptAddWeight()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-md shadow"><i class="fas fa-plus mr-1"></i> Weging opslaan</button>
+      </div>
+
+      <!-- BMI + samenvatting -->
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-3">Samenvatting</h3>
+        <div id="vpt-weight-summary" class="space-y-2 text-sm"></div>
+      </div>
+    </div>
+
+    <!-- Grafiek + lijst -->
+    <div class="lg:col-span-7 space-y-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-3">Gewichtsverloop</h3>
+        <div style="position:relative; height:280px;">
+          <canvas id="vpt-weight-chart"></canvas>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300">Wegingen</h3>
+          <button onclick="vptExportWeights()" class="text-xs text-brand-600 hover:underline"><i class="fas fa-file-export mr-1"></i> Exporteer CSV</button>
+        </div>
+        <div id="vpt-weight-list" class="space-y-1 text-sm max-h-[300px] overflow-y-auto vpt-list-container"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB: STATISTIEKEN                                                     -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<section id="vpt-tab-statistieken" class="vpt-tab-content hidden vpt-fade-in" role="tabpanel">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-3 text-center">
+      <div class="text-xs uppercase text-slate-500 dark:text-slate-400">Streak</div>
+      <div class="text-3xl font-bold text-amber-500"><i class="fas fa-fire"></i> <span id="vpt-stat-streak">0</span></div>
+      <div class="text-xs text-slate-400">dagen op koers</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-3 text-center">
+      <div class="text-xs uppercase text-slate-500 dark:text-slate-400">Gemiddeld/dag</div>
+      <div class="text-3xl font-bold text-brand-600 dark:text-blue-400" id="vpt-stat-avg">0</div>
+      <div class="text-xs text-slate-400">punten (30d)</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-3 text-center">
+      <div class="text-xs uppercase text-slate-500 dark:text-slate-400">Deze week</div>
+      <div class="text-3xl font-bold text-emerald-600" id="vpt-stat-week-total">0</div>
+      <div class="text-xs text-slate-400">punten totaal</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-3 text-center">
+      <div class="text-xs uppercase text-slate-500 dark:text-slate-400">Activiteit</div>
+      <div class="text-3xl font-bold text-emerald-600" id="vpt-stat-week-activity">0</div>
+      <div class="text-xs text-slate-400">pt verdiend (7d)</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+      <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-3">Punten per dag (14d)</h3>
+      <div style="position:relative; height:240px;"><canvas id="vpt-stats-daily-chart"></canvas></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+      <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-3">Punten per maaltijd (7d)</h3>
+      <div style="position:relative; height:240px;"><canvas id="vpt-stats-meal-chart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+    <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-3">Top 15 meest gegeten (30 dagen)</h3>
+    <div id="vpt-stats-top-foods" class="space-y-1 text-sm"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB: DATABASE                                                         -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<section id="vpt-tab-database" class="vpt-tab-content hidden vpt-fade-in" role="tabpanel">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- Toevoegen -->
+    <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+      <h2 class="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100"><i class="fas fa-circle-plus mr-2 text-brand-600"></i> Eigen voedingsmiddel</h2>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Naam (incl. eenheid, bv. "Smoothie banaan 250 ml")</label>
+          <input type="text" id="vpt-db-name" placeholder="Naam..." class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Punten per portie</label>
+            <input type="number" id="vpt-db-points" step="0.5" placeholder="0" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Eenheid</label>
+            <select id="vpt-db-unit" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2">
+              <option value="stuks">stuks</option>
+              <option value="gram">gram</option>
+              <option value="ml">ml</option>
+              <option value="portie">portie</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="vptAddCustomFood()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-md shadow"><i class="fas fa-plus mr-1"></i> Toevoegen aan eigen DB</button>
+      </div>
+      <hr class="my-4 border-slate-200 dark:border-slate-700">
+      <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-2">Import / Export</h3>
+      <div class="flex flex-col gap-2">
+        <button onclick="vptExportJson()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 text-sm font-medium py-2 px-4 rounded">
+          <i class="fas fa-file-download mr-1"></i> Volledige backup (JSON)
+        </button>
+        <label class="cursor-pointer bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 text-sm font-medium py-2 px-4 rounded text-center">
+          <i class="fas fa-file-upload mr-1"></i> Backup importeren (JSON)
+          <input type="file" accept=".json" class="hidden" onchange="vptImportJson(event)">
+        </label>
+        <button onclick="vptExportXlsx()" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium py-2 px-4 rounded">
+          <i class="fas fa-file-excel mr-1"></i> Huidige dag → Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- Lijst -->
+    <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">Voedingsmiddelen-database</h2>
+        <span class="text-xs text-slate-500 dark:text-slate-400" id="vpt-db-counter"></span>
+      </div>
+      <input type="text" id="vpt-db-search" placeholder="Zoeken in database..." class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2 text-sm mb-3" oninput="vptRenderDatabase()">
+      <div id="vpt-db-list" class="space-y-1 text-sm max-h-[500px] overflow-y-auto vpt-list-container"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB: INSTELLINGEN                                                     -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<section id="vpt-tab-instellingen" class="vpt-tab-content hidden vpt-fade-in" role="tabpanel">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+      <h2 class="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100"><i class="fas fa-user mr-2 text-brand-600"></i> Persoonlijk profiel</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Op basis van leeftijd, geslacht, lengte, gewicht en activiteit berekenen we een richt-dagdoel volgens de WW-formule (~10% deficit op TDEE / 70 kcal = 1 pt).</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Naam (optioneel)</label>
+          <input type="text" id="vpt-profile-name" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptSaveProfile()">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Geslacht</label>
+          <select id="vpt-profile-gender" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" onchange="vptSaveProfile()">
+            <option value="v">Vrouw</option>
+            <option value="m">Man</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Leeftijd</label>
+          <input type="number" id="vpt-profile-age" min="14" max="100" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptSaveProfile()">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Lengte (cm)</label>
+          <input type="number" id="vpt-profile-height" min="120" max="220" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptSaveProfile()">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Huidig gewicht (kg)</label>
+          <input type="number" id="vpt-profile-weight" step="0.1" min="30" max="250" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptSaveProfile()">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Streefgewicht (kg)</label>
+          <input type="number" id="vpt-profile-target-weight" step="0.1" min="30" max="200" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptSaveProfile()">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Activiteit-niveau</label>
+          <select id="vpt-profile-activity" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" onchange="vptSaveProfile()">
+            <option value="1.2">Zittend (weinig beweging)</option>
+            <option value="1.375" selected>Licht actief (1–3× sport/week)</option>
+            <option value="1.55">Matig actief (3–5× sport/week)</option>
+            <option value="1.725">Zeer actief (6–7× sport/week)</option>
+            <option value="1.9">Extreem actief (zware fysieke job)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-4 bg-brand-50 dark:bg-brand-900/30 border border-brand-500/30 rounded p-3 text-sm">
+        <div class="flex justify-between"><span>BMR:</span><span class="font-bold" id="vpt-calc-bmr">— kcal</span></div>
+        <div class="flex justify-between"><span>TDEE:</span><span class="font-bold" id="vpt-calc-tdee">— kcal</span></div>
+        <div class="flex justify-between"><span>Berekend dagdoel:</span><span class="font-bold text-brand-700 dark:text-blue-300" id="vpt-calc-target">— pt</span></div>
+        <div class="flex justify-between"><span>BMI:</span><span class="font-bold" id="vpt-calc-bmi">—</span></div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Dagdoel handmatig overschrijven</label>
+          <input type="number" id="vpt-setting-target" min="10" max="60" step="1" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptSaveProfile()">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Weekbonus (pt)</label>
+          <input type="number" id="vpt-setting-weekbonus" min="0" max="100" step="1" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptSaveProfile()">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Kcal per activiteitspunt</label>
+          <input type="number" id="vpt-setting-kcal-per-pt" min="40" max="200" step="5" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" oninput="vptSaveProfile()">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Weekstart</label>
+          <select id="vpt-setting-week-start" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md p-2" onchange="vptSaveProfile()">
+            <option value="1">Maandag</option>
+            <option value="0">Zondag</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <h2 class="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100"><i class="fas fa-palette mr-2 text-brand-600"></i> Weergave</h2>
+        <div class="flex items-center justify-between">
+          <span class="text-sm">Donker thema</span>
+          <button onclick="vptToggleTheme()" class="bg-slate-200 dark:bg-brand-600 relative w-12 h-6 rounded-full transition">
+            <span class="absolute top-0.5 left-0.5 dark:left-6 w-5 h-5 bg-white rounded-full transition-all"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <h2 class="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100"><i class="fas fa-circle-info mr-2 text-brand-600"></i> Over deze tracker</h2>
+        <ul class="text-sm space-y-1 text-slate-600 dark:text-slate-400">
+          <li>&bull; Werkt 100% lokaal in de browser (LocalStorage)</li>
+          <li>&bull; Geen data wordt verzonden naar servers</li>
+          <li>&bull; Maak regelmatig een JSON-backup via &raquo; Database</li>
+          <li>&bull; Database: ~250 NL producten + eigen toevoegingen</li>
+          <li>&bull; PWA-installatie wordt later toegevoegd</li>
+        </ul>
+        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
+          Versie 2.0 &middot; 25 mei 2026 &middot; Knowledge by Data B.V.
+        </div>
+      </div>
+
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+        <h2 class="text-lg font-bold mb-2 text-red-800 dark:text-red-300"><i class="fas fa-triangle-exclamation mr-2"></i> Gevarenzone</h2>
+        <p class="text-xs text-red-700 dark:text-red-300 mb-3">Wis alle data permanent (dagboek, recepten, gewichten, profiel, eigen DB). Onomkeerbaar.</p>
+        <button onclick="vptResetAll()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded">Wis alle gegevens</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- SCANNER MODAL                                                         -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="vpt-scanner-modal" class="fixed inset-0 z-[100] bg-black/80 hidden items-center justify-center p-4 vpt-fade-in">
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div class="bg-amber-500 text-white p-3 flex justify-between items-center">
+      <h2 class="font-bold"><i class="fas fa-barcode mr-2"></i>Barcode scannen</h2>
+      <button onclick="vptCloseScanner()" class="text-white hover:text-amber-100"><i class="fas fa-times text-xl"></i></button>
+    </div>
+    <div class="p-4">
+      <div class="bg-black rounded-lg overflow-hidden mb-3 aspect-video relative">
+        <video id="vpt-scanner-video" class="w-full h-full object-cover" autoplay playsinline muted></video>
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <div class="border-4 border-amber-400 w-3/4 h-1/3 rounded shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]"></div>
+        </div>
+        <div id="vpt-scanner-status" class="absolute bottom-2 left-2 right-2 text-white text-xs bg-black/60 px-2 py-1 rounded text-center">
+          Camera laden…
+        </div>
+      </div>
+      <div class="text-xs text-slate-500 dark:text-slate-400 mb-3 text-center">
+        Of voer de barcode handmatig in:
+      </div>
+      <div class="flex gap-2 mb-3">
+        <input type="text" id="vpt-scanner-manual" placeholder="bv. 8718265054005" pattern="[0-9]*" inputmode="numeric" class="flex-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-2 text-sm">
+        <button onclick="vptLookupBarcode(document.getElementById('vpt-scanner-manual').value)" class="bg-brand-600 hover:bg-brand-700 text-white px-4 rounded text-sm">Zoek</button>
+      </div>
+      <div id="vpt-scanner-result" class="hidden"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- PWA INSTALL TOAST                                                     -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="vpt-update-toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] hidden bg-brand-700 text-white px-4 py-3 rounded-lg shadow-xl">
+  <span class="mr-3"><i class="fas fa-arrow-rotate-right mr-1"></i> Nieuwe versie beschikbaar</span>
+  <button onclick="vptApplyUpdate()" class="bg-white text-brand-700 font-bold px-3 py-1 rounded text-sm">Herladen</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS                                                                -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─── CONFIG ──────────────────────────────────────────────────────────────
+const VPT_DEFAULTS = Object.freeze({
+  dailyTarget: 28,
+  weeklyBonus: 42,
+  kcalPerPoint: 70,
+  weekStart: 1, // 1=ma, 0=zo
+  theme: 'light',
+});
+
+const VPT_LS = Object.freeze({
+  log: (date) => `vpt_log_${date}`,
+  note: (date) => `vpt_note_${date}`,
+  weights: 'vpt_weights',
+  recipes: 'vpt_recipes',
+  customDb: 'vpt_custom_db',
+  favorites: 'vpt_favorites',
+  profile: 'vpt_profile',
+  theme: 'vpt_theme',
+});
+
+// ─── INGEBOUWDE DATABASE (CSV) ───────────────────────────────────────────
+const VPT_RAW_DB = `Aalbessen,0
+Aardappel gebakken 100g,3
+Aardappel natuur 100g,1
+Aardappelballetjes diepgevroren 100g,4
+Aardappelkroket 1 stuk 25g,1.5
+Aardappelnootjes (Pommes Noisettes) 100g,4
+Aardappelpuree bereid 100g,2
+Aardappelpuree instant 100g,1
+Aardappelsalade met mayonaise 100g,2.5
+Aardappelvlokken niet bereid 30g,1
+Aardappelzetmeel 1 eetlepel 20g,1
+Aardbeien,0
+Aardbeien op siroop 100g,1.5
+Aardpeer 100g,1.5
+Abdijbier 330ml,3.5
+Abrikozen,0
+Abrikozen gedroogd 20g,1
+Abrikozen uit blik op eigen sap,0
+Abrikozen uit blik op siroop 100g,1.5
+Advocaat 1 glaasje 50ml,2
+After eight mint 1 stuk 15g,1.5
+Ahornsiroop 1 eetlepel 15g,1
+Aioli 1 koffielepel 5g,1
+Alaska Polak 120g,2
+Alcohol als smaakmaker 4 eetlepels 60ml,0.5
+Alcohol of wijn om te flamberen of te koken 2 eetlepels,0
+Alfalfa,0
+Amandelbroodje 1 broodje 60g,6
+Amandelnoten 7 stuks 10g,1.5
+Amandelspijs 1 koffielepel 5g,0.5
+Amaretto 30ml,2
+Americain filet 30g,2
+Amsoi,0
+Ananas,0
+Ananas uit blik op eigen sap,0
+Ananas uit blik op siroop 100g,1.5
+Ananassap ongezoet 200ml,1
+Andalousesaus 1 koffielepel 5g,1
+Andijvie,0
+Andijvie in roomsaus diepvries 100g,1
+Ansjovis 5 stuks 15g,0.5
+Ansjovis in olie 4 stuks 12g,0.5
+Aperitiefkoekje kaas 1 koekje 10g,1.5
+Aperitiefkoekje voltarwe 1 koekje 10g,1
+Aperitiefkoekje zoet 1 koekje 10g,1
+Aperitiefkoekje zout 1 koekje 10g,1
+Appel,0
+Appel gedroogd 15g,0.5
+Appelbeignet 1 stuk 90g,8.5
+Appelbol 100g,4
+Appelcarre 1 stuk 110g,8.5
+Appelflap 1 stuk 110g,9
+Appelmoes glas/blik gezoet 100g,2
+Appelmoes glas/blik verlaagd suikergehalte 100g,1
+Appelsap ongezoet 1 glas 200ml,1
+Appelstroop 1 eetlepel,1
+Appenzeller kaas 30g,3
+Armagnac 50ml,2
+Artisjok,0
+Aspergeroomsoep 250ml,2
+Asperges,0
+Atjar,0
+Aubergine,0
+Augurk zuur/zoetzuur,0
+Avocado 30g,2
+Azijn,0
+Baars 120g,2
+Bacardi Breezer 1 flesje,3
+Bacardi Cola 200ml,3.5
+Bacon bits 15g,1
+Bacon gerookt 20g,3
+Bacon mager 20g,2
+Bakbanaan 100g,2
+Bakkersgist,0
+Baklava 30g,3
+Bakpoeder,0
+Bamboescheuten,0
+Banaan 90g,1
+Banaan gedroogd 20g,1
+Banketbakkersroom 3 eetlepels 100g,3.5
+Banketstaaf 35g,4
+Barbecuesaus 2 eetlepels 30g,0.5
+Basilicum gedroogd,0
+Basilicumsoep 300ml,2
+Baskische taart met boter 1 punt 100g,6
+Basterdsuiker bruin 1 eetlepel 15g,1
+Basterdsuiker wit 1 eetlepel 15g,1
+Bastognekoek 1 koek 12g,1.5
+Batida de Coco 50ml,1.5
+Bavaroisgebak 80g,4.5
+Bearnaisesaus 1 koffielepel 5g,1
+Beaufort kaas 30g,3
+Bechamelsaus 15g,0.5
+Bechamelsaus zelfgemaakt 45g,1
+Beetwortel,0
+Beignet met fruit 50g,4.5
+Beignet naturel 50g,4.5
+Bel Paese kaas 30g,3
+Berliner bol 105g,6.5
+Beschuit 1 stuk 10g,0.5
+Beschuit met muisjes 1 stuk 21g,2
+Beschuit volkoren 2 stuks 20g,1.5
+Beschuit voltarwe (met sesam) 2 stuks 20g,1.5
+Beschuitbol 1 stuk,1.5
+Beuling wit 100g,6.5
+Beuling zwart 100g,11
+Bier alcoholvrij 1 glas 250ml,1.5
+Bier met frisdrank 1 glas 250ml,2
+Bier pils 1 glas 250ml,2
+Bier trappist 7.6% 330ml,3.5
+Biergist,0
+Bieslook,0
+Bietjes,0
+Bietsuiker 1 eetlepel 15g,1
+Bifi-worst 1 stuk 30g,2
+Bind- en geleermiddel,0
+Bitter Lemon 1 glas 250ml,2
+Bitterkoekje 1 stuk,1
+Bizon steak 120g,2.5
+Bladerdeeg 1 portie 20g,2
+Bladselderij,0
+Blauwe bessen,0
+Bleekselderij,0
+Blinde vink 100g,6
+Blini 70g,5
+Bloedworst 100g,11
+Bloem alle soorten 1 eetlepel 20g,1
+Bloemkool,0
+Bloody Mary 200ml,2.5
+Boekweit (grutten) 30g,2
+Boekweitmeel 1 eetlepel 20g,1
+Boerenbrood 100g (4 sneetjes),4
+Boerenkool,0
+Boerenpate 50g,4
+Bokkenpootje 1 koekje,1
+Bolus 1 stuk 120g,11.5
+Bonbon 1 stuk 10g,1
+Bonbon met likeur 1 stuk 15g,1.5
+Bonenkruid,0
+Boontjes,0
+Borrelnootjes 10g,1.5
+Borstplaat chocolade 1 stuk 15g,2
+Borstplaat room 1 stuk 15g,2
+Borstplaat water 1 stuk 15g,1
+Bosbessen,0
+Bosbessen op siroop 100g,1.5
+Bosbessenmoes uit blik 100g,3.5
+Bosbessensap ongezoet 200ml,1
+Bossche bol 1 stuk 75g,7
+Bosui,0
+Boterhamworst 30g,1.5
+Boterkoek 1 koek 60g,5
+Boterletter 1 stuk 35g,4
+Botersaus 1 eetlepel 15g,2
+Boudoir 1 koekje 7g,0.5
+Bouillabaisse zonder rouille 250ml,6
+Bouillonblokje 1 blokje,0
+Bouillonpasta rijst 1 portie 30g,0.5
+Bouillonpoeder,0
+Boulghour gekookt 120g,2
+Boulghour ongekookt 40g,2
+Bourguignonsaus 1 eetlepel 15g,1.5
+Boursin 30g,3.5
+Braambessen,0
+Bramen,0
+Brandewijn 50ml,2
+Brandnetel,0
+Braziliaanse noten 4 stuks 15g,2.5
+Bressot 30g,3
+Brie 45% 30g,2.5
+Brinta 4 eetlepels 40g,2.5
+Brioche 1 kleine 40g,3.5
+Broccoli,0
+Bronwater,0
+Brood alle soorten 1 portie 100g,4
+Brood per sneetje 25g,1
+Brooddeeg 1 portie 50g,2
+Brousse kaas tot 35% 30g,1
+Brownie 1 stuk 50g,3.5
+Brugnon (bloedperzik) 100g,1
+Bruine bonen 4 eetlepels 120g,2
+Bruine bonensoep met spek 250ml,3.5
+Bruine suiker 1 eetlepel 15g,1
+Brusselse kaas 30g,0.5
+Brusselse wafel 35g,3.5
+Cacaopoeder gezoet 1 eetlepel 15g,1
+Cacaopoeder ongezoet 1 eetlepel 15g,1
+Cactusvijg,0
+Cafe Liegois 1 portie 125g,3
+Cake 30g,3
+Cake chocoladevulling 35g,3.5
+Cake fruitvulling 35g,2.5
+Calamares gefrituurd 100g,11
+Calamares pijlinktvis inktvis 120g,2
+Calvados 30ml,1.5
+Camembert 30% light 30g,1.5
+Camembert 45% 30g,2
+Camembert 50% 30g,3
+Campari 50ml,1.5
+Campari orange 200ml,3
+Canada Dry 250ml,2
+Canarische banaan 110g,1.5
+Candybar groot 50g,5.5
+Candybar mini 25g,2.5
+Cannelloni bereid 150g,6
+Cantal kaas 30g,3
+Cantharellen,0
+Cantuccine 1 stuk 28g,2.5
+Cappuccino 100ml,1
+Cappuccino instantpoeder 15g,1
+Carambola (stervrucht),0
+Caramelsaus 15g,0.5
+Carre de l'Est kaas 30g,2.5
+Carre frais 2 kaasjes 50g,2.5
+Cashewnoten 7 stuks 10g,1.5
+Cassata 100g,5.5
+Cassave Maniok 120g,2.5
+Cassavetaart 100g,5
+Casseler rib 50g,3
+Cassis ongezoet 200ml,1.5
+Cavaillon,0
+Cervelaatworst 30g,2.5
+Chamois d'Or kaas 30g,3
+Champagne 125ml,1.5
+Champignonroomsaus 15g,0.5
+Champignonroomsoep 250ml,2
+Champignons,0
+Chaumes kaas 30g,3
+Cheddar 48% 30g,3
+Cheeseburger 1 stuk 160g,11
+Cherimoya 100g,1.5
+Chianti 125ml,1.5
+Chilipoeder,0
+Chilisaus 2 eetlepels 30g,0.5
+Chimay kaas 30g,2.5
+Chinese kool,0
+Chips 15g,2
+Chips light 15g,1.5
+Chocolade 30g,3.5
+Chocolade bitter 30g,3.5
+Chocolade gevuld met karamel/kokos 30g,3
+Chocolade gevuld met pinda 30g,3.5
+Chocolade melk met hele noten 30g,3.5
+Chocolade wit 30g,3.5
+Chocoladeboter 5g,0.5
+Chocoladebroodje 1 broodje 60g,5.5
+Chocolademelk halfvol 200ml,3
+Chocolademelk mager 200ml,2
+Chocolademelk vol 200ml,3.5
+Chocolademousse 125g,7.5
+Chocoladepastille (type M&M) 20g,2
+Chocoladepastille pinda 20g,2.5
+Chocoladereep met ijs (Mars) 55g,4
+Chocoladereep met ijs (Milky Way) 30g,2
+Chocoladesaus 15g,0.5
+Chocoladesoes 1 stuk 110g,6
+Chocoladetaart 100g,11.5
+Chocoladetruffel 1 stuk 15g,2
+Chocolat Liegois 125g,3
+Chocopasta met/zonder noten 15g,2
+Chorizo 1 portie 20g,2.5
+Chutney,0
+Cider 150ml,1
+Cinzano 60ml,1.5
+Citroen,0
+Citroenkruid,0
+Citroensap,0
+Clementine,0
+Cocktailsaus 1 eetlepel 15g,1
+Cocktailworstjes 2 worstjes 20g,1.5
+Cognac 30ml,1
+Cointreau 20ml,1
+Cola 1 blikje,2.5
+Cola Light 1 blikje/glas,0
+Comte kaas 30g,3
+Confituur of gelei 1 eetlepel 15g,1
+Confituur of gelei light 1 eetlepel 15g,0.5
+Cordon Bleu 90g,1
+Corn Flakes naturel 6 eetlepels 30g,2
+Corned beef 30g,1.5
+Cornetto aardbei-ijs 1 stuk,4.5
+Cornetto chocolade 1 stuk,6
+Cornetto nootjes 1 stuk,7.5
+Cottage cheese 100g,2
+Coulommiers 30g,2.5
+Coupe Banana Split 1 coupe,10
+Coupe Dame Blanche met slagroom 1 coupe,9
+Courgette,0
+Couscous gekookt 100g,2
+Couscous ongekookt 3 eetlepels 30g,2
+Crackers naturel 1 stuk 5g,0.5
+Cranberries,0
+Creme anglaise 100ml,2.5
+Creme Brulee 1 portie 125g,5.5
+Creme Caramel 1 portie 125g,3.5
+Creme de Cassis 40ml,2
+Creme fraiche 15g,1.5
+Crepe Suzette 1 stuk,5.5
+Crodino 100ml,1
+Croissant 1 stuk 47g,4
+Croissant met amandelen 1 stuk 50g,5
+Croissant met chocolade 1 stuk 60g,5.5
+Currypoeder,0
+Custardpoeder 1 eetlepel 20g,1
+Custardpoeder gezoet 5g,0.5
+Dadels geconfijt 15g,1
+Dadels gedroogd 20g,1
+Dadels vers 40g,1
+Daikon (lange witte radijs),0
+Daiquiri 200ml,5
+Danish Blue 45% 30g,2.5
+Dessert soja chocolade 125g,2.5
+Dessert soja fruit 125g,2
+Dessert soja vanille 125g,2
+Dessertcreme mager 125g,1.5
+Dessertcreme opgeklopt chocolade 125g,2
+Dessertcreme opgeklopt mocca/vanille 125g,1.5
+Dessertcreme volle melk chocolade 125g,4
+Dessertcreme volle melk vanille 125g,3.5
+Dessertmousse 125g,7.5
+Dessertwijn 100ml,2.5
+Dieetbrood met/zonder gluten 100g,4
+Dille,0
+Diplomaat 1 stuk 40g,4
+Donut 57g,5.5
+Doopsuiker 1 stuk 5g,0.5
+Doperwten en worteltjes uit blik 150g,1
+Doperwten uit blik of diepvries 150g,2
+Dortmunder 250ml,2
+Dragon,0
+Dressing light max 40% 10g,1
+Dressing met yoghurt 10g,1
+Dressing zonder olie 10g,1
+Driekoningentaart 100g,12
+Drinkyoghurt 150ml,2
+Drop 2 stuks 20g,1
+Druiven blauw of wit 15 stuks 100g,1
+Druiven op siroop 100g,1.5
+Druivenbladeren 20g,0.5
+Druivensap 200ml,2
+Druivensap ongezoet 200ml,1
+Druivensuiker 1 eetlepel,1
+Duif 100g,2
+Duvel bier 330ml,3.5
+Eclair 110g,6
+Edammer 30% light 30g,2
+Edammer 45% 30g,3
+Eend ontveld 100g,5
+Eendenei 1 ei 90g,4
+Eendeneidooier 1 eidooier,3.5
+Eendeneiwit 1 eiwit,0.5
+Eendenfilet 120g,5
+Eendenleverpastei 30g,3
+Eendenmousse 50g,5.5
+Ei 1 ei 60g,2
+Eidooier 1 eidooier,2
+Eierkoek 1 koek 35g,2
+Eipoeder 25g,3.5
+Eiwitrijk poeder (sportvoeding) 25g,1.5
+Eiwitschuim gepocheerd 190g,4.5
+Emmenthal 30% light 30g,2
+Emmenthal 48% 30g,3
+Energiereep met muesli 1 reep 30g,2
+Energiereep sportvoeding 1 reep 30g,3
+Engelse drop 4 stuks 20g,1.5
+Erwtensoep 250ml,2
+Erwtensoep met worst 250ml,5
+Escargots 10 stuks 60g,1
+Everzwijn 100g,2
+Falafel 100g,7.5
+Fazant 100g,2
+Ferrero rocher 1 praline,1
+Fetakaas naturel 30g,2
+Filet americain bereid 30g,2
+Filodeeg 20g,2
+Fla caramel of chocolade 125g,3
+Flageolets 4 eetlepels 120g,2
+Flanpoeder gezoet 1 zakje 50g,2.5
+Flanpoeder ongezoet 1 eetlepel 15g,1
+Flantaart 100g,5
+Foeli,0
+Fond vis 50ml,0
+Fond wit/bruin/gevogelte 50ml,0.5
+Forel 120g,3.5
+Forel gerookt 50g,2
+Frambozen,0
+Frambozen op siroop 100g,1.5
+Frambozendrank 200ml,2
+Frangipane 1 gebakje 55g,5.5
+Frankfurterworst 1 stuk 60g,5
+Frankfurterworst mager 1 stuk 60g,4
+Fricandeau 40g,3
+Frieten diepvries oven 100g,4
+Frieten gefrituurd 100g,6
+Frikandel 1 stuk,5
+Frikandelsaus 15g,1
+Frisdrank 1 blikje 330ml,2.5
+Frisdrank light glas/blikje,0
+Fritessaus 25% 5g,0.5
+Fritessaus 40% 15g,2
+Fructose 1 eetlepel 15g,1
+Fruit geconfijt of gedroogd 15g,1
+Fruit op likeur 100ml,2
+Fruitcocktail op siroop 100g,1.5
+Fruitgommetje 4 stuks 15g,0.5
+Fruitsalade ongezoet 100g,1
+Fruittaart 100g,5.5
+Galantine van gevogelte 50g,3
+Gambas gepeld 120g,2
+Gancia 50ml,1.5
+Ganda ham 50g,2.5
+Gans gebakken 100g,6.5
+Ganzenlever 50g,5
+Ganzenleverpate 40g,5
+Garnalen Hollandse gepeld 120g,2
+Garnalen roze gepeld 120g,2
+Geep 120g,2.5
+Gefermenteerde melk + vruchtensap 250ml,3
+Geitenkaas light 30g,1
+Geitenkaas vers 45% 30g,1.5
+Geitenkarnemelk 200ml,1
+Geitenmelk 200ml,3
+Geitenvlees 100g,3.5
+Geitenyoghurt 125g,2
+Gelatine poeder of blaadjes,0
+Gember,0
+Gemengd fruit op siroop 100g,1.5
+Gemengde noten 10g,1.5
+Gepaneerde vis voorgebakken 100g,4
+Geraffineerde suiker 15g,1
+Geroosterd brood 1 sneetje 20g,1
+Gerst gebrand 30g,1
+Gerst korrel 30g,1.5
+Gevogeltepastei 30g,3
+Gevulde koek 90g,8.5
+Gierst ongekookt 40g,2.5
+Gin 30ml,1
+Gin Fizz Gin Tonic 200ml,3
+Gist gedroogd/vers,0
+Gluhwein 100ml,2
+Gorgonzola 48% 30g,3
+Gort 30g,1.5
+Gortepap 125g,1
+Gouda kaas 30g,3
+Goudbrasem 120g,1.5
+Goudse jong/oud 48% 30g,3
+Goulashsoep 250ml,4.5
+Graanreep met chocolade of noten 20g,2
+Graanreep met vruchten 20g,1.5
+Granaatappel 100g,1.5
+Grand Marnier 50ml,2
+Granenstroop 15g,1
+Grapefruit,0
+Grapefruit op siroop 100g,1
+Grapefruitsap rood ongezoet 200ml,1
+Grapefruitsap wit ongezoet 200ml,1
+Griekse yoghurt 125g,4
+Griekse yoghurt 0% 125g,1
+Griesmeel ongekookt 20g,1
+Griesmeelpap 125g,2.5
+Griesmeelpudding 125g,2
+Groene kool,0
+Groene peper,0
+Groene peperroomsaus 15g,0.5
+Groene selderij,0
+Groengraat 120g,2.5
+Groentemacedoine 200g,1.5
+Groenten voor hutsepot,0
+Groentesap 250ml,1
+Groentesoep met room 300ml,2.5
+Groentesoep met vermicelli 250ml,0.5
+Groentesoep met vlees 250ml,2
+Groentesoep vetarm/zelfgemaakt 250ml,0
+Groentespread 20g,1
+Grog met suiker 100ml,2.5
+Gruyere 48% 30g,3
+Gruyere smeerkaas 48% 15g,1.5
+Gruyere smeerkaas light 20% 15g,1
+Guacamole 30g,1.5
+Guave,0
+Gueuze bier 250ml,2
+Guinnes bier 330ml,3.5
+Haagse hopjes 2 stuks 10g,0.5
+Haaievinnensoep 250ml,1
+Haantje 100g,3
+Haas 100g,2
+Hagelslag chocolade/melk/vruchten 15g,1.5
+Halvarine 100% soja 15g,1.5
+Halvarine 25% 10g,0.5
+Halvarine 35% 5g,0.5
+Halvarine 40% 5g,0.5
+Halvarine plantaardig 15g,1.5
+Ham gekookt 50g,1.5
+Ham gekookt mager 50g,1
+Ham rauw of gerookt 50g,2.5
+Hamburger 1 stuk 75g,2.5
+Hamburgerbroodje 50g,3
+Hamlap mager 100g,2.5
+Hammetje 100g,3.5
+Hamschijf 60g,4
+Harde kaas 31-48% 30g,3
+Harde kaas light 21-30% 30g,2
+Haring 120g,6
+Haring gerookt 50g,2.5
+Harissa,0
+Haver 30g,2
+Haverkoek 60g,4
+Havermoutpap 125g,2
+Havervlokken gekookt 30g,2
+Haverzemelen 30g,2
+Hazelnootpasta 1 eetlepel 15g,2
+Hazelnoten 7 stuks 7g,1
+Heilbot 120g,2.5
+Heilbot gerookt 50g,2.5
+Heldere soep met groenten,0
+Heldere soep met vlees 300ml,1
+Hert 100g,2.5
+Herve zacht 30g,2
+Hinde/ree 100g,2.5
+Hoestbonbons 4 stuks 20g,1.5
+Hollandse saus 10g,1
+Hom-kuit 60g,4
+Hondshaai 120g,3.5
+Honing 2 koffielepels 10g,0.5
+Hoofdkaas kalfs/varkens 50g,2
+Huishoudstroop 15g,1
+Huttenkase 25g,0.5
+Ice Tea ijsthee 330ml,2.5
+Ijslolly aardbei/citroen 1 stuk 40g,1
+Ijslolly chocolade/mokka/vanille 1 stuk 60g,3
+Ijstaart 100ml,4
+Ile flottante 150g,4
+Indische cake 20g,1
+Inktvisringen calamares 120g,2
+Inktvisringen calamares gefrituurd 100g,11
+Instantpoeder dranken ongezoet 15g,0.5
+Instantsoep 250ml,2
+Instantsoep zakje 50g,2
+Irish Coffee 150ml,3
+Jagermeister 35ml,1.5
+Jagersaus 2 eetlepels 30g,0.5
+Jam 15g,1
+Jam light 15g,0.5
+Jamtaart 100g,9
+Jenever citroen 1 glaasje 35ml,1
+Jenever fruit (appel bessen) 1 glaasje 35ml,1.5
+Jenever jonge/oude 1 glaasje 35ml,1
+Jeneverbessen,0
+Jeruzalemse artisjok 100g,1.5
+Kaas 48% geraspt 20g,2
+Kaas tot 30% geraspt 20g,1.5
+Kaaskroketten 2 stuks 120g,4.5
+Kaassaus 15g,1.5
+Kaasstengel 2 stuks 20g,1.5
+Kaastaart 100g,8.5
+Kabeljauw 120g,2
+Kadetje 50g,2
+Kaki 1 stuk 100g,1
+Kalfsvlees biefstuk 100g,3
+Kalfsvlees blinde vink 100g,6
+Kalfsvlees entrecote 100g,5.5
+Kalfsvlees filet 100g,3
+Kalfsvlees fricandeau 40g,3
+Kalfsvlees gebraad 100g,3
+Kalfsvlees gehakt 100g,4.5
+Kalfsvlees haasbiefstuk 100g,3
+Kalfsvlees kotelet 80g,4.5
+Kalfsvlees lapje 100g,3
+Kalfsvlees lever 100g,3
+Kalfsvlees mager 100g,3
+Kalfsvlees oester/poulet 100g,3
+Kalfsvlees ribstuk 100g,5.5
+Kalfsvlees rollade 90g,5
+Kalfsvlees schnitzel 100g,5.5
+Kalfsvlees schoudergebraad 60g,2
+Kalfsvlees vet 100g,5.5
+Kalfsvlees zwezerik 100g,2
+Kalkoen bout zonder vel 120g,4
+Kalkoen filet 100g,2
+Kalkoen filet broodbeleg 50g,1
+Kalkoen filetgebraad zonder vet 50g,1
+Kamschelp 25 stuks 100g,1.5
+Kamut ongekookt 10g,0.5
+Kandijsuiker 15g,1
+Kaneel,0
+Kaneelbeschuitje 1 stuk,0.5
+Kano 1 stuk 50g,4.5
+Kappertjes,0
+Kappertjessaus 15g,0.5
+Kapucijners 4 eetlepels 100g,1.5
+Karakollen 1 portie 120g,2
+Karamel 1 snoepje 10g,1
+Karbonade haas 120g,3.5
+Karbonade hals 120g,5.5
+Karbonade rib 120g,4
+Kardoen,0
+Karnemelk gezoet 200ml,2
+Karnemelk ongezoet 200ml,1
+Karper 120g,3
+Kastanje 6 stuks 50g,1.5
+Kastanje geglaceerd 10g,0.5
+Kastanjepuree 10g,0.5
+Kauwgom 1 stuk,0
+Kaviaar 10g,0.5
+Kefir 1 glas 200ml,2
+Kekererwten gekookt 100g,2
+Kernheimer kaas 30g,3.5
+Kerriepoeder,0
+Kerriesaus koud 1 eetlepel 15g,1
+Kerriesaus warm 1 eetlepel 15g,0.5
+Kersen 15 stuks 100g,1
+Kersen op siroop 100g,1.5
+Kersenbonbon 1 stuk 10g,1
+Kersenmoes uit blik 100g,2.5
+Kerststol/brood met spijs 1 sneetje 75g,5
+Kerststronk/ijsstam 100ml,4
+Kervel,0
+Kervelsoep,0
+Ketchup 1 eetlepel 15g,0.5
+Keukenstroop 15g,1
+KH-rijke module poeder 30g,2
+KH-rijke module vloeibaar 50ml,2
+Kidney bonen gekookt 120g,2
+Kiemzaad alfalfa/mungbonen/radijs 50g,0.5
+Kiemzaad linzen 50g,1
+Kikkererwten gekookt 100g,2
+Kinderbiscuit droog 2 stuks 25g,2
+Kip aan't spit met vel 120g,5.5
+Kip aan't spit zonder vel 120g,4
+Kip filet 100g,2
+Kip filet broodbeleg 50g,1
+Kip gehakt/worst 100g,4
+Kip gekookt 100g,2
+Kippenei 1 ei 60g,2
+Kippenlever 100g,3
+Kippensoep 250ml,2
+Kir 125ml,3.5
+Kir royal 125ml,3.5
+Kirsch 20ml,1
+Kiwi,0
+Knackebrod bruin/wit 2 sneetjes 25g,2
+Knackebrod light 2 sneetjes 25g,1
+Knackebrod sesam 2 sneetjes 25g,2
+Knakworst 60g,5
+Knoflook,0
+Knoflookboter kruidenboter 5g,1
+Knoflooksaus 15g,0.5
+Knolselderij,0
+Knotselderij uit blik,0
+Koekje droog 1 koekje 10g,1
+Koekje gezouten 1 koekje 10g,1
+Koekje met chocolade 1 koekje 10g,1.5
+Koekje muesli/volkoren 1 koekje 10g,1
+Koffie 150ml,0
+Koffie verkeerd 150ml,0.5
+Koffiebroodje 1 broodje 80g,4.5
+Koffiekoek met abrikozen 1 koek 100g,6
+Koffiekoek met chocolade 60g,5.5
+Koffiekoek met pudding 100g,5.5
+Koffiekoek met rozijnen 75g,4.5
+Koffiemelk vol 5ml,0.5
+Kokosbrood 15g,1.5
+Kokoskoek 70g,8.5
+Kokosmakroon 33g,3.5
+Kokosmelk 50ml,2.5
+Kokosmelk vers 150ml,0.5
+Kokosnoot gedroogd geraspt 15g,2.5
+Kokosnoot vers 20g,2
+Komijnen kaas 20% 30g,2
+Komijnen kaas 40% 30g,2.5
+Komijnzaad,0
+Komkommer,0
+Konijn tam/wild 120g,3.5
+Kookgranen gekookt 100g,2
+Kookgranen ongekookt 30g,2
+Kool alle soorten,0
+Koolraap Koolrabi,0
+Koolvis 120g,1.5
+Koriander,0
+Kousenband,0
+Krab 120g,2
+Krab uit blik in eigen nat 100g,1.5
+Krakeling 1 stuk 50g,3
+Kreeft halve kreeft 120g,2
+Kreeftensoep 250ml,3
+Krenten 10g,0.5
+Krentenbol 50g,3
+Krentenbrood 100g,5.5
+Krentenbrood volkoren 100g,5.5
+Krentenkoek (Evergreen) 20g,1.5
+Kriek bier 250ml,2
+Krieken,0
+Kristalsuiker 15g,1
+Kruiden alle soorten,0
+Kruidnagel,0
+Kruidnoten 15 stuks 20g,2
+Kruimeldeeg 20g,2
+Kruisbessen,0
+Kuiken ontveld 150g,5
+Kuit alle soorten 10g,0.5
+Kumquat,0
+Kwark 0% met fruit/naturel 200g,1.5
+Kwark 10-20% met fruit/naturel 200g,2
+Kwark halfvol met fruit/naturel 100g,2
+Kwark vol met fruit/naturel 100g,3
+Kwarktaart 100g,7
+Kwartelei 1 ei 15g,0.5
+Kweepeer,0
+Lamsniertjes 100g,3.5
+Lamsoren,0
+Lamsschijf 60g,3
+Lamsvlees bout 60g,3
+Lamsvlees kotelet 60g,3.5
+Lamsvlees mager 60g,3
+Lamsvlees rollade 60g,3
+Lamsvlees schouder 60g,4.5
+Lamsvlees stoofvlees 60g,4
+Lamsvlees vet 60g,4.5
+Lange vinger 2 koekjes,0.5
+Langoustine 5 stuks 120g,2
+Lasagnebladen,4
+Laurier,0
+Leerdammer 30g,3
+Leerdammer ligne 30g,2
+Leffe bier 330ml,3.5
+Leidse kaas 30g,2.5
+Leidse kaas boeren 20% 30g,1.5
+Leidse kaas jong/oud 20% 30g,2
+Lekkerbekje gebakken 120g,6
+Leng 120g,1.5
+Lever gekookt/gevogelte/kalf/rund/varken 100g,3
+Leverpastei 50g,4.5
+Leverworst 30g,2.5
+Lijnzaad 10g,1.5
+Likeur 20ml,1
+Limburgse kaas 45% 30g,2.5
+Limburgse kruimelvlaai 100g,7
+Limburgse rijstevlaai 100g,6
+Limoen,0
+Limonade 250ml,2
+Limonade light 1 blikje,0
+Limonadesiroop 15ml,0.5
+Linzen gedroogd 30g,2
+Linzen gekookt 120g,2
+Livarot 30g,2.5
+Lolly 1 lolly 12g,1
+Loo light 30g,1.5
+Loo veritable 30g,2.5
+Luikse stroop 15g,1
+Luikse wafel 55g,5.5
+Luxe broodje wit 50g,2.5
+Lychees 10 stuks 100g,1
+Lychees op siroop 100g,1
+Maanzaad 10g,1.5
+Maaslander 48% 30g,3
+Maatje 60g,3.5
+Macadamianoten 15g,2.5
+Madeira 50ml,1
+Madeirasaus 30g,0.5
+Madeleinekoekje 15g,1.5
+Mais gekookt 100g,1.5
+Mais om te poffen 20g,1
+Maiskolf 1 stuk,2.5
+Maismeel 20g,1
+Maiszetmeel 20g,1
+Maizena 20g,1
+Majoraan,0
+Makreel 120g,5
+Makreel gerookt 50g,4
+Makreel uit blik in eigen nat 100g,4
+Makreel uit blik in olie 100g,6.5
+Makreel uit blik met tomaten 100g,5.5
+Makreel uit blik met witte wijn 100g,5.5
+Mandarijn,0
+Mandarijn op siroop 100g,1.5
+Mangistan 100g,1
+Mango 100g,1
+Mangosaus 15g,0.5
+Margarine 60% 15g,2.5
+Margarine 75% 15g,3
+Margarine 80% 15g,3
+Margarine plantaardig 15g,3
+Margarine vloeibaar 15ml,3
+Marjolein,0
+Marmelade 15g,1
+Marsepein 10g,1
+Marshmallow 2 stuks 15g,1
+Martini extra droog 60ml,1
+Martini rood/wit 60ml,1.5
+Mascarpone 30g,4
+Mayonaise 1 koffielepel 5g,1
+Mayonaise extra light 10% 20g,0.5
+Mayonaise light max 40% 10g,1
+Meergranendrank 200ml,1.5
+Meivis 120g,2.5
+Melba toast 8 stuks 25g,2
+Melk geconcentreerd halfvol ongezoet 80ml,2
+Melk geconcentreerd mager met suiker 15ml,0.5
+Melk geconcentreerd vol met suiker 15ml,1
+Melk geconcentreerd vol ongezoet 15ml,1.5
+Melk halfvol 200ml,2
+Melk mager 200ml,1
+Melk vol 200ml,3
+Melkbrood 100g,4.5
+Melkbroodje 1 broodje 35g,1.5
+Melkpoeder halfvol 5g,0.5
+Melkpoeder mager 10g,0.5
+Melkpoeder vol 5g,0.5
+Meloen,0
+Meloenblokjes op siroop 100g,1.5
+Meringue naturel 30g,2
+Meringuegebak met citroen 60g,6.5
+Meringuegebak met fruit 60g,6.5
+Mie gekookt 100g,2
+Mie ongekookt 30g,2
+Mierikswortel,0
+Mierikswortelsaus 15g,1
+Milkshake 150ml,3.5
+Mimolette 30g,2.5
+Mineraalwater 250ml,0
+Minestronesoep 250ml,2
+Mini maiskolfjes 100g,0
+Mirabel 100g,1
+Mirabel op siroop 100g,1.5
+Mirin/zoete rijstwijn 30ml,0.5
+Misosoep 250ml,3
+Mispel,0
+Mokkagebak 100g,7
+Mon Chou taart 100g,8
+Monchou 50% 30g,3
+Moorkop 80g,6.5
+Morellen,0
+Morieljes,0
+Mornaysaus 45g,1
+Mosselen gekookt in schelp 300g,1
+Mosselen zonder schelp 100g,1
+Mosterd,0
+Mosterdsaus 15g,1
+Mozzarella 30g,2
+Muesli chocolade 20g,2
+Muesli fruit 20g,2
+Muesli gezoet 20g,2
+Muesli ongezoet 20g,1.5
+Muffin 50g,4
+Muisjes gestampte 15g,0.5
+Muisjes roze-wit/blauw-wit 15g,1
+Munster 48% 30g,2.5
+Munt,0
+Muscat 60ml,1.5
+Naan 70g,3.5
+Naan knoflook-koriander 70g,3.5
+Nectarine,0
+Negerzoen 1 stuk 17g,1.5
+Niertjes 100g,3.5
+Noisettes diepvries 100g,4
+Nootmuskaat,0
+Notenbrood 25g,2
+Nougat 10g,1
+Oesters 6 stuks 90g,1
+Okkernoot 4 stuks 10g,2
+Okra,0
+Olie (arachide/mais/soja/zonnebloem) 1 koffielepel,1
+Oliebol 50g,3
+Olijfolie extra vierge 1 koffielepel,1
+Olijven groene 5 stuks,0.5
+Olijven zwarte 2 stuks,1
+Ongeraffineerde suiker 15g,1
+Ontbijtgranen gepofte maiskorrels 25g,1.5
+Ontbijtgranen gepofte rijst chocolade 30g,2
+Ontbijtgranen gepofte rijstkorrels 30g,2
+Ontbijtgranen gepofte tarwe karamel 25g,1.5
+Ontbijtgranen maisvlokken gezoet 30g,2
+Ontbijtgranen met zemelen 20g,1
+Ontbijtgranen tarwevlokken chocolade 25g,1.5
+Ontbijtgranen tarwevlokken honing 25g,1.5
+Ontbijtgranen volkoren 30g,1.5
+Ontbijtgranen volkoren tarwevlokken granen 25g,2
+Ontbijtgranen volkoren tarwevlokken vruchten 25g,1.5
+Ontbijtkoek 20g,1
+Ontbijtspek 20g,3
+Ontbijtspek mager 20g,2
+Oplosdrank ongezoet (koffie/cichorei),0
+Orange Premium 125ml,1
+Oregano,0
+Ossenstaart 100g,2.5
+Ossenstaartsoep 250ml,3
+Ossenworst 50g,2.5
+Ossetong 100g,5.5
+Ouzo 50ml,2
+Ovenfrieten 100g,3.5
+Paardenvlees biefstuk 120g,3
+Paardenvlees lapje/rollade/rosbief 120g,3
+Paaseieren 45g,4.5
+Paillardin 30g,3
+Paksoi,0
+Paling 60g,4
+Paling gerookt 50g,4.5
+Palmharten,0
+Palmkool,0
+Paneermeel 15g,1
+Pannenkoek naturel klein 30g,1
+Pannenkoek naturel normaal 60g,2.5
+Papaya,0
+Paprika,0
+Paprikapoeder,0
+Paprikasaus 15g,0.5
+Paranoten 10g,2
+Parelgort 30g,1.5
+Parelhoen 120g,4
+Parma Ham 50g,2.5
+Parmezaanse 32% 30g,3
+Passendale 30g,3
+Passievrucht,0
+Pasta ongevuld gekookt 100g,2
+Pasta ongevuld ongekookt 30g,2
+Pasta vers gekookt 80g,2
+Pasta vers ongekookt 40g,2
+Pasta volkoren gekookt 100g,2
+Pasta volkoren ongekookt 30g,2
+Pastei/ragoutbakje 25g,3.5
+Pastinaak,0
+Pastis 40ml,2
+Paturain 40% 30g,2.5
+Pecannoten 15g,3
+Peer,0
+Peer op siroop 100g,1.5
+Penny wafel 1 wafel 25g,2.5
+Peper zwart/wit,0
+Peperkoek 2 sneetjes 40g,2
+Peperkoek appel rozijnen 1 koek 22g,1
+Pepermunt 4 stuks 20g,1.5
+Pepernoten 3 stuks,0.5
+Pepers,0
+Pepersaus 30g,0.5
+Pere Joseph 30g,2.5
+Perzik,0
+Perzik op eigen sap,0
+Perzik op siroop 100g,1.5
+Perzikenmoes uit blik 100g,1.5
+Peterselie,0
+Petit Fours 1 koekje 15g,1.5
+Petrus kaas 30g,2
+Peultjes,0
+Physalis (ananaskers),0
+Picalily 45g,0.5
+Piccolo 50g,2
+Pickels 50g,0.5
+Pijnboompitten 10g,1.5
+Pilchard in tomatensaus 100g,2.5
+Pils 250ml,2
+Pindakaas 10g,1.5
+Pindakaas met stukjes noot 10g,1.5
+Pindanoten geroosterd gezouten 10g,1.5
+Pindarotsje 15g,2
+Pindas 10g,1.5
+Pisang 50ml,2
+Pisang Orange 200ml,3.5
+Pistachenoten 10g,1.5
+Pistachenoten geroosterd gezouten 10g,1.5
+Pistolet 50g,2
+Pitabroodje 65g,2.5
+Pitahaya,0
+Pitasaus 15g,2.5
+Pizzabroodje 125g,4
+Pizzadeeg 20g,1.5
+Pladijs (Schol) 120g,2
+Poedersuiker 15g,1
+Poestasaus 30g,0.5
+Pollak 120g,2
+Pomelo,0
+Pompoen,0
+Pompoenpitten 10g,1.5
+Pont l'Eveque 45% 30g,2.5
+Popcorn gezoet 50g,4.5
+Popcorn gezouten gepoft met olie 50g,5.5
+Popcorn gezouten gepoft zonder olie 50g,3
+Port 60ml,1.5
+Port Salut 30g,2.5
+Postelijn,0
+Praline 1 stuk,1
+Prei,0
+Prei in roomsaus 100g,1
+Preiroomsoep 250ml,2
+Prinsessenbonen,0
+Provencaalse saus 15g,0.5
+Pruimen,0
+Pruimen gedroogd 30g,1
+Pruimen op azijn 100g,1.5
+Pruimen op siroop 100g,1
+Pruimenmoes 100g,2
+Pudding chipolata 125g,6.5
+Pudding chocolade 125g,3
+Pudding instant met magere melk 125g,1
+Pudding karamel 125g,3
+Pudding vanille 125g,2.5
+Puddingpoeder gezoet 5g,0.5
+Punch 125ml,2
+Pyreneeenkaas 30g,3
+Quinoa 10g,0.5
+Raap,0
+Raapstelen,0
+Rabarber,0
+Rabarbermoes uit blik 100g,1.5
+Raclette 45% 30g,2.5
+Radijzen,0
+Ramboetan 100g,1
+Rambol met noten 40% 30g,2.5
+Rammenas,0
+Rauwkost gemiddeld,0
+Ravioli uit blik 400g,8
+Reblochon 30g,2.5
+Reebok 100g,2
+Relish 30g,0.5
+Remouladesaus 5g,1
+Rettich,0
+Reuzel 15g,4
+Rhumtopf 100ml,4.5
+Ricotta 30g,1
+Rietsuiker 15g,1
+Rijst gekookt 100g,2
+Rijst ongekookt 30g,2
+Rijstblaadje 18g,1
+Rijstdrank 200ml,2
+Rijstpap 100g,2
+Rijsttaart 100g,5
+Rijstvlokken 30g,2
+Rijstwafel 2 stuks 15g,1
+Rijstwafel chocolade 2 stuks 15g,1.5
+Rijstwafel meergranen/zonder zout 2 stuks 15g,1
+Rivierbaars 120g,2
+Rivierkreeft 120g,1.5
+Rivierpaling 60g,4
+Rochefort bier 330ml,3.5
+Rode banaan 1 stuk 110g,1.5
+Rode bessen,0
+Rode biet uit blik,0
+Rode bietensap 200ml,1.5
+Rode kool,0
+Rode kool met appel diepvries 100g,1
+Rode kool met appel uit blik 100g,1
+Rode kool uit blik 100g,1
+Rode poon 120g,2.5
+Rode wijnsaus 15g,0.5
+Rog 120g,1.5
+Rogge 30g,1.5
+Roggebloem 20g,1
+Roggebrood donker/licht 100g,4
+Roggevlokken 25g,1.5
+Rolmops 120g,6
+Rondo 70g,6
+Roodbaars 120g,2.5
+Rookkaas 45% 30g,2
+Rookvlees 40g,1
+Room meer dan 20% 5ml,0.5
+Room verlaagd vet tot 15% 2 koffielepels,0.5
+Room verlaagd vet tot 8% 2 koffielepels,0
+Roomboter 80% 15g,3.5
+Roomboter halfvol 15g,1.5
+Roomijs 1 bolletje 50ml,2
+Roomkaas 60% 30g,3.5
+Roomsaus 15g,0.5
+Roomsoep 250ml,2
+Roquefort 52% 30g,3
+Rosbief 40g,1
+Rosti 60g,2
+Rouille 5g,1
+Roze garnalen gepeld 120g,2
+Rozemarijn,0
+Rozijnen 10g,0.5
+Rozijnenbrood 100g,5.5
+Rubens kaas 30g,2.5
+Rucola,0
+Rum 30ml,1
+Rumboon 15g,1.5
+Runder-varkensgehakt 120g,7
+Rundsvlees baklapje 120g,3.5
+Rundsvlees biefstuk 120g,3
+Rundsvlees braadworst 90g,5.5
+Rundsvlees entrecote 90g,5.5
+Rundsvlees filet 120g,3
+Rundsvlees gehakt 20% 100g,6
+Rundsvlees gehakt 5% 100g,2.5
+Rundsvlees haas 120g,3
+Rundsvlees hachee 100g,5
+Rundsvlees hamburger 120g,6
+Rundsvlees klapstuk 120g,5
+Rundsvlees lendestuk 120g,3
+Rundsvlees lever 100g,3
+Rundsvlees om te koken 120g,5
+Rundsvlees om te stoven 120g,5
+Rundsvlees ossehaas 120g,3
+Rundsvlees rosbief zonder spek 120g,3
+Rundsvlees rumsteak 120g,3
+Rundsvlees schenkel/soepvlees 120g,5
+Rundsvlees steak 120g,3
+Rundsvlees stooflappen 10% 120g,5
+Rundsvlees stooflappen 3% 120g,3
+Rundsvlees tartaar 120g,3
+Rundsvlees tong 100g,6.5
+Rundsvlees tournedos 120g,3
+Rundsvlees tussenribstuk 120g,5.5
+Rundsvlees vet 120g,5.5
+Saffraan,0
+Saint Albray 30g,3
+Saint Moret 18g,1
+Saint Moret Ligne 18g,0.5
+Saint Nectaire 30g,2.5
+Saint Paulin 30g,2
+Salami 20g,2
+Salami puur varken 20g,2
+Salie,0
+Salsa hot chili 15g,0.5
+Sambal,0
+Sandwichspread 20g,1
+Sangria 125ml,2
+Sardines 120g,3.5
+Sardines in olie uitgelekt 100g,4.5
+Sardines uit blik in tomatensaus 100g,4.5
+Satesaus 15g,1
+Saucijzenbroodje 1 stuk,9
+Saus gefermenteerde sojabonen,0
+Savooikool,0
+Scampis gepeld 100g,1.5
+Schapenbout 100g,6
+Schapenmelk 200ml,4.5
+Schapenvlees mager 60g,3
+Schapenvlees vet 60g,4.5
+Schelpjes 200g,1
+Schelvis 120g,1
+Schelvis gerookt 50g,1
+Schil van citrusvruchten,0
+Schol Pladijs 120g,2
+Schorseneren,0
+Schorseneren in saus diepvries 100g,1.5
+Schorseneren uit blik,0
+Schuimpje 5 stuks 20g,1
+Schuimwijn 125ml,1.5
+Schwarzwaldertaart 100g,11.5
+Scone 1 stuk,1
+Seitan 100g,2
+Selderij,0
+Seroendeng 15ml,2.5
+Sesampasta 15g,2.5
+Sesamzaadjes 10g,1.5
+Sharonfruit 1 portie 100g,1
+Shasliksaus 30g,0.5
+Sherry droog 50ml,1
+Sherry zoet 50ml,1.5
+Sinaasappel,0
+Sinaasappel of citroen gevuld met ijs 1 stuk 100ml,2
+Sinaasappelsap geconcentreerd 15ml,0.5
+Sinaasappelsap ongezoet/vers 200ml,1
+Sint-Jakobsschelp 5 stuks 100g,1.5
+Sjalot,0
+Sla,0
+Slagroom 15g,1
+Slagroom KlopKlop 18g,0.5
+Slagroom light 15g,0.5
+Slagroomsoes 1 gebakje 115g,8.5
+Slagroomtaart 100g,6
+Slank-o-naise 40% 15g,1.5
+Slaolie 1 koffielepel,1
+Slasaus met yoghurt 1 eetlepel 15g,1
+Smeerkaas 60% 20g,1.5
+Smeerkaas mager 20% 20g,0.5
+Smeerkaas met ham 40% 20g,1.5
+Smeerkaas met komijn 40% 20g,1.5
+Smeerkaas met kruiden 40% 20g,1.5
+Smeerleverworst 50g,4
+Smeltkaas korstloos 30g,2.5
+Smeltkaas korstloos 20% 30g,1
+Smeltkaas korstloos 40% 30g,3
+Smeltkaas mager 50g,2.5
+Sneppe 120g,2.5
+Snijbiet,0
+Snijbonen,0
+Snoek/Snoekbaars 120g,2
+Snoepje chocolade 30g 3 stuks,3
+Snoepje gemiddeld 30g,2.5
+Snoepje vruchten 30g,1
+Sodawater,0
+Soepgroenten,0
+Soepkip 100g,6
+Soepstengel 3 stuks 30g,2
+Soepvlees 60g,3
+Soft Ice 70g,3
+Sojabonen gekookt 120g,3.5
+Sojabonen ongekookt 30g,3
+Sojabrokjes 45g,2
+Sojabrood 1 sneetje 25g,1.5
+Sojadrink Ca+ gearomatiseerd 125ml,1.5
+Sojadrink Ca+ naturel 125ml,1
+Sojadrink chocolade/fruit 125ml,1.5
+Sojadrink naturel/vanille 125ml,1
+Sojahalvarine 100% soja 5g,0.5
+Sojameel ontvet 5g,0.5
+Sojameel volvet 5g,0.5
+Sojamelk 200ml,1.5
+Sojasaus,0
+Sopropo/bitterkomkommer,0
+Sorbet 1 bolletje 50ml,1
+Spaanse maaltijdcracker 1 stuk 33g,3.5
+Spaanse pepers,0
+Spaanse worst 3 sneetjes 30g,2.5
+Spaghettisaus 1 eetlepel 15g,0.5
+Specerijen,0
+Speculaas 1 koekje 10g,1
+Speculaas gevuld 40g,3.5
+Speculaas met kandijsuiker 10g,1
+Speculaas voltarwe 13g,1
+Spekreep groot 15g,1
+Spekreep klein 5g,0.5
+Spelt 1 portie 20g,1
+Speltbrood 1 sneetje 25g,1
+Sperziebonen,0
+Spinazie,0
+Spinazie a la creme diepvries 100g,1.5
+Spinazie diepvries/uit blik,0
+Spinazie met roomsaus diepvries 100g,1
+Spitskool,0
+Spliterwten gekookt 100g,2
+Sportdrank dorstlesser 200ml,1
+Sportdrank eiwitrijk 200ml,4
+Sportdrank energierijk 200ml,5.5
+Sportdrank koolhydraatrijk 200ml,2
+Spread komkommer 15g,0.5
+Spread sandwich 15g,1
+Sprot 120g,4
+Sprot gerookt 50g,2.5
+Spruiten,0
+Spuitwater,0
+Sterkers,0
+Stervrucht,0
+Stevia,0
+Stokbrood 1 portie 50g,2
+Stroganoffsaus 15g,1.5
+Stroop 15g,1
+Stroopwafel 1 wafel 30g,2.5
+Struisvogel biefstuk/filet 100g,2
+Studentenhaver 15g,1.5
+Suikerbrood 1 sneetje 25g,1.5
+Suikerklontje 3 klontjes,1
+Suikersnoepje 1 stuk 10g,0.5
+Suikerspin 1 stuk,1.5
+Sukade 15g,1
+Surimi 4 stuks 70g,2
+Suze 50ml,1.5
+Sweetie,0
+Taai Taai 1 stuk 20g,1
+Tabasco,0
+Tahin 5g,1
+Tamarillo,0
+Tamarinde 5g,0.5
+Tangerine,0
+Tapioca ongekookt 20g,1.5
+Tarama 20g,3.5
+Tarbot 120g,2
+Tartaarsaus 5g,1
+Tartufo 80g,4.5
+Tarwe gekookt (Ebly) 120g,2
+Tarwe/roggebrood 100g,4
+Tarwebloem 1 eetlepel,1
+Tarwekiemen 15g,1
+Tarwezemelen 10g,0.5
+Tauge,0
+Tempeh 60g,2
+Texelaar 30g,3
+Thaise soep 250ml,6
+Thee,0
+Tijm gedroogd,0
+Tilsitter kaas 30% 30g,2
+Tilsitter kaas 45% 30g,3
+Tiramisu 50g,4
+Toffiefee 10g,1
+Tofu (Tahoe-sojakaas) 80g,2
+Tomaat,0
+Tomaat uit blik gepeld,0
+Tomatencoulis zelfgemaakt,0
+Tomatenpuree 30g,0.5
+Tomatensap 250ml,1
+Tomatensaus fabrikant 15g,0.5
+Tomatensaus verse tomaten,0
+Tomatensoep met balletjes 250ml,2
+Tomatensoep met balletjes en vermicelli 250ml,2.5
+Tomme 25% light 30g,1.5
+Tomme 30% 30g,2.5
+Tompouce 1 stuk 125g,8.5
+Tong (vis) 120g,1.5
+Tong rund 100g,6.5
+Tong varken 100g,6.5
+Tongschar 120g,2
+Tonic 250ml,2
+Tonijn 120g,4.5
+Tonijn uit blik in eigen nat 100g,2
+Tonijn uit blik in olie 100g,4
+Topinamboer 100g,1.5
+Tortilla Chips 6 stuks 10g,1
+Tortilla Wrap maispannenkoekje groot 1 groot 65g,4
+Tortilla Wrap maispannenkoekje klein 1 klein 25g,2.5
+Truffels (groente),0
+Tuinbonen,0
+Tuinkers/Cresson,0
+Turks brood 50g,2
+Turkse schapenkaas 30g,2.5
+Tutti Frutti gedroogd 30g,1
+Uglifruit,0
+Ui,0
+Ui zoetzuur 100g,1.5
+Ui zuur,0
+Uiensoep gegratineerd 250ml,4.5
+Uiensoep zelfgemaakt,0
+Vacherin kaas 30g,2
+Vanillepoeder 15g,1
+Vanilleroomsaus 15g,0.5
+Vanillestokje,0
+Vanillesuiker 15g,1
+Varkensborst gerookt/naturel 15g,1
+Varkensvlees braadworst 100g,7
+Varkensvlees filetlapje 100g,3
+Varkensvlees fricandeau 40g,3
+Varkensvlees gebraad 60g,3.5
+Varkensvlees gebraad van de rug 60g,5.5
+Varkensvlees gehakt 100g,7
+Varkensvlees haasje 100g,3
+Varkensvlees karbonade 120g,5.5
+Varkensvlees kotelet 80g,4.5
+Varkensvlees lever 100g,3
+Varkensvlees mager 100g,3
+Varkensvlees nasivlees 100g,3
+Varkensvlees oester 100g,3
+Varkensvlees schnitzel 120g,6.5
+Varkensvlees slavink 100g,7.5
+Varkensvlees spekreepjes gerookt 20g,3
+Varkensvlees spekreepjes mager 20g,2
+Varkensvlees strasbourg worst 60g,5
+Varkensvlees strasbourg worst mager 60g,4
+Varkensvlees varkensrug 60g,5.5
+Varkensvlees vet 100g,6.5
+Veenbessen,0
+Veenbessenmoes gezoet 100g,2
+Vegetarische burger met groenten 100g,5.5
+Vegetarische burger met kaas 100g,6
+Veldsla,0
+Venkel,0
+Vermicelli alfabetlettertjes ongekookt 20g,1.5
+Verse roomkaas 30g,4
+Vervangroom plantaardig 15g,0.5
+Vetsin,0
+Victoriabaars 120g,2.5
+Vieux Pane 30g,3
+Vijgen geconfijt 15g,1
+Vijgen gedroogd 20g,1
+Vijgen vers 2 stuks 20g,1
+Vinaigrette 5g,1
+Vinaigrette light max 40% 10g,1
+Vis gepaneerd voorgebakken 100g,4
+Viseitjes (lompvis/zalm) 10g,0.5
+Visfumet 100ml,0.5
+Vissalade 30g,3
+Vissaus 15g,0.5
+Vissoep zonder garnituur 250ml,2.5
+Visstick gefrituurd 1 stuk 30g,2
+Vla chocolade/karamel/vanille 0% 100ml,1
+Vleesbrood 100g,7.5
+Vleessalade 50g,4.5
+Vleessalade kip met curry 50g,4
+Vleessaus 15g,1
+Vleesworst 20g,2
+Vlierbessendrank 200ml,1.5
+Vodka 30ml,1
+Vodka Orange 200ml,2.5
+Volkorenbrood/Voltarwebrood 100g,4
+Volkorenmeel/Voltarwemeel 1 eetlepel 20g,1
+Vruchtenhagelslag 15g,1
+Vruchtenijs 50ml,1.5
+Vruchtenmoes gezoet 100g,2
+Vruchtenmoes ongezoet 100g,1
+Vruchtennectar gezoet 200ml,1.5
+Vruchtensap gezoet 200ml,2
+Vruchtensap ongezoet 200ml,1
+Vruchtensaus 15g,0.5
+Wafel chocolade 45g,4.5
+Wafel naturel 35g,3
+Wafel vanille 35g,3.5
+Waldkorn 1 sneetje 25g,1
+Walnoten 4 stuks 10g,2
+Warme wijn 100ml,2
+Wasabi (mierikswortel),0
+Waterijs (cola/sinaas/citroen) 75g,1
+Waterkastanjes 100g,1.5
+Waterkers,0
+Watermeloen,0
+Weense koffie 150ml,2.5
+Weense worst 60g,4
+Weetabix 38g,2
+Westmalle dubbel/tripel 330ml,3.5
+Whisky 30ml,1
+Whiskysaus 15g,1.5
+Wijn om te koken 2 eetlepels,0
+Wijn rood/rose/wit droog 125ml,1.5
+Wijn wit zoet 125ml,2.5
+Wijnendale kaas 30g,2.5
+Wijngaardslakken 120g,2
+Wijting 120g,2
+Wild 1 portie 100g,2.5
+Wilde spinazie,0
+Wildsaus 15g,1
+Winegums 1 stuk 10g,0.5
+Wit brood 100g,4
+Witbier (Hoegaarden Brugse Witte) 250ml,2
+Witlof,0
+Witte bessen,0
+Witte bonen gedroogd ongekookt 40g,2
+Witte bonen gekookt 120g,2
+Witte bonen in tomatensaus uit blik 120g,2
+Witte bonen uit blik 120g,2
+Witte knolletjes,0
+Witte kool,0
+Witte suiker 15g,1
+Wontonsoep 250ml,3
+Worcestershire saus,0
+Worst chipolata 100g,7
+Worst gedroogd 50g,5
+Worst Toulouse 60g,3.5
+Worst varkens/kalfsvlees 100g,7
+Worstenbroodje 1 broodje,9
+Wortel,0
+Wortel uit blik,0
+Wortelsap 200ml,1
+Zalm 120g,5
+Zalm gerookt 50g,2
+Zalm uit blik in eigen nat 100g,3.5
+Zalmforel 120g,4
+Zalmpastei 50g,4.5
+Zanddeeg 20g,1.5
+Zandtaartje 100g,12.5
+Zeebaars 120g,2.5
+Zeebrasem 120g,1.5
+Zeeduivel (Lotte) 120g,1.5
+Zeekraal,0
+Zeekreeft 120g,2
+Zeelt 120g,1.5
+Zeepaling 120g,2.5
+Zeevruchtensalade 30g,3.5
+Zeewier,0
+Zeewolf 120g,2.5
+Zelfrijzend bakmeel 1 eetlepel,1
+Zemelbrood 100g,4
+Zeven granenbrood 100g,4
+Zigeuner-grill saus 30g,0.5
+Zilveruitjes op azijn,0
+Zoete aardappel/bataat 120g,2
+Zoetstoffen,0
+Zoetzure saus 15g,1
+Zonnebloempitten 10g,1.5
+Zonnevis (Petrusvis) 120g,2
+Zout,0
+Zure room 1 portie 45ml,2.5
+Zuring,0
+Zuurdesembrood 30g,1.5
+Zuurkool,0
+Zuurtjes 10g,0.5
+Zwaardvis 120g,3
+Zwarte bessen,0
+Zweedse broodjes 20g,1.5
+Zwitserse strooikaas 20g,0.5`;
+
+// ─── STATE ───────────────────────────────────────────────────────────────
+let vptFoodDb = [];        // gecombineerd: ingebakken + custom
+let vptCurrentDate = '';   // YYYY-MM-DD
+let vptSelectedProduct = null;
+let vptCurrentMode = 'search';
+let vptFilterFavorites = false;
+let vptRecipeIngredients = []; // { id, name, amount, points, unitType }
+let vptCharts = { weight: null, daily: null, meal: null };
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────
+function vptTodayIso() { return new Date().toISOString().split('T')[0]; }
+function vptFmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+function vptUuid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function vptRoundPt(n) { return Math.round(n * 2) / 2; }
+function vptGet(key, fallback) {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
+  catch (e) { return fallback; }
+}
+function vptSet(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch (e) { console.error('LocalStorage vol of geblokkeerd', e); alert('Kon niet opslaan — opslag vol of geblokkeerd.'); return false; }
+}
+function vptGetLog(date) { return vptGet(VPT_LS.log(date), []); }
+function vptSetLog(date, log) { vptSet(VPT_LS.log(date), log); }
+function vptGetProfile() {
+  return { ...VPT_DEFAULTS, ...(vptGet(VPT_LS.profile, {})) };
+}
+
+// ─── DATABASE BUILDEN ────────────────────────────────────────────────────
+function vptBuildDb() {
+  const built = VPT_RAW_DB.split('\n').map((line, idx) => {
+    const parts = line.split(',');
+    if (parts.length < 2) return null;
+    const name = parts[0].trim();
+    const points = parseFloat(parts[1]);
+    if (isNaN(points)) return null;
+    return vptParseProduct({ id: 'std-' + idx, name, points, source: 'standaard' });
+  }).filter(Boolean);
+
+  const custom = vptGet(VPT_LS.customDb, []).map(p => vptParseProduct({ ...p, source: 'eigen' }));
+  vptFoodDb = [...built, ...custom].sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+}
+
+function vptParseProduct({ id, name, points, source, unitType, unitWeight }) {
+  // Detecteer gram/ml/stuks uit naam als niet expliciet
+  if (!unitType) {
+    const weightMatch = name.match(/(\d+(?:\.\d+)?)\s?(gram|gr|ml)\b/i);
+    if (weightMatch) {
+      unitWeight = parseFloat(weightMatch[1]);
+      unitType = weightMatch[2].toLowerCase().startsWith('m') ? 'ml' : 'gram';
+    } else if (/\b(\d+)\s?(stuks|stukjes)\b/i.test(name)) {
+      const m = name.match(/\b(\d+)\s?(stuks|stukjes)\b/i);
+      unitType = 'stuks'; unitWeight = parseInt(m[1]);
+    } else {
+      unitType = 'stuks'; unitWeight = 1;
+    }
+  }
+  return { id, name, points, source, unitType, unitWeight: unitWeight || 1 };
+}
+
+// ─── TAB-NAVIGATIE ───────────────────────────────────────────────────────
+function vptShowTab(tabName) {
+  document.querySelectorAll('.vpt-tab-content').forEach(s => s.classList.add('hidden'));
+  document.querySelectorAll('.vpt-tab').forEach(b => {
+    b.classList.remove('vpt-tab--active');
+    b.classList.add('text-blue-100');
+  });
+  const panel = document.getElementById('vpt-tab-' + tabName);
+  if (panel) { panel.classList.remove('hidden'); panel.classList.add('vpt-fade-in'); }
+  const btn = document.querySelector(`.vpt-tab[data-tab="${tabName}"]`);
+  if (btn) { btn.classList.add('vpt-tab--active'); btn.classList.remove('text-blue-100'); }
+
+  // Lazy-render zware tabs
+  if (tabName === 'gewicht') vptRenderWeight();
+  if (tabName === 'statistieken') vptRenderStats();
+  if (tabName === 'database') vptRenderDatabase();
+  if (tabName === 'recepten') vptRenderRecipes();
+  if (tabName === 'instellingen') vptRenderProfile();
+}
+
+// ─── DAGBOEK: DATUM ─────────────────────────────────────────────────────
+function vptOnDateChange() {
+  vptCurrentDate = document.getElementById('vpt-date-picker').value || vptTodayIso();
+  vptRenderDay();
+}
+function vptShiftDate(delta) {
+  if (delta === 0) { vptCurrentDate = vptTodayIso(); }
+  else {
+    const d = new Date(vptCurrentDate + 'T00:00:00');
+    d.setDate(d.getDate() + delta);
+    vptCurrentDate = d.toISOString().split('T')[0];
+  }
+  document.getElementById('vpt-date-picker').value = vptCurrentDate;
+  vptRenderDay();
+}
+
+// ─── DAGBOEK: ZOEKEN & TOEVOEGEN ────────────────────────────────────────
+function vptFilterProducts() {
+  const q = document.getElementById('vpt-search').value.toLowerCase().trim();
+  const favs = vptGet(VPT_LS.favorites, []);
+  let pool = vptFoodDb;
+  if (vptFilterFavorites) pool = pool.filter(p => favs.includes(p.id));
+  if (q) pool = pool.filter(p => p.name.toLowerCase().includes(q));
+  vptRenderProductSelect(pool.slice(0, 50));
+  document.getElementById('vpt-product-select').classList.remove('hidden');
+}
+function vptRenderProductSelect(items) {
+  const sel = document.getElementById('vpt-product-select');
+  if (!items.length) {
+    sel.innerHTML = '<option disabled>Geen resultaten — gebruik handmatig</option>';
+    return;
+  }
+  sel.innerHTML = items.map(p =>
+    `<option value="${p.id}">${p.points === 0 ? '🟢 ' : ''}${p.name} (${p.points} pt) ${p.source === 'eigen' ? '⭐' : ''}</option>`
+  ).join('');
+}
+function vptSelectProduct() {
+  const id = document.getElementById('vpt-product-select').value;
+  const p = vptFoodDb.find(x => x.id === id);
+  if (!p) return;
+  vptSelectedProduct = p;
+  document.getElementById('vpt-selected-display').innerHTML =
+    `${p.name} <span class="text-slate-400 font-normal">(${p.points} pt per ${p.unitWeight} ${p.unitType})</span>`;
+  document.getElementById('vpt-unit-label').textContent = p.unitType === 'gram' || p.unitType === 'ml' ? p.unitType : 'stuks';
+  document.getElementById('vpt-amount').value = p.unitWeight;
+  document.getElementById('vpt-input-label').textContent = p.unitType === 'gram' ? 'Gewicht (gram)' : p.unitType === 'ml' ? 'Volume (ml)' : 'Aantal';
+  document.getElementById('vpt-product-select').classList.add('hidden');
+  vptUpdatePointsPreview();
+}
+function vptUpdatePointsPreview() {
+  if (!vptSelectedProduct) return;
+  const amt = parseFloat(document.getElementById('vpt-amount').value) || 0;
+  const factor = (vptSelectedProduct.unitWeight > 0) ? amt / vptSelectedProduct.unitWeight : 1;
+  const pts = vptRoundPt(vptSelectedProduct.points * factor);
+  document.getElementById('vpt-points-preview').textContent = `= ${pts} pt`;
+}
+
+function vptToggleMode(mode) {
+  vptCurrentMode = mode;
+  document.getElementById('vpt-mode-search').classList.toggle('hidden', mode !== 'search');
+  document.getElementById('vpt-mode-manual').classList.toggle('hidden', mode !== 'manual');
+}
+function vptToggleFilter(kind) {
+  if (kind === 'favorites') {
+    vptFilterFavorites = !vptFilterFavorites;
+    document.getElementById('vpt-filter-fav-btn').classList.toggle('text-amber-500', vptFilterFavorites);
+    document.getElementById('vpt-search').value = '';
+    vptFilterProducts();
+  }
+}
+
+function vptAddFromSearch() {
+  if (!vptSelectedProduct) { alert('Kies eerst een product uit de zoeklijst.'); return; }
+  const amt = parseFloat(document.getElementById('vpt-amount').value);
+  if (isNaN(amt) || amt <= 0) { alert('Voer een geldig aantal/gewicht in.'); return; }
+  const factor = vptSelectedProduct.unitWeight > 0 ? amt / vptSelectedProduct.unitWeight : 1;
+  const pts = vptRoundPt(vptSelectedProduct.points * factor);
+  const meal = document.getElementById('vpt-meal-select').value;
+  vptAddLogEntry({
+    id: vptUuid(), type: 'food', productId: vptSelectedProduct.id,
+    name: vptSelectedProduct.name, amount: amt, unitType: vptSelectedProduct.unitType,
+    points: pts, meal,
+  });
+  // Reset
+  vptSelectedProduct = null;
+  document.getElementById('vpt-search').value = '';
+  document.getElementById('vpt-amount').value = '';
+  document.getElementById('vpt-selected-display').textContent = '';
+  document.getElementById('vpt-points-preview').textContent = '';
+}
+
+function vptUpdateManualLabel() {
+  const type = document.querySelector('input[name="vpt-val-type"]:checked').value;
+  document.getElementById('vpt-manual-helper').textContent =
+    type === 'kcal' ? `Wordt omgezet (~${vptGetProfile().kcalPerPoint} kcal = 1 pt)` : 'Voer direct punten in';
+}
+function vptAddManual() {
+  const name = document.getElementById('vpt-manual-name').value.trim();
+  const val = parseFloat(document.getElementById('vpt-manual-value').value);
+  const amt = parseFloat(document.getElementById('vpt-manual-amount').value) || 1;
+  const meal = document.getElementById('vpt-manual-meal').value;
+  const type = document.querySelector('input[name="vpt-val-type"]:checked').value;
+  const saveDb = document.getElementById('vpt-manual-save-db').checked;
+
+  if (!name) { alert('Geef de productnaam.'); return; }
+  if (isNaN(val) || val < 0) { alert('Geef een geldige waarde.'); return; }
+
+  const profile = vptGetProfile();
+  const ptsPerPortion = type === 'kcal' ? vptRoundPt(val / profile.kcalPerPoint) : val;
+  const totalPts = vptRoundPt(ptsPerPortion * amt);
+
+  vptAddLogEntry({ id: vptUuid(), type: 'food', name, amount: amt, unitType: 'portie', points: totalPts, meal });
+
+  if (saveDb) {
+    const custom = vptGet(VPT_LS.customDb, []);
+    custom.push({ id: 'cust-' + vptUuid(), name, points: ptsPerPortion, unitType: 'portie', unitWeight: 1 });
+    vptSet(VPT_LS.customDb, custom);
+    vptBuildDb();
+  }
+
+  // Reset
+  document.getElementById('vpt-manual-name').value = '';
+  document.getElementById('vpt-manual-value').value = '';
+  document.getElementById('vpt-manual-amount').value = '1';
+  document.getElementById('vpt-manual-save-db').checked = false;
+}
+
+function vptAddActivity() {
+  const kcal = parseFloat(document.getElementById('vpt-sport-kcal').value);
+  if (isNaN(kcal) || kcal <= 0) { alert('Geef een geldig aantal kcal.'); return; }
+  const profile = vptGetProfile();
+  const pts = vptRoundPt(kcal / profile.kcalPerPoint);
+  vptAddLogEntry({ id: vptUuid(), type: 'activity', name: `Activiteit ${kcal} kcal`, amount: 1, unitType: 'sessie', points: pts, meal: 'Activiteit' });
+  document.getElementById('vpt-sport-kcal').value = '';
+}
+
+function vptAddLogEntry(entry) {
+  const log = vptGetLog(vptCurrentDate);
+  log.push(entry);
+  vptSetLog(vptCurrentDate, log);
+  vptRenderDay();
+}
+function vptDeleteEntry(entryId) {
+  const log = vptGetLog(vptCurrentDate).filter(e => e.id !== entryId);
+  vptSetLog(vptCurrentDate, log);
+  vptRenderDay();
+}
+function vptClearDay() {
+  if (!confirm(`Hele dag ${vptCurrentDate} wissen?`)) return;
+  vptSetLog(vptCurrentDate, []);
+  vptRenderDay();
+}
+function vptCopyPreviousDay() {
+  const d = new Date(vptCurrentDate + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  const prevDate = d.toISOString().split('T')[0];
+  const prevLog = vptGetLog(prevDate);
+  if (!prevLog.length) { alert(`Geen log gevonden voor ${prevDate}.`); return; }
+  if (!confirm(`${prevLog.length} items van ${prevDate} kopiëren naar ${vptCurrentDate}?`)) return;
+  const log = vptGetLog(vptCurrentDate);
+  prevLog.forEach(e => log.push({ ...e, id: vptUuid() }));
+  vptSetLog(vptCurrentDate, log);
+  vptRenderDay();
+}
+
+function vptToggleFavorite(productId) {
+  const favs = vptGet(VPT_LS.favorites, []);
+  const idx = favs.indexOf(productId);
+  if (idx >= 0) favs.splice(idx, 1); else favs.push(productId);
+  vptSet(VPT_LS.favorites, favs);
+  vptRenderDay();
+  vptRenderDatabase();
+}
+
+// ─── DAGBOEK: RENDER ────────────────────────────────────────────────────
+function vptRenderDay() {
+  const log = vptGetLog(vptCurrentDate);
+  const profile = vptGetProfile();
+  const meals = ['Ochtend', 'Middag', 'Avond', 'Extra'];
+
+  // KPI's
+  const foodPts = log.filter(e => e.type === 'food').reduce((s, e) => s + e.points, 0);
+  const actPts = log.filter(e => e.type === 'activity').reduce((s, e) => s + e.points, 0);
+  const target = profile.dailyTarget;
+  const remaining = target - foodPts;
+
+  document.getElementById('vpt-kpi-target').textContent = target;
+  document.getElementById('vpt-kpi-consumed').textContent = vptRoundPt(foodPts);
+  document.getElementById('vpt-kpi-remaining').textContent = vptRoundPt(remaining);
+  document.getElementById('vpt-kpi-activity').textContent = vptRoundPt(actPts);
+  document.getElementById('vpt-kpi-weekbonus').textContent = profile.weeklyBonus;
+
+  // Week-bonus gebruik berekenen
+  const weekBonusUsed = vptWeekBonusUsed(vptCurrentDate);
+  document.getElementById('vpt-kpi-weekbonus-used').textContent = `${vptRoundPt(weekBonusUsed)} gebruikt`;
+
+  // Progress + waarschuwing
+  const pct = Math.min(100, (foodPts / target) * 100);
+  const bar = document.getElementById('vpt-progress-bar');
+  bar.style.width = pct + '%';
+  bar.classList.toggle('from-red-500', foodPts > target);
+  bar.classList.toggle('to-red-700', foodPts > target);
+  bar.classList.toggle('from-brand-600', foodPts <= target);
+  bar.classList.toggle('to-brand-900', foodPts <= target);
+
+  const remCard = document.getElementById('vpt-kpi-remaining-card');
+  remCard.style.background = foodPts > target ? '#b91c1c' : '#1e40af';
+  document.getElementById('vpt-limit-warning').classList.toggle('hidden', foodPts <= target);
+
+  // Datum-tekst
+  document.getElementById('vpt-date-text').textContent = vptFmtDate(vptCurrentDate);
+
+  // Notitie laden
+  document.getElementById('vpt-day-note').value = vptGet(VPT_LS.note(vptCurrentDate), '');
+
+  // Log per meal
+  const favs = vptGet(VPT_LS.favorites, []);
+  const groups = {};
+  meals.forEach(m => groups[m] = []);
+  groups['Activiteit'] = [];
+  log.forEach(e => { if (!groups[e.meal]) groups[e.meal] = []; groups[e.meal].push(e); });
+
+  const container = document.getElementById('vpt-log-by-meal');
+  if (!log.length) {
+    container.innerHTML = '<div class="text-center py-10 text-slate-400 italic">Nog geen invoer voor deze dag.</div>';
+    return;
+  }
+
+  const allMeals = [...meals, 'Activiteit'];
+  container.innerHTML = allMeals.filter(m => groups[m].length > 0).map(meal => {
+    const total = groups[meal].reduce((s, e) => s + e.points, 0);
+    const isAct = meal === 'Activiteit';
+    return `
+      <div class="mb-4">
+        <div class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 px-3 py-2 rounded-t font-bold text-sm uppercase tracking-wide ${isAct ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'}">
+          <span>${isAct ? '<i class="fas fa-person-running mr-1"></i>' : ''} ${meal}</span>
+          <span>${isAct ? '+' : ''}${vptRoundPt(total)} pt</span>
+        </div>
+        <div class="border border-t-0 border-slate-200 dark:border-slate-700 rounded-b divide-y divide-slate-100 dark:divide-slate-700">
+          ${groups[meal].map(e => `
+            <div class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+              <div class="flex items-center gap-2 min-w-0">
+                ${e.productId ? `<i class="fas fa-star vpt-fav-star ${favs.includes(e.productId) ? 'vpt-fav-star--on' : 'vpt-fav-star--off'}" onclick="vptToggleFavorite('${e.productId}')"></i>` : '<i class="fas fa-pen text-slate-300 dark:text-slate-600"></i>'}
+                <span class="truncate">${e.name}</span>
+                ${e.points === 0 ? '<span class="vpt-zero-badge">0PT</span>' : ''}
+              </div>
+              <div class="flex items-center gap-3 flex-shrink-0">
+                <span class="text-xs text-slate-500 dark:text-slate-400">${e.amount} ${e.unitType}</span>
+                <span class="font-bold ${isAct ? 'text-emerald-600' : 'text-brand-600 dark:text-blue-400'} w-12 text-right">${isAct ? '+' : ''}${e.points} pt</span>
+                <button onclick="vptDeleteEntry('${e.id}')" class="text-slate-300 hover:text-red-500 text-sm" title="Verwijderen"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function vptSaveNote() {
+  const txt = document.getElementById('vpt-day-note').value;
+  vptSet(VPT_LS.note(vptCurrentDate), txt);
+}
+
+// ─── WEEK-BONUS BEREKENING ──────────────────────────────────────────────
+function vptWeekStart(isoDate) {
+  const profile = vptGetProfile();
+  const start = parseInt(profile.weekStart, 10) || 1;
+  const d = new Date(isoDate + 'T00:00:00');
+  const day = d.getDay(); // 0=zo..6=za
+  const diff = (day - start + 7) % 7;
+  d.setDate(d.getDate() - diff);
+  return d.toISOString().split('T')[0];
+}
+function vptWeekBonusUsed(isoDate) {
+  const profile = vptGetProfile();
+  const start = vptWeekStart(isoDate);
+  const startDate = new Date(start + 'T00:00:00');
+  let used = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    const iso = d.toISOString().split('T')[0];
+    const log = vptGetLog(iso);
+    const food = log.filter(e => e.type === 'food').reduce((s, e) => s + e.points, 0);
+    if (food > profile.dailyTarget) used += (food - profile.dailyTarget);
+  }
+  return used;
+}
+
+// ─── RECEPTEN ───────────────────────────────────────────────────────────
+function vptFilterRecipeProducts() {
+  const q = document.getElementById('vpt-recipe-search').value.toLowerCase().trim();
+  if (!q) { document.getElementById('vpt-recipe-select').classList.add('hidden'); return; }
+  const items = vptFoodDb.filter(p => p.name.toLowerCase().includes(q)).slice(0, 30);
+  const sel = document.getElementById('vpt-recipe-select');
+  sel.innerHTML = items.length
+    ? items.map(p => `<option value="${p.id}">${p.name} (${p.points} pt)</option>`).join('')
+    : '<option disabled>Geen resultaten</option>';
+  sel.classList.remove('hidden');
+}
+function vptAddIngredient() {
+  const id = document.getElementById('vpt-recipe-select').value;
+  const p = vptFoodDb.find(x => x.id === id);
+  if (!p) return;
+  vptRecipeIngredients.push({ id: vptUuid(), productId: p.id, name: p.name, amount: p.unitWeight, unitType: p.unitType, points: p.points, unitWeight: p.unitWeight });
+  document.getElementById('vpt-recipe-search').value = '';
+  document.getElementById('vpt-recipe-select').classList.add('hidden');
+  vptRenderRecipeIngredients();
+}
+function vptRemoveIngredient(id) {
+  vptRecipeIngredients = vptRecipeIngredients.filter(i => i.id !== id);
+  vptRenderRecipeIngredients();
+}
+function vptUpdateIngredientAmount(id, newAmt) {
+  const ing = vptRecipeIngredients.find(i => i.id === id);
+  if (ing) { ing.amount = parseFloat(newAmt) || 0; vptRenderRecipeIngredients(); }
+}
+function vptRenderRecipeIngredients() {
+  const cont = document.getElementById('vpt-recipe-ingredients');
+  if (!vptRecipeIngredients.length) {
+    cont.innerHTML = '<div class="text-center text-slate-400 italic py-4">Voeg ingrediënten toe</div>';
+    document.getElementById('vpt-recipe-total').textContent = 0;
+    document.getElementById('vpt-recipe-per-portion').textContent = 0;
+    return;
+  }
+  cont.innerHTML = vptRecipeIngredients.map(i => {
+    const ptsForAmt = vptRoundPt((i.points * i.amount) / Math.max(1, i.unitWeight));
+    return `
+      <div class="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/40 p-2 rounded">
+        <span class="flex-1 text-sm truncate">${i.name}</span>
+        <input type="number" value="${i.amount}" step="0.1" min="0" class="w-20 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1 text-sm text-right" oninput="vptUpdateIngredientAmount('${i.id}', this.value)">
+        <span class="text-xs text-slate-500 w-12">${i.unitType}</span>
+        <span class="text-sm font-bold text-brand-600 dark:text-blue-400 w-14 text-right">${ptsForAmt} pt</span>
+        <button onclick="vptRemoveIngredient('${i.id}')" class="text-slate-400 hover:text-red-500" title="Verwijder"><i class="fas fa-trash"></i></button>
+      </div>
+    `;
+  }).join('');
+  const total = vptRecipeIngredients.reduce((s, i) => s + vptRoundPt((i.points * i.amount) / Math.max(1, i.unitWeight)), 0);
+  const portions = parseInt(document.getElementById('vpt-recipe-portions').value, 10) || 1;
+  document.getElementById('vpt-recipe-total').textContent = vptRoundPt(total);
+  document.getElementById('vpt-recipe-per-portion').textContent = vptRoundPt(total / portions);
+}
+function vptSaveRecipe() {
+  const name = document.getElementById('vpt-recipe-name').value.trim();
+  const portions = parseInt(document.getElementById('vpt-recipe-portions').value, 10) || 1;
+  if (!name) { alert('Geef de receptnaam.'); return; }
+  if (!vptRecipeIngredients.length) { alert('Voeg ingrediënten toe.'); return; }
+  const total = vptRecipeIngredients.reduce((s, i) => s + vptRoundPt((i.points * i.amount) / Math.max(1, i.unitWeight)), 0);
+  const perPortion = vptRoundPt(total / portions);
+  const recipes = vptGet(VPT_LS.recipes, []);
+  recipes.push({
+    id: vptUuid(), name, portions, perPortion,
+    ingredients: vptRecipeIngredients.map(i => ({ ...i })),
+    created: new Date().toISOString(),
+  });
+  vptSet(VPT_LS.recipes, recipes);
+  // Reset
+  document.getElementById('vpt-recipe-name').value = '';
+  vptRecipeIngredients = [];
+  vptRenderRecipeIngredients();
+  vptRenderRecipes();
+  alert(`Recept "${name}" opgeslagen (${perPortion} pt/portie).`);
+}
+function vptRenderRecipes() {
+  const recipes = vptGet(VPT_LS.recipes, []);
+  const cont = document.getElementById('vpt-recipes-list');
+
+  // Header met "voorbeelden herstellen"
+  const headerHtml = `
+    <div class="flex justify-between items-center mb-2 text-xs">
+      <span class="text-slate-500 dark:text-slate-400">${recipes.length} recept${recipes.length === 1 ? '' : 'en'}</span>
+      <button onclick="vptReloadSeedRecipes()" class="text-brand-600 hover:underline"><i class="fas fa-rotate-right mr-1"></i>Voorbeeld-recepten herstellen</button>
+    </div>`;
+
+  if (!recipes.length) {
+    cont.innerHTML = headerHtml + '<div class="text-center text-slate-400 italic py-8">Nog geen recepten opgeslagen.</div>';
+    return;
+  }
+
+  cont.innerHTML = headerHtml + recipes.map(r => {
+    const isSeeded = !!r.seeded;
+    return `
+    <div class="bg-slate-50 dark:bg-slate-700/40 p-3 rounded border border-slate-200 dark:border-slate-600 ${isSeeded ? 'border-l-4 border-l-amber-400' : ''}">
+      <div class="flex justify-between items-start mb-1">
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-sm">${r.name} ${isSeeded ? '<span class="text-[10px] bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded ml-1">voorbeeld</span>' : ''}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">${r.portions} porties &middot; ${r.perPortion} pt/portie${r.cookTime ? ' &middot; ' + r.cookTime : ''}</div>
+        </div>
+        <button onclick="vptDeleteRecipe('${r.id}')" class="text-slate-400 hover:text-red-500 text-sm ml-2"><i class="fas fa-trash"></i></button>
+      </div>
+      <div class="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-2">${r.ingredients.map(i => i.name).join(' &middot; ')}</div>
+      ${isSeeded && r.steps ? `
+        <details class="mb-2 text-xs">
+          <summary class="cursor-pointer text-brand-600 hover:underline"><i class="fas fa-book-open mr-1"></i> Bereidingswijze tonen</summary>
+          <div class="mt-2 p-2 bg-white dark:bg-slate-800 rounded">
+            <div class="font-bold mb-1 text-slate-700 dark:text-slate-200">Ingrediënten:</div>
+            <ul class="list-disc list-inside text-slate-600 dark:text-slate-300 mb-2 space-y-0.5">
+              ${r.ingredients.map(i => `<li>${i.name}</li>`).join('')}
+            </ul>
+            <div class="font-bold mb-1 text-slate-700 dark:text-slate-200">Bereiding:</div>
+            <ol class="list-decimal list-inside text-slate-600 dark:text-slate-300 space-y-0.5">
+              ${r.steps.map(s => `<li>${s}</li>`).join('')}
+            </ol>
+            ${r.source ? `<div class="mt-2 text-[10px] text-slate-400">Bron: ${r.source}</div>` : ''}
+          </div>
+        </details>
+      ` : ''}
+      <div class="flex gap-2">
+        <button onclick="vptAddRecipeToDiary('${r.id}', 1)" class="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 rounded">
+          <i class="fas fa-plus mr-1"></i> 1 portie aan dagboek
+        </button>
+        <button onclick="vptAddRecipeToDiary('${r.id}', 2)" class="text-xs bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-100 px-3 py-1 rounded">
+          + 2
+        </button>
+      </div>
+    </div>
+    `;
+  }).join('');
+}
+function vptDeleteRecipe(id) {
+  if (!confirm('Recept verwijderen?')) return;
+  vptSet(VPT_LS.recipes, vptGet(VPT_LS.recipes, []).filter(r => r.id !== id));
+  vptRenderRecipes();
+}
+function vptAddRecipeToDiary(recipeId, portions) {
+  const r = vptGet(VPT_LS.recipes, []).find(x => x.id === recipeId);
+  if (!r) return;
+  const meal = prompt('Voor welk moment? (Ochtend / Middag / Avond / Extra)', 'Avond');
+  if (!meal) return;
+  const pts = vptRoundPt(r.perPortion * portions);
+  vptAddLogEntry({ id: vptUuid(), type: 'food', name: `${r.name} (${portions} portie${portions > 1 ? 's' : ''})`, amount: portions, unitType: 'portie', points: pts, meal });
+  alert(`${pts} pt toegevoegd aan ${meal}.`);
+}
+
+// ─── GEWICHT ────────────────────────────────────────────────────────────
+function vptAddWeight() {
+  const date = document.getElementById('vpt-weight-date').value;
+  const kg = parseFloat(document.getElementById('vpt-weight-kg').value);
+  if (!date || isNaN(kg) || kg <= 0) { alert('Geef datum en geldig gewicht.'); return; }
+  const weights = vptGet(VPT_LS.weights, []).filter(w => w.date !== date);
+  weights.push({ date, kg });
+  weights.sort((a, b) => a.date.localeCompare(b.date));
+  vptSet(VPT_LS.weights, weights);
+  document.getElementById('vpt-weight-kg').value = '';
+  // Update profiel huidig gewicht
+  const profile = vptGetProfile();
+  profile.weight = kg;
+  vptSet(VPT_LS.profile, profile);
+  vptRenderWeight();
+}
+function vptDeleteWeight(date) {
+  if (!confirm(`Weging ${date} verwijderen?`)) return;
+  vptSet(VPT_LS.weights, vptGet(VPT_LS.weights, []).filter(w => w.date !== date));
+  vptRenderWeight();
+}
+function vptRenderWeight() {
+  const weights = vptGet(VPT_LS.weights, []);
+  document.getElementById('vpt-weight-date').value = vptTodayIso();
+
+  // Lijst
+  const listCont = document.getElementById('vpt-weight-list');
+  if (!weights.length) {
+    listCont.innerHTML = '<div class="text-center text-slate-400 italic py-4">Nog geen wegingen.</div>';
+  } else {
+    listCont.innerHTML = [...weights].reverse().map(w => `
+      <div class="flex justify-between items-center px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded">
+        <span class="text-slate-500 dark:text-slate-400 text-xs">${vptFmtDate(w.date)}</span>
+        <span class="font-bold">${w.kg.toFixed(1)} kg</span>
+        <button onclick="vptDeleteWeight('${w.date}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash text-xs"></i></button>
+      </div>
+    `).join('');
+  }
+
+  // Samenvatting
+  const profile = vptGetProfile();
+  const summary = document.getElementById('vpt-weight-summary');
+  if (!weights.length) {
+    summary.innerHTML = '<div class="text-slate-400 italic">Voeg een weging toe om statistieken te zien.</div>';
+  } else {
+    const first = weights[0], last = weights[weights.length - 1];
+    const diff = last.kg - first.kg;
+    const toTarget = profile.targetWeight ? last.kg - profile.targetWeight : null;
+    const bmi = profile.height ? last.kg / Math.pow(profile.height / 100, 2) : null;
+    summary.innerHTML = `
+      <div class="flex justify-between"><span>Start (${first.date}):</span><span class="font-bold">${first.kg.toFixed(1)} kg</span></div>
+      <div class="flex justify-between"><span>Laatste (${last.date}):</span><span class="font-bold">${last.kg.toFixed(1)} kg</span></div>
+      <div class="flex justify-between"><span>Verschil:</span><span class="font-bold ${diff < 0 ? 'text-emerald-600' : diff > 0 ? 'text-red-600' : ''}">${diff > 0 ? '+' : ''}${diff.toFixed(1)} kg</span></div>
+      ${toTarget !== null ? `<div class="flex justify-between"><span>Tot streefgewicht:</span><span class="font-bold">${toTarget > 0 ? toTarget.toFixed(1) + ' kg te gaan' : 'bereikt!'}</span></div>` : ''}
+      ${bmi !== null ? `<div class="flex justify-between"><span>BMI:</span><span class="font-bold">${bmi.toFixed(1)} (${vptBmiCategory(bmi)})</span></div>` : ''}
+    `;
+  }
+
+  // Chart
+  vptRenderWeightChart(weights, profile);
+}
+function vptBmiCategory(bmi) {
+  if (bmi < 18.5) return 'ondergewicht';
+  if (bmi < 25) return 'gezond';
+  if (bmi < 30) return 'overgewicht';
+  return 'obesitas';
+}
+function vptRenderWeightChart(weights, profile) {
+  const ctx = document.getElementById('vpt-weight-chart');
+  if (!ctx) return;
+  if (vptCharts.weight) vptCharts.weight.destroy();
+  if (!weights.length) return;
+
+  const labels = weights.map(w => w.date);
+  const data = weights.map(w => w.kg);
+  const targetLine = profile.targetWeight ? Array(weights.length).fill(profile.targetWeight) : null;
+  const isDark = document.documentElement.classList.contains('dark');
+
+  vptCharts.weight = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Gewicht (kg)', data, borderColor: '#1d4ed8', backgroundColor: 'rgba(29,78,216,0.1)', tension: 0.3, fill: true, pointRadius: 4 },
+        ...(targetLine ? [{ label: `Streefgewicht (${profile.targetWeight} kg)`, data: targetLine, borderColor: '#10b981', borderDash: [6, 4], pointRadius: 0, fill: false }] : []),
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: isDark ? '#cbd5e1' : '#475569' } } },
+      scales: {
+        x: { ticks: { color: isDark ? '#94a3b8' : '#64748b' }, grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } },
+        y: { ticks: { color: isDark ? '#94a3b8' : '#64748b' }, grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+function vptExportWeights() {
+  const w = vptGet(VPT_LS.weights, []);
+  if (!w.length) { alert('Geen wegingen.'); return; }
+  const csv = 'datum,gewicht_kg\n' + w.map(x => `${x.date},${x.kg}`).join('\n');
+  vptDownload('gewichten-' + vptTodayIso() + '.csv', csv, 'text/csv');
+}
+
+// ─── STATISTIEKEN ───────────────────────────────────────────────────────
+function vptRenderStats() {
+  const profile = vptGetProfile();
+  const today = new Date(vptTodayIso() + 'T00:00:00');
+
+  // 30 dagen
+  const days = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const iso = d.toISOString().split('T')[0];
+    const log = vptGetLog(iso);
+    days.push({
+      iso,
+      label: d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric' }),
+      food: log.filter(e => e.type === 'food').reduce((s, e) => s + e.points, 0),
+      activity: log.filter(e => e.type === 'activity').reduce((s, e) => s + e.points, 0),
+      byMeal: {
+        Ochtend: log.filter(e => e.meal === 'Ochtend').reduce((s, e) => s + e.points, 0),
+        Middag: log.filter(e => e.meal === 'Middag').reduce((s, e) => s + e.points, 0),
+        Avond: log.filter(e => e.meal === 'Avond').reduce((s, e) => s + e.points, 0),
+        Extra: log.filter(e => e.meal === 'Extra').reduce((s, e) => s + e.points, 0),
+      },
+      log,
+    });
+  }
+
+  // Streak: aantal opeenvolgende dagen vanaf vandaag dat foodPts <= target+weeklyBonus/7 én er items zijn
+  let streak = 0;
+  for (let i = days.length - 1; i >= 0; i--) {
+    if (days[i].food === 0) break;
+    if (days[i].food <= profile.dailyTarget + (profile.weeklyBonus / 7)) streak++;
+    else break;
+  }
+  // Avg 30d (alleen dagen met items)
+  const activeDays = days.filter(d => d.food > 0);
+  const avg = activeDays.length ? (activeDays.reduce((s, d) => s + d.food, 0) / activeDays.length) : 0;
+  // Deze week
+  const weekStart = vptWeekStart(vptTodayIso());
+  const weekTotal = days.filter(d => d.iso >= weekStart).reduce((s, d) => s + d.food, 0);
+  // Activiteit 7d
+  const last7 = days.slice(-7);
+  const weekActivity = last7.reduce((s, d) => s + d.activity, 0);
+
+  document.getElementById('vpt-stat-streak').textContent = streak;
+  document.getElementById('vpt-stat-avg').textContent = vptRoundPt(avg);
+  document.getElementById('vpt-stat-week-total').textContent = vptRoundPt(weekTotal);
+  document.getElementById('vpt-stat-week-activity').textContent = vptRoundPt(weekActivity);
+
+  // Charts
+  vptRenderDailyChart(days.slice(-14), profile);
+  vptRenderMealChart(last7);
+  vptRenderTopFoods(days);
+}
+function vptRenderDailyChart(days, profile) {
+  const ctx = document.getElementById('vpt-stats-daily-chart');
+  if (!ctx) return;
+  if (vptCharts.daily) vptCharts.daily.destroy();
+  const isDark = document.documentElement.classList.contains('dark');
+  vptCharts.daily = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: days.map(d => d.label),
+      datasets: [
+        { label: 'Voeding', data: days.map(d => d.food), backgroundColor: days.map(d => d.food > profile.dailyTarget ? '#dc2626' : '#1d4ed8') },
+        { label: 'Activiteit', data: days.map(d => d.activity), backgroundColor: '#10b981' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: isDark ? '#cbd5e1' : '#475569' } },
+        annotation: {}
+      },
+      scales: {
+        x: { ticks: { color: isDark ? '#94a3b8' : '#64748b' }, grid: { display: false } },
+        y: { ticks: { color: isDark ? '#94a3b8' : '#64748b' }, grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+function vptRenderMealChart(days) {
+  const ctx = document.getElementById('vpt-stats-meal-chart');
+  if (!ctx) return;
+  if (vptCharts.meal) vptCharts.meal.destroy();
+  const totals = { Ochtend: 0, Middag: 0, Avond: 0, Extra: 0 };
+  days.forEach(d => Object.keys(totals).forEach(k => totals[k] += d.byMeal[k] || 0));
+  const isDark = document.documentElement.classList.contains('dark');
+  vptCharts.meal = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(totals),
+      datasets: [{ data: Object.values(totals).map(v => vptRoundPt(v)), backgroundColor: ['#fbbf24', '#3b82f6', '#8b5cf6', '#f97316'] }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { color: isDark ? '#cbd5e1' : '#475569' } } }
+    }
+  });
+}
+function vptRenderTopFoods(days) {
+  const counter = {};
+  days.forEach(d => d.log.filter(e => e.type === 'food').forEach(e => {
+    counter[e.name] = (counter[e.name] || 0) + 1;
+  }));
+  const sorted = Object.entries(counter).sort((a, b) => b[1] - a[1]).slice(0, 15);
+  const cont = document.getElementById('vpt-stats-top-foods');
+  if (!sorted.length) {
+    cont.innerHTML = '<div class="text-slate-400 italic py-4">Nog geen data over 30 dagen.</div>';
+    return;
+  }
+  const max = sorted[0][1];
+  cont.innerHTML = sorted.map(([name, count]) => `
+    <div class="flex items-center gap-2">
+      <span class="w-48 truncate">${name}</span>
+      <div class="flex-1 bg-slate-100 dark:bg-slate-700 rounded h-5 relative">
+        <div class="bg-brand-600 h-5 rounded" style="width:${(count / max * 100).toFixed(0)}%"></div>
+        <span class="absolute inset-0 flex items-center px-2 text-xs font-bold">${count}×</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── DATABASE-TAB ───────────────────────────────────────────────────────
+function vptRenderDatabase() {
+  const q = (document.getElementById('vpt-db-search').value || '').toLowerCase().trim();
+  const favs = vptGet(VPT_LS.favorites, []);
+  let items = vptFoodDb;
+  if (q) items = items.filter(p => p.name.toLowerCase().includes(q));
+  document.getElementById('vpt-db-counter').textContent = `${items.length} van ${vptFoodDb.length} producten`;
+  const cont = document.getElementById('vpt-db-list');
+  cont.innerHTML = items.slice(0, 500).map(p => `
+    <div class="flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded">
+      <div class="flex items-center gap-2 min-w-0">
+        <i class="fas fa-star vpt-fav-star ${favs.includes(p.id) ? 'vpt-fav-star--on' : 'vpt-fav-star--off'}" onclick="vptToggleFavorite('${p.id}')"></i>
+        <span class="truncate">${p.name}</span>
+        ${p.points === 0 ? '<span class="vpt-zero-badge">0PT</span>' : ''}
+        ${p.source === 'eigen' ? '<span class="text-[10px] text-brand-600 dark:text-blue-400 uppercase font-bold">eigen</span>' : ''}
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="font-bold text-brand-600 dark:text-blue-400">${p.points} pt</span>
+        ${p.source === 'eigen' ? `<button onclick="vptDeleteCustomFood('${p.id}')" class="text-slate-300 hover:text-red-500 text-sm"><i class="fas fa-trash"></i></button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+function vptAddCustomFood() {
+  const name = document.getElementById('vpt-db-name').value.trim();
+  const points = parseFloat(document.getElementById('vpt-db-points').value);
+  const unitType = document.getElementById('vpt-db-unit').value;
+  if (!name) { alert('Geef de naam.'); return; }
+  if (isNaN(points) || points < 0) { alert('Geef geldige punten.'); return; }
+  const custom = vptGet(VPT_LS.customDb, []);
+  custom.push({ id: 'cust-' + vptUuid(), name, points, unitType, unitWeight: unitType === 'gram' || unitType === 'ml' ? 100 : 1 });
+  vptSet(VPT_LS.customDb, custom);
+  document.getElementById('vpt-db-name').value = '';
+  document.getElementById('vpt-db-points').value = '';
+  vptBuildDb();
+  vptRenderDatabase();
+}
+function vptDeleteCustomFood(id) {
+  if (!confirm('Eigen voedingsmiddel verwijderen?')) return;
+  vptSet(VPT_LS.customDb, vptGet(VPT_LS.customDb, []).filter(p => p.id !== id));
+  vptBuildDb();
+  vptRenderDatabase();
+}
+
+// ─── PROFIEL + DAGDOEL-BEREKENING ───────────────────────────────────────
+function vptRenderProfile() {
+  const p = vptGetProfile();
+  document.getElementById('vpt-profile-name').value = p.name || '';
+  document.getElementById('vpt-profile-gender').value = p.gender || 'v';
+  document.getElementById('vpt-profile-age').value = p.age || '';
+  document.getElementById('vpt-profile-height').value = p.height || '';
+  document.getElementById('vpt-profile-weight').value = p.weight || '';
+  document.getElementById('vpt-profile-target-weight').value = p.targetWeight || '';
+  document.getElementById('vpt-profile-activity').value = p.activity || 1.375;
+  document.getElementById('vpt-setting-target').value = p.dailyTarget;
+  document.getElementById('vpt-setting-weekbonus').value = p.weeklyBonus;
+  document.getElementById('vpt-setting-kcal-per-pt').value = p.kcalPerPoint;
+  document.getElementById('vpt-setting-week-start').value = p.weekStart;
+  vptRecalcProfile();
+}
+function vptSaveProfile() {
+  const p = vptGetProfile();
+  p.name = document.getElementById('vpt-profile-name').value.trim();
+  p.gender = document.getElementById('vpt-profile-gender').value;
+  p.age = parseInt(document.getElementById('vpt-profile-age').value, 10) || null;
+  p.height = parseInt(document.getElementById('vpt-profile-height').value, 10) || null;
+  p.weight = parseFloat(document.getElementById('vpt-profile-weight').value) || null;
+  p.targetWeight = parseFloat(document.getElementById('vpt-profile-target-weight').value) || null;
+  p.activity = parseFloat(document.getElementById('vpt-profile-activity').value) || 1.375;
+  p.dailyTarget = parseInt(document.getElementById('vpt-setting-target').value, 10) || VPT_DEFAULTS.dailyTarget;
+  p.weeklyBonus = parseInt(document.getElementById('vpt-setting-weekbonus').value, 10) || VPT_DEFAULTS.weeklyBonus;
+  p.kcalPerPoint = parseInt(document.getElementById('vpt-setting-kcal-per-pt').value, 10) || VPT_DEFAULTS.kcalPerPoint;
+  p.weekStart = parseInt(document.getElementById('vpt-setting-week-start').value, 10);
+  vptSet(VPT_LS.profile, p);
+  vptRecalcProfile();
+  vptRenderDay();
+}
+function vptRecalcProfile() {
+  const p = vptGetProfile();
+  let bmr = null, tdee = null, target = null, bmi = null;
+  if (p.age && p.height && p.weight) {
+    // Mifflin-St Jeor
+    bmr = (10 * p.weight) + (6.25 * p.height) - (5 * p.age) + (p.gender === 'm' ? 5 : -161);
+    tdee = bmr * (p.activity || 1.375);
+    // 10% deficit op TDEE → kcal-doel → punten via kcalPerPoint
+    const kcalDoel = tdee * 0.9;
+    target = Math.round(kcalDoel / (p.kcalPerPoint || 70));
+    bmi = p.weight / Math.pow(p.height / 100, 2);
+  }
+  document.getElementById('vpt-calc-bmr').textContent = bmr ? Math.round(bmr) + ' kcal' : '— kcal';
+  document.getElementById('vpt-calc-tdee').textContent = tdee ? Math.round(tdee) + ' kcal' : '— kcal';
+  document.getElementById('vpt-calc-target').textContent = target ? target + ' pt' : '— pt';
+  document.getElementById('vpt-calc-bmi').textContent = bmi ? `${bmi.toFixed(1)} (${vptBmiCategory(bmi)})` : '—';
+}
+
+// ─── EXPORT / IMPORT ────────────────────────────────────────────────────
+function vptDownload(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+}
+function vptExportJson() {
+  const allKeys = Object.keys(localStorage).filter(k => k.startsWith('vpt_'));
+  const payload = {};
+  allKeys.forEach(k => { payload[k] = vptGet(k, null); });
+  payload._exported = new Date().toISOString();
+  payload._version = '2.0';
+  vptDownload(`voedingspunten-backup-${vptTodayIso()}.json`, JSON.stringify(payload, null, 2), 'application/json');
+}
+function vptImportJson(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('Backup importeren? Bestaande gegevens worden OVERSCHREVEN voor de geïmporteerde keys.')) {
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      Object.keys(data).forEach(k => {
+        if (k.startsWith('vpt_') && k !== '_exported' && k !== '_version') {
+          localStorage.setItem(k, JSON.stringify(data[k]));
+        }
+      });
+      alert('Backup geïmporteerd. Pagina wordt herladen.');
+      location.reload();
+    } catch (err) {
+      alert('Ongeldig JSON-bestand: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+function vptExportXlsx() {
+  const log = vptGetLog(vptCurrentDate);
+  if (!log.length) { alert('Geen invoer voor deze dag.'); return; }
+  const rows = [['Datum', 'Moment', 'Omschrijving', 'Aantal', 'Eenheid', 'Punten', 'Type']];
+  log.forEach(e => rows.push([vptCurrentDate, e.meal, e.name, e.amount, e.unitType, e.points, e.type]));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, vptCurrentDate);
+  XLSX.writeFile(wb, `voedingspunten-${vptCurrentDate}.xlsx`);
+}
+function vptResetAll() {
+  if (!confirm('ALLE Voedingspunten-data wissen? Dit is onomkeerbaar.')) return;
+  if (!confirm('Echt zeker? Maak eerst een backup via Database → JSON-backup.')) return;
+  Object.keys(localStorage).filter(k => k.startsWith('vpt_')).forEach(k => localStorage.removeItem(k));
+  location.reload();
+}
+
+// ─── THEMA + FULLSCREEN ─────────────────────────────────────────────────
+function vptToggleTheme() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  vptSet(VPT_LS.theme, isDark ? 'dark' : 'light');
+  const icon = document.getElementById('vpt-theme-icon');
+  if (icon) { icon.classList.toggle('fa-moon', !isDark); icon.classList.toggle('fa-sun', isDark); }
+  // Re-render charts voor kleuren
+  if (vptCharts.weight) vptRenderWeight();
+  if (vptCharts.daily) vptRenderStats();
+}
+function vptApplyStoredTheme() {
+  const stored = vptGet(VPT_LS.theme, 'light');
+  if (stored === 'dark') {
+    document.documentElement.classList.add('dark');
+    const icon = document.getElementById('vpt-theme-icon');
+    if (icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
+  }
+}
+function vptToggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+document.addEventListener('fullscreenchange', () => {
+  const icon = document.getElementById('vpt-fs-icon');
+  if (icon) {
+    icon.classList.toggle('fa-expand', !document.fullscreenElement);
+    icon.classList.toggle('fa-compress', !!document.fullscreenElement);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// SEED-RECEPTEN (15 voorbeelden, WW-stijl) - bron: happyhealthy.nl/oscar-helm
+// ═══════════════════════════════════════════════════════════════════════
+const VPT_SEED_RECIPES = [
+  {
+    name: 'Gevulde paprika\'s met quinoa en groenten', portions: 4, perPortion: 7, cookTime: '40 min',
+    ingredients: [
+      { name: '4 grote paprika\'s, gehalveerd' },
+      { name: '150 g quinoa' },
+      { name: '400 ml groentebouillon' },
+      { name: '1 ui, fijngesneden' },
+      { name: '2 teentjes knoflook' },
+      { name: '200 g champignons' },
+      { name: '100 g cherrytomaten' },
+      { name: '100 g feta' },
+      { name: '2 el olijfolie' },
+      { name: 'basilicum, peper, zout' },
+    ],
+    steps: [
+      'Oven voorverwarmen op 200°C.',
+      'Quinoa koken in groentebouillon.',
+      'Ui en knoflook fruiten in olijfolie, champignons toevoegen tot ze bruin zijn.',
+      'Quinoa, gebakken groenten, cherrytomaten, feta en basilicum mengen. Op smaak brengen.',
+      'Paprika\'s vullen en in ovenschaal plaatsen.',
+      'Bak 20-25 min in de oven tot paprika\'s zacht zijn.',
+    ],
+  },
+  {
+    name: 'Kipfilet met citroen, knoflook en rozemarijn', portions: 4, perPortion: 3, cookTime: '35 min',
+    ingredients: [
+      { name: '4 kipfilets' },
+      { name: '2 teentjes knoflook' },
+      { name: '2 el citroensap' },
+      { name: '2 el olijfolie' },
+      { name: '2 takjes rozemarijn' },
+      { name: 'peper, zout' },
+    ],
+    steps: [
+      'Oven voorverwarmen op 180°C.',
+      'Knoflook, citroensap, olijfolie en rozemarijn mengen. Op smaak brengen.',
+      'Kipfilets in ovenschaal, mengsel eroverheen.',
+      'Bak 25-30 min tot gaar.',
+    ],
+  },
+  {
+    name: 'Courgetti Bolognese', portions: 4, perPortion: 6, cookTime: '30 min',
+    ingredients: [
+      { name: '4 courgettes (spiraalgesneden)' },
+      { name: '500 g rundergehakt' },
+      { name: '1 ui' },
+      { name: '2 teentjes knoflook' },
+      { name: '400 g tomatenblokjes uit blik' },
+      { name: '2 wortels' },
+      { name: '1 stengel bleekselderij' },
+      { name: '2 el olijfolie' },
+      { name: 'oregano, basilicum, peper, zout' },
+    ],
+    steps: [
+      'Courgettes in slierten snijden, apart zetten.',
+      'Ui en knoflook fruiten, gehakt rul bakken.',
+      'Wortel en bleekselderij toevoegen, 5 min meebakken.',
+      'Tomatenblokjes, kruiden toevoegen. 15 min zachtjes laten pruttelen.',
+      'Courgetti 2-3 min bakken in andere pan.',
+      'Saus over courgetti serveren.',
+    ],
+  },
+  {
+    name: 'Geroosterde bloemkoolsteaks met chimichurri', portions: 4, perPortion: 4, cookTime: '30 min',
+    ingredients: [
+      { name: '1 grote bloemkool (in plakken)' },
+      { name: '4 el olijfolie' },
+      { name: 'bosje peterselie + koriander' },
+      { name: '2 teentjes knoflook' },
+      { name: '1 rode peper' },
+      { name: '3 el rode wijnazijn' },
+      { name: '100 ml olijfolie (voor chimichurri)' },
+    ],
+    steps: [
+      'Oven voorverwarmen op 200°C.',
+      'Bloemkool in plakken van 2 cm op bakplaat, bestrijken met olijfolie + zout/peper.',
+      'Rooster 20-25 min tot goudbruin.',
+      'Chimichurri maken: alle resterende ingrediënten mengen.',
+      'Bloemkoolsteaks serveren met chimichurri.',
+    ],
+  },
+  {
+    name: 'Griekse salade met gegrilde kip', portions: 4, perPortion: 5, cookTime: '20 min',
+    ingredients: [
+      { name: '4 kipfilets, gegrild' },
+      { name: '1 krop Romaine sla' },
+      { name: '200 g cherrytomaten' },
+      { name: '1 komkommer' },
+      { name: '1 rode ui' },
+      { name: '100 g Kalamata olijven' },
+      { name: '200 g feta' },
+      { name: '2 el olijfolie + 2 el citroensap' },
+    ],
+    steps: [
+      'Kipfilets grillen, in plakjes snijden.',
+      'Sla, tomaten, komkommer, ui, olijven en feta mengen.',
+      'Dressing: olijfolie + citroensap + peper/zout.',
+      'Dressing erover, kip bovenop.',
+    ],
+  },
+  {
+    name: 'Linzensalade met geitenkaas en noten', portions: 4, perPortion: 8, cookTime: '15 min',
+    ingredients: [
+      { name: '250 g groene linzen, gekookt' },
+      { name: '150 g gemengde sla' },
+      { name: '100 g zachte geitenkaas' },
+      { name: '100 g gemengde noten' },
+      { name: '1 appel, in plakjes' },
+      { name: '4 el olijfolie + 2 el balsamicoazijn' },
+    ],
+    steps: [
+      'Linzen, sla, geitenkaas, noten en appel in een grote kom mengen.',
+      'Olijfolie + balsamico mengen, op smaak brengen.',
+      'Dressing erover, voorzichtig mengen.',
+    ],
+  },
+  {
+    name: 'Spinazie-ricottataart', portions: 6, perPortion: 8, cookTime: '50 min',
+    ingredients: [
+      { name: '400 g verse spinazie' },
+      { name: '250 g ricotta' },
+      { name: '100 g Parmezaanse kaas' },
+      { name: '3 eieren' },
+      { name: '1 rol bladerdeeg' },
+      { name: '1 el olijfolie' },
+    ],
+    steps: [
+      'Oven voorverwarmen op 200°C.',
+      'Spinazie bakken in olijfolie tot geslonken, vocht uitknijpen.',
+      'Ricotta, Parmezaan en eieren mengen. Spinazie toevoegen, op smaak brengen.',
+      'Bladerdeeg in taartvorm, vulling erop, randen invouwen.',
+      'Bak 30-35 min tot bladerdeeg knapperig.',
+    ],
+  },
+  {
+    name: 'Vegetarische curry met zoete aardappel en kikkererwten', portions: 4, perPortion: 6, cookTime: '35 min',
+    ingredients: [
+      { name: '2 zoete aardappelen' },
+      { name: '400 g kikkererwten uit blik' },
+      { name: '1 ui, 2 teentjes knoflook' },
+      { name: '1 el geraspte gember' },
+      { name: '400 ml kokosmelk' },
+      { name: '400 g tomatenblokjes' },
+      { name: '2 el currypasta' },
+    ],
+    steps: [
+      'Ui, knoflook, gember fruiten in olijfolie.',
+      'Currypasta toevoegen, 1-2 min bakken.',
+      'Zoete aardappel, kikkererwten, kokosmelk, tomatenblokjes toevoegen.',
+      '20-25 min zachtjes koken tot aardappel zacht is.',
+      'Serveren met rijst of naan.',
+    ],
+  },
+  {
+    name: 'Quinoasalade met gegrilde groenten en feta', portions: 4, perPortion: 7, cookTime: '30 min',
+    ingredients: [
+      { name: '150 g quinoa' },
+      { name: '400 ml groentebouillon' },
+      { name: '1 courgette, 1 paprika, 1 aubergine' },
+      { name: '200 g feta' },
+      { name: '4 el olijfolie + 2 el balsamico' },
+    ],
+    steps: [
+      'Quinoa koken in groentebouillon, afkoelen.',
+      'Groenten grillen tot zacht en mooie grillstrepen.',
+      'Quinoa, groenten en feta mengen.',
+      'Dressing erover, op smaak brengen.',
+    ],
+  },
+  {
+    name: 'Omelet met champignons, spinazie en geitenkaas', portions: 2, perPortion: 5, cookTime: '15 min',
+    ingredients: [
+      { name: '4 eieren' },
+      { name: '200 g champignons' },
+      { name: '100 g spinazie' },
+      { name: '75 g zachte geitenkaas' },
+      { name: '1 el olijfolie' },
+    ],
+    steps: [
+      'Champignons in olijfolie bakken tot bruin.',
+      'Spinazie toevoegen tot geslonken.',
+      'Eieren losslaan, op smaak brengen, in pan gieten.',
+      'Geitenkaas erover, deksel erop tot ei gestold is.',
+      'Halveren en serveren.',
+    ],
+  },
+  {
+    name: 'Wraps met hummus, gegrilde kip en avocado', portions: 4, perPortion: 8, cookTime: '15 min',
+    ingredients: [
+      { name: '4 tortillawraps' },
+      { name: '300 g kipfilet, gegrild' },
+      { name: '1 avocado' },
+      { name: '150 g hummus' },
+      { name: '100 g gemengde sla' },
+      { name: '1 rode paprika, 1 komkommer' },
+    ],
+    steps: [
+      'Wraps besmeren met hummus.',
+      'Sla, kip, avocado, paprika, komkommer verdelen.',
+      'Stevig oprollen, halveren.',
+    ],
+  },
+  {
+    name: 'Couscous met geroosterde groenten en feta', portions: 4, perPortion: 6, cookTime: '40 min',
+    ingredients: [
+      { name: '200 g couscous' },
+      { name: '250 ml groentebouillon' },
+      { name: '1 courgette, 1 paprika, 1 aubergine, 1 ui' },
+      { name: '200 g feta' },
+      { name: '4 el olijfolie' },
+      { name: '1 el ras el hanout' },
+    ],
+    steps: [
+      'Oven op 200°C voorverwarmen.',
+      'Groenten met olijfolie + ras el hanout 25-30 min roosteren.',
+      'Couscous bereiden met groentebouillon.',
+      'Groenten en feta door couscous mengen.',
+    ],
+  },
+  {
+    name: 'Risotto met pompoen en salie', portions: 4, perPortion: 8, cookTime: '40 min',
+    ingredients: [
+      { name: '300 g risottorijst' },
+      { name: '500 g pompoen, geblokt' },
+      { name: '1 ui, 2 teentjes knoflook' },
+      { name: '1 l groentebouillon' },
+      { name: '100 ml witte wijn' },
+      { name: '50 g Parmezaanse kaas' },
+      { name: '2 el salie' },
+      { name: '2 el olijfolie' },
+    ],
+    steps: [
+      'Ui en knoflook fruiten, rijst meebakken tot glazig.',
+      'Witte wijn toevoegen, laten inkoken.',
+      'Bouillon lepel voor lepel toevoegen, blijven roeren.',
+      'Na 15 min pompoen toevoegen.',
+      'Wanneer rijst gaar: Parmezaan en salie erdoor. Op smaak brengen.',
+    ],
+  },
+  {
+    name: 'Kikkererwtenburgers met tzatziki', portions: 4, perPortion: 6, cookTime: '30 min',
+    ingredients: [
+      { name: '400 g kikkererwten uit blik' },
+      { name: '1 ui, 2 teentjes knoflook' },
+      { name: '1 el tahin' },
+      { name: 'komijn, koriander, paprikapoeder' },
+      { name: '1 ei + 100 g paneermeel' },
+      { name: '200 g Griekse yoghurt' },
+      { name: '1 komkommer (voor tzatziki)' },
+    ],
+    steps: [
+      'Kikkererwten, ui, knoflook, kruiden, ei, paneermeel mixen tot grove pasta.',
+      '4 burgers vormen, in olijfolie goudbruin bakken.',
+      'Tzatziki: yoghurt + geraspte komkommer + knoflook + citroensap + olijfolie.',
+      'Burgers op broodje met sla, tomaat, tzatziki.',
+    ],
+  },
+  {
+    name: 'Gegrilde zalm met groenten en quinoa', portions: 2, perPortion: 7, cookTime: '25 min',
+    ingredients: [
+      { name: '2 zalmfilets (120 g per stuk)' },
+      { name: '1 paprika, 1 courgette, ½ rode ui' },
+      { name: '1 teentje knoflook' },
+      { name: '100 g quinoa' },
+      { name: '250 ml groentebouillon' },
+      { name: '1 el olijfolie + ½ el balsamico' },
+    ],
+    steps: [
+      'Quinoa koken in groentebouillon.',
+      'Paprika, courgette, ui grillen 5-7 min, knoflook halverwege toevoegen.',
+      'Zalm bestrijken met olijfolie, in grillpan ~4-5 min per kant.',
+      'Quinoa op borden, groenten en zalm erop, balsamico erover.',
+    ],
+  },
+];
+
+function vptSeedRecipesIfNeeded() {
+  const SEED_KEY = 'vpt_seeded_v3';
+  if (vptGet(SEED_KEY, false)) return; // al gezaaid
+  const recipes = vptGet(VPT_LS.recipes, []);
+  // Alleen zaaien als de gebruiker nog geen recepten heeft
+  if (recipes.length > 0) {
+    vptSet(SEED_KEY, true);
+    return;
+  }
+  const seeded = VPT_SEED_RECIPES.map(r => ({
+    id: 'seed-' + vptUuid(),
+    name: r.name,
+    portions: r.portions,
+    perPortion: r.perPortion,
+    cookTime: r.cookTime,
+    ingredients: r.ingredients,
+    steps: r.steps,
+    source: 'happyhealthy.nl (Oscar Helm)',
+    seeded: true,
+    created: new Date().toISOString(),
+  }));
+  vptSet(VPT_LS.recipes, seeded);
+  vptSet(SEED_KEY, true);
+}
+function vptReloadSeedRecipes() {
+  if (!confirm('Voorbeeld-recepten herstellen? Bestaande eigen recepten blijven behouden.')) return;
+  const all = vptGet(VPT_LS.recipes, []);
+  // Verwijder oude seed-recepten
+  const own = all.filter(r => !r.seeded);
+  // Voeg verse seeds toe
+  const seeded = VPT_SEED_RECIPES.map(r => ({
+    id: 'seed-' + vptUuid(),
+    name: r.name, portions: r.portions, perPortion: r.perPortion,
+    cookTime: r.cookTime, ingredients: r.ingredients, steps: r.steps,
+    source: 'happyhealthy.nl (Oscar Helm)',
+    seeded: true, created: new Date().toISOString(),
+  }));
+  vptSet(VPT_LS.recipes, [...seeded, ...own]);
+  vptRenderRecipes();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PWA, BARCODE SCANNER, NUTRIFACTS, OPEN FOOD FACTS  (V3.0)
+// ═══════════════════════════════════════════════════════════════════════
+
+// ─── PWA: service worker + install prompt ───────────────────────────────
+let vptDeferredInstall = null;
+let vptPendingSwUpdate = null;
+
+function vptRegisterServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  // SW alleen registreren bij http(s) en localhost; bij file:// werkt het niet
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') {
+    console.info('VPT: ServiceWorker overgeslagen (protocol ' + location.protocol + ')');
+    return;
+  }
+  navigator.serviceWorker.register('./service-worker.js').then(reg => {
+    console.info('VPT: ServiceWorker actief', reg.scope);
+    // Detecteer updates
+    reg.addEventListener('updatefound', () => {
+      const sw = reg.installing;
+      if (!sw) return;
+      sw.addEventListener('statechange', () => {
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+          vptPendingSwUpdate = sw;
+          document.getElementById('vpt-update-toast').classList.remove('hidden');
+        }
+      });
+    });
+  }).catch(err => console.warn('VPT: ServiceWorker fout', err));
+}
+function vptApplyUpdate() {
+  if (vptPendingSwUpdate) {
+    vptPendingSwUpdate.postMessage({ type: 'SKIP_WAITING' });
+  }
+  location.reload();
+}
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  vptDeferredInstall = e;
+  const btn = document.getElementById('vpt-install-btn');
+  if (btn) btn.classList.remove('hidden');
+});
+window.addEventListener('appinstalled', () => {
+  vptDeferredInstall = null;
+  const btn = document.getElementById('vpt-install-btn');
+  if (btn) btn.classList.add('hidden');
+});
+async function vptInstallPwa() {
+  if (!vptDeferredInstall) {
+    alert('Installatie niet beschikbaar.\n\nOp iPhone/iPad: tik op het deel-pictogram in Safari en kies "Voeg toe aan beginscherm".\n\nOp Android Chrome: open het menu (3 puntjes) en kies "App installeren".');
+    return;
+  }
+  vptDeferredInstall.prompt();
+  const result = await vptDeferredInstall.userChoice;
+  if (result.outcome === 'accepted') {
+    document.getElementById('vpt-install-btn').classList.add('hidden');
+  }
+  vptDeferredInstall = null;
+}
+
+// ─── SMARTPOINTS-BEREKENING (publieke WW-formule 2016+) ─────────────────
+// SmartPoints = round((kcal × 0.0305) + (verz_vet × 0.275) + (suiker × 0.12) − (eiwit × 0.098))
+function vptSmartPoints({ kcal = 0, satFat = 0, sugar = 0, protein = 0 }) {
+  const pts = (kcal * 0.0305) + (satFat * 0.275) + (sugar * 0.12) - (protein * 0.098);
+  return Math.max(0, Math.round(pts));
+}
+function vptCalcSmartPoints() {
+  const kcal = parseFloat(document.getElementById('vpt-nf-kcal').value) || 0;
+  const satFat = parseFloat(document.getElementById('vpt-nf-satfat').value) || 0;
+  const sugar = parseFloat(document.getElementById('vpt-nf-sugar').value) || 0;
+  const protein = parseFloat(document.getElementById('vpt-nf-protein').value) || 0;
+  const pts = vptSmartPoints({ kcal, satFat, sugar, protein });
+  document.getElementById('vpt-nf-pts').textContent = pts;
+}
+function vptUseSmartPoints() {
+  const pts = parseInt(document.getElementById('vpt-nf-pts').textContent, 10) || 0;
+  // Zet in punten-veld + selecteer "Punten"-radio
+  document.querySelector('input[name="vpt-val-type"][value="pts"]').checked = true;
+  document.getElementById('vpt-manual-value').value = pts;
+  vptUpdateManualLabel();
+}
+
+// ─── BARCODE SCANNER ────────────────────────────────────────────────────
+let vptScannerCtrl = null; // ZXing IScannerControls of MediaStream
+let vptScannerStream = null;
+let vptScannerDetector = null;
+let vptScannerActive = false;
+
+async function vptOpenScanner() {
+  const modal = document.getElementById('vpt-scanner-modal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  document.getElementById('vpt-scanner-result').classList.add('hidden');
+  document.getElementById('vpt-scanner-result').innerHTML = '';
+  document.getElementById('vpt-scanner-manual').value = '';
+  await vptStartScanner();
+}
+function vptCloseScanner() {
+  vptStopScanner();
+  const modal = document.getElementById('vpt-scanner-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+async function vptStartScanner() {
+  const video = document.getElementById('vpt-scanner-video');
+  const status = document.getElementById('vpt-scanner-status');
+  status.textContent = 'Camera vragen…';
+
+  // Native BarcodeDetector (Chrome/Edge/Android)
+  const hasNative = 'BarcodeDetector' in window;
+  // ZXing als fallback
+  const hasZxing = typeof window.ZXingBrowser !== 'undefined';
+
+  if (!hasNative && !hasZxing) {
+    status.textContent = 'Scanner niet ondersteund — gebruik handmatige invoer hieronder.';
+    return;
+  }
+
+  try {
+    vptScannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    video.srcObject = vptScannerStream;
+    await video.play();
+    vptScannerActive = true;
+    status.textContent = 'Houd de barcode in beeld…';
+
+    if (hasNative) {
+      vptScannerDetector = new BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code', 'itf']
+      });
+      vptScanLoopNative(video);
+    } else {
+      // ZXing fallback
+      const reader = new window.ZXingBrowser.BrowserMultiFormatReader();
+      vptScannerCtrl = await reader.decodeFromStream(vptScannerStream, video, (result, err) => {
+        if (result && vptScannerActive) {
+          vptOnBarcodeDetected(result.getText());
+        }
+      });
+    }
+  } catch (err) {
+    console.error('VPT: scanner error', err);
+    status.textContent = 'Kon camera niet openen: ' + (err.message || err.name || 'onbekende fout');
+  }
+}
+async function vptScanLoopNative(video) {
+  if (!vptScannerActive || !vptScannerDetector) return;
+  try {
+    const codes = await vptScannerDetector.detect(video);
+    if (codes.length > 0) {
+      vptOnBarcodeDetected(codes[0].rawValue);
+      return;
+    }
+  } catch (err) { /* swallow per-frame errors */ }
+  requestAnimationFrame(() => vptScanLoopNative(video));
+}
+function vptStopScanner() {
+  vptScannerActive = false;
+  if (vptScannerCtrl && typeof vptScannerCtrl.stop === 'function') {
+    try { vptScannerCtrl.stop(); } catch (e) {}
+    vptScannerCtrl = null;
+  }
+  if (vptScannerStream) {
+    vptScannerStream.getTracks().forEach(t => t.stop());
+    vptScannerStream = null;
+  }
+  const video = document.getElementById('vpt-scanner-video');
+  if (video) video.srcObject = null;
+  vptScannerDetector = null;
+}
+async function vptOnBarcodeDetected(code) {
+  vptStopScanner();
+  document.getElementById('vpt-scanner-status').textContent = 'Barcode: ' + code + ' — opzoeken…';
+  await vptLookupBarcode(code);
+}
+
+// ─── OPEN FOOD FACTS LOOKUP ─────────────────────────────────────────────
+async function vptLookupBarcode(code) {
+  code = (code || '').trim().replace(/\s+/g, '');
+  if (!code || !/^\d{6,14}$/.test(code)) {
+    alert('Ongeldige barcode. Voer een numerieke code in (6–14 cijfers).');
+    return;
+  }
+  const resultEl = document.getElementById('vpt-scanner-result');
+  resultEl.classList.remove('hidden');
+  resultEl.innerHTML = '<div class="text-center text-sm text-slate-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Open Food Facts raadplegen…</div>';
+
+  try {
+    const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,product_name_nl,generic_name,brands,nutriments,serving_size,serving_quantity,quantity,image_small_url`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (data.status !== 1 || !data.product) {
+      vptRenderLookupNotFound(code);
+      return;
+    }
+
+    const p = data.product;
+    const n = p.nutriments || {};
+    const name = p.product_name_nl || p.product_name || p.generic_name || 'Onbekend product';
+    const brand = p.brands || '';
+
+    // Voorkeur: nutri-info per serving > per 100g
+    const useServing = (n['energy-kcal_serving'] != null);
+    const kcal = useServing ? n['energy-kcal_serving'] : n['energy-kcal_100g'];
+    const satFat = useServing ? n['saturated-fat_serving'] : n['saturated-fat_100g'];
+    const sugar = useServing ? n.sugars_serving : n.sugars_100g;
+    const protein = useServing ? n.proteins_serving : n.proteins_100g;
+    const fat = useServing ? n.fat_serving : n.fat_100g;
+    const fiber = useServing ? n.fiber_serving : n.fiber_100g;
+
+    const portionDesc = useServing
+      ? (p.serving_size || (p.serving_quantity ? p.serving_quantity + 'g' : '1 portie'))
+      : '100g';
+
+    const pts = (kcal != null && satFat != null && sugar != null && protein != null)
+      ? vptSmartPoints({ kcal, satFat, sugar, protein })
+      : null;
+
+    vptRenderLookupFound({ code, name, brand, portionDesc, kcal, satFat, sugar, protein, fat, fiber, pts, image: p.image_small_url });
+  } catch (err) {
+    console.error('VPT: OFF fout', err);
+    resultEl.innerHTML = `
+      <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 rounded text-sm">
+        <strong class="text-red-700 dark:text-red-300">Geen verbinding met Open Food Facts.</strong>
+        <p class="text-xs mt-1">Voer Nutrifacts handmatig in via "Handmatig" in het dagboek.</p>
+      </div>`;
+  }
+}
+
+function vptRenderLookupFound(data) {
+  const { code, name, brand, portionDesc, kcal, satFat, sugar, protein, fat, fiber, pts, image } = data;
+  const safe = v => (v == null ? '—' : (typeof v === 'number' ? v.toFixed(1) : v));
+  const resultEl = document.getElementById('vpt-scanner-result');
+  resultEl.innerHTML = `
+    <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 rounded p-3">
+      <div class="flex gap-3 mb-2">
+        ${image ? `<img src="${image}" alt="" class="w-16 h-16 object-cover rounded">` : ''}
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-emerald-800 dark:text-emerald-200 truncate">${name}</div>
+          ${brand ? `<div class="text-xs text-slate-500 truncate">${brand}</div>` : ''}
+          <div class="text-[10px] text-slate-400 font-mono">${code} &middot; per ${portionDesc}</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-1 text-xs mb-2">
+        <div class="bg-white dark:bg-slate-800 rounded p-1 text-center">Kcal<br><b>${safe(kcal)}</b></div>
+        <div class="bg-white dark:bg-slate-800 rounded p-1 text-center">Verz. vet<br><b>${safe(satFat)}g</b></div>
+        <div class="bg-white dark:bg-slate-800 rounded p-1 text-center">Suiker<br><b>${safe(sugar)}g</b></div>
+        <div class="bg-white dark:bg-slate-800 rounded p-1 text-center">Eiwit<br><b>${safe(protein)}g</b></div>
+        <div class="bg-white dark:bg-slate-800 rounded p-1 text-center">Vet<br><b>${safe(fat)}g</b></div>
+        <div class="bg-white dark:bg-slate-800 rounded p-1 text-center">Vezels<br><b>${safe(fiber)}g</b></div>
+      </div>
+      ${pts != null ? `
+        <div class="bg-emerald-600 text-white rounded p-2 text-center font-bold mb-2">
+          ${pts} pt (SmartPoints) per ${portionDesc}
+        </div>
+        <div class="flex gap-2">
+          <input type="number" id="vpt-lookup-amount" value="1" step="0.5" min="0" class="w-20 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1 text-sm">
+          <span class="self-center text-xs text-slate-500">× portie(s)</span>
+          <select id="vpt-lookup-meal" class="flex-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1 text-sm">
+            <option>Ochtend</option><option>Middag</option><option selected>Avond</option><option>Extra</option>
+          </select>
+          <button onclick="vptAddFromLookup(${JSON.stringify({ code, name, brand, portionDesc, pts }).replace(/"/g, '&quot;')})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm font-bold">
+            <i class="fas fa-plus"></i> Toevoegen
+          </button>
+        </div>
+        <button onclick="vptSaveLookupToDb(${JSON.stringify({ code, name, brand, portionDesc, pts }).replace(/"/g, '&quot;')})" class="mt-2 w-full text-xs text-emerald-700 dark:text-emerald-300 hover:underline">
+          <i class="fas fa-bookmark mr-1"></i> Bewaar in eigen database
+        </button>
+      ` : `
+        <div class="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs p-2 rounded">
+          Onvolledige nutrifacts in Open Food Facts. Voer punten handmatig in via "Handmatig" in het dagboek.
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function vptRenderLookupNotFound(code) {
+  const resultEl = document.getElementById('vpt-scanner-result');
+  resultEl.innerHTML = `
+    <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded p-3 text-sm">
+      <strong class="text-amber-800 dark:text-amber-200"><i class="fas fa-question-circle mr-1"></i> Niet gevonden</strong>
+      <p class="text-xs mt-1 mb-3">Barcode <code>${code}</code> staat niet in Open Food Facts. Voer Nutrifacts handmatig in:</p>
+      <div class="grid grid-cols-3 gap-1 text-xs mb-2">
+        <input type="text" id="vpt-nfm-name" placeholder="Naam" class="col-span-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1">
+        <input type="number" id="vpt-nfm-kcal" placeholder="Kcal" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" step="1">
+        <input type="number" id="vpt-nfm-satfat" placeholder="Verz.vet g" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" step="0.1">
+        <input type="number" id="vpt-nfm-sugar" placeholder="Suiker g" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" step="0.1">
+        <input type="number" id="vpt-nfm-protein" placeholder="Eiwit g" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" step="0.1">
+        <input type="number" id="vpt-nfm-fat" placeholder="Vet g" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" step="0.1">
+        <input type="number" id="vpt-nfm-fiber" placeholder="Vezels g" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-1" step="0.1">
+      </div>
+      <button onclick="vptAddFromManualNutrifacts('${code}')" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-1 rounded text-sm font-bold">
+        <i class="fas fa-calculator mr-1"></i> Berekenen + opslaan in eigen DB
+      </button>
+    </div>
+  `;
+}
+
+function vptAddFromLookup(data) {
+  const amt = parseFloat(document.getElementById('vpt-lookup-amount').value) || 1;
+  const meal = document.getElementById('vpt-lookup-meal').value;
+  const pts = vptRoundPt(data.pts * amt);
+  const displayName = data.brand ? `${data.name} (${data.brand})` : data.name;
+  vptAddLogEntry({
+    id: vptUuid(), type: 'food',
+    name: `${displayName} — ${data.portionDesc}`,
+    amount: amt, unitType: 'portie', points: pts, meal,
+    barcode: data.code,
+  });
+  vptCloseScanner();
+}
+
+function vptSaveLookupToDb(data) {
+  const custom = vptGet(VPT_LS.customDb, []);
+  custom.push({
+    id: 'cust-' + vptUuid(),
+    name: `${data.brand ? data.brand + ' — ' : ''}${data.name} (${data.portionDesc})`,
+    points: data.pts, unitType: 'portie', unitWeight: 1,
+    barcode: data.code,
+  });
+  vptSet(VPT_LS.customDb, custom);
+  vptBuildDb();
+  alert(`Opgeslagen in eigen database: ${data.name} (${data.pts} pt)`);
+}
+
+function vptAddFromManualNutrifacts(code) {
+  const name = document.getElementById('vpt-nfm-name').value.trim();
+  const kcal = parseFloat(document.getElementById('vpt-nfm-kcal').value) || 0;
+  const satFat = parseFloat(document.getElementById('vpt-nfm-satfat').value) || 0;
+  const sugar = parseFloat(document.getElementById('vpt-nfm-sugar').value) || 0;
+  const protein = parseFloat(document.getElementById('vpt-nfm-protein').value) || 0;
+  if (!name) { alert('Geef de productnaam.'); return; }
+  if (kcal === 0 && satFat === 0 && sugar === 0 && protein === 0) { alert('Vul minimaal kcal in.'); return; }
+  const pts = vptSmartPoints({ kcal, satFat, sugar, protein });
+  vptSaveLookupToDb({ code, name, brand: '', portionDesc: 'portie', pts });
+  vptAddFromLookup({ code, name, brand: '', portionDesc: 'portie', pts });
+}
+
+// ─── INIT ───────────────────────────────────────────────────────────────
+function vptInit() {
+  vptApplyStoredTheme();
+  vptBuildDb();
+  vptSeedRecipesIfNeeded();
+  vptCurrentDate = vptTodayIso();
+  document.getElementById('vpt-date-picker').value = vptCurrentDate;
+  vptRenderDay();
+
+  // Click-outside voor product-dropdown
+  document.addEventListener('click', e => {
+    const sel = document.getElementById('vpt-product-select');
+    const inp = document.getElementById('vpt-search');
+    if (sel && inp && !sel.contains(e.target) && !inp.contains(e.target)) sel.classList.add('hidden');
+    const rsel = document.getElementById('vpt-recipe-select');
+    const rinp = document.getElementById('vpt-recipe-search');
+    if (rsel && rinp && !rsel.contains(e.target) && !rinp.contains(e.target)) rsel.classList.add('hidden');
+  });
+
+  // Amount-input live preview
+  document.getElementById('vpt-amount').addEventListener('input', vptUpdatePointsPreview);
+
+  // PWA registreren
+  vptRegisterServiceWorker();
+
+  // Deeplinks via hash (#scan)
+  if (location.hash === '#scan') {
+    setTimeout(() => vptOpenScanner(), 300);
+  }
+}
+window.addEventListener('DOMContentLoaded', vptInit);
+</script>
+
+</body>
+</html>
