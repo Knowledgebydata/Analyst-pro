@@ -3416,44 +3416,173 @@ const VPT_SEED_RECIPES = [
   },
 ];
 
+// Extra seed-recepten (V3.2) — bron: vetvrij.com (Valerie's Choice WW-overzicht)
+const VPT_SEED_RECIPES_V3_2 = [
+  { name: "Havermout met blauwe bessen", portions: 1, perPortion: 5, cookTime: "10 min",
+    ingredients: [{name:"40 g havermout"},{name:"200 ml magere melk"},{name:"handje blauwe bessen"}],
+    steps: ["Verwarm de melk en laat de havermout zachtjes garen.","Roer regelmatig tot een romige pap ontstaat.","Schep over in een kom en strooi de blauwe bessen erover."] },
+  { name: "Griekse yoghurt met honing en walnoten", portions: 1, perPortion: 4, cookTime: "3 min",
+    ingredients: [{name:"150 g magere Griekse yoghurt"},{name:"1 tl honing"},{name:"10 g walnoten"}],
+    steps: ["Doe de yoghurt in een schaaltje.","Besprenkel met honing en strooi de grof gehakte walnoten erover."] },
+  { name: "Smoothie met banaan en spinazie", portions: 1, perPortion: 3, cookTime: "5 min",
+    ingredients: [{name:"1 banaan"},{name:"handje verse spinazie"},{name:"200 ml amandelmelk"}],
+    steps: ["Doe alle ingrediënten in een blender.","Mix kort tot een gladde, romige smoothie."] },
+  { name: "Volkoren toast met avocado", portions: 1, perPortion: 4, cookTime: "5 min",
+    ingredients: [{name:"1 snee volkorenbrood"},{name:"½ avocado"},{name:"snufje zout"}],
+    steps: ["Rooster de boterham in de broodrooster.","Prak de avocado fijn met een vork.","Smeer de avocado op het brood en bestrooi met zout."] },
+  { name: "Omelet met tomaat en spinazie", portions: 1, perPortion: 4, cookTime: "10 min",
+    ingredients: [{name:"2 eieren"},{name:"1 tomaat"},{name:"handje spinazie"}],
+    steps: ["Klop de eieren los en bak ze in een hete pan.","Voeg de in stukjes gesneden tomaat en spinazie toe.","Bak tot de omelet gestold is en vouw dubbel."] },
+  { name: "Kwark met fruit en lijnzaad", portions: 1, perPortion: 2, cookTime: "3 min",
+    ingredients: [{name:"150 g magere kwark"},{name:"handje aardbeien"},{name:"1 tl lijnzaad"}],
+    steps: ["Schep de kwark in een schaaltje.","Top af met aardbeien in stukjes en strooi lijnzaad erover."] },
+  { name: "Boekweitpannenkoeken", portions: 1, perPortion: 6, cookTime: "15 min",
+    ingredients: [{name:"50 g boekweitmeel"},{name:"1 ei"},{name:"100 ml magere melk"}],
+    steps: ["Klop het meel, ei en melk tot een glad beslag.","Verhit een pan met een druppel olie.","Bak kleine pannenkoekjes goudbruin aan beide kanten."] },
+  { name: "Chia pudding", portions: 1, perPortion: 5, cookTime: "5 min + nacht koelen",
+    ingredients: [{name:"3 el chiazaad"},{name:"200 ml kokosmelk"},{name:"1 tl honing"}],
+    steps: ["Roer chiazaad, kokosmelk en honing door elkaar.","Dek af en zet minimaal een nacht in de koelkast om op te stijven."] },
+  { name: "Gekookt ei met volkoren crackers", portions: 1, perPortion: 3, cookTime: "10 min",
+    ingredients: [{name:"1 ei"},{name:"2 volkoren crackers"},{name:"snufje zout"}],
+    steps: ["Kook het ei in ongeveer 7 minuten hard.","Pel het ei en serveer met de crackers en een snufje zout."] },
+  { name: "Muesli met magere yoghurt", portions: 1, perPortion: 5, cookTime: "3 min",
+    ingredients: [{name:"40 g muesli"},{name:"150 g magere yoghurt"}],
+    steps: ["Schep de yoghurt in een kom.","Strooi de muesli erover en meng licht door."] },
+  { name: "Salade met kip en avocado", portions: 1, perPortion: 6, cookTime: "15 min",
+    ingredients: [{name:"100 g kipfilet"},{name:"½ avocado"},{name:"gemengde sla"},{name:"1 tl olijfolie"}],
+    steps: ["Grill de kipfilet en snijd in reepjes.","Verdeel de sla over een bord met blokjes avocado.","Leg de kip erop en besprenkel met olijfolie."] },
+  { name: "Volkoren wrap met hummus en groente", portions: 1, perPortion: 5, cookTime: "5 min",
+    ingredients: [{name:"1 volkoren wrap"},{name:"1 el hummus"},{name:"komkommer"},{name:"paprika"}],
+    steps: ["Besmeer de wrap met een laagje hummus.","Beleg met komkommer- en paprikareepjes.","Rol stevig op en snijd doormidden."] },
+  { name: "Tonijnsalade met kikkererwten", portions: 1, perPortion: 4, cookTime: "5 min",
+    ingredients: [{name:"1 blikje tonijn (in water)"},{name:"50 g kikkererwten"},{name:"1 tomaat"},{name:"scheut citroensap"}],
+    steps: ["Laat tonijn en kikkererwten uitlekken.","Meng met de in blokjes gesneden tomaat.","Breng op smaak met citroensap."] },
+  { name: "Courgettesoep", portions: 2, perPortion: 2, cookTime: "25 min",
+    ingredients: [{name:"1 courgette"},{name:"500 ml bouillon"},{name:"1 ui"}],
+    steps: ["Fruit de gesnipperde ui kort aan in een pan.","Voeg de courgette in stukjes en de bouillon toe.","Kook 15 minuten en pureer tot een gladde soep."] },
+  { name: "Rijstsalade met feta en olijven", portions: 1, perPortion: 7, cookTime: "20 min",
+    ingredients: [{name:"50 g zilvervliesrijst"},{name:"30 g feta"},{name:"5 olijven"}],
+    steps: ["Kook de rijst gaar en laat afkoelen.","Meng met verkruimelde feta en olijven."] },
+  { name: "Geroosterde groentesalade", portions: 2, perPortion: 4, cookTime: "30 min",
+    ingredients: [{name:"1 paprika"},{name:"1 courgette"},{name:"½ aubergine"},{name:"1 el olijfolie"},{name:"scheut balsamico"}],
+    steps: ["Snijd de groenten in blokjes en hussel met olie.","Rooster 20 minuten in een oven op 200 °C.","Besprenkel na het roosteren met balsamico."] },
+  { name: "Gevulde volkoren pita met kip", portions: 1, perPortion: 6, cookTime: "15 min",
+    ingredients: [{name:"1 volkoren pita"},{name:"50 g kipfilet"},{name:"handje sla"},{name:"1 el yoghurtdressing"}],
+    steps: ["Bak de kip in een pan en snijd in reepjes.","Warm de pita kort op en snijd open.","Vul met sla, kip en dressing."] },
+  { name: "Vegetarische linzensoep", portions: 2, perPortion: 4, cookTime: "30 min",
+    ingredients: [{name:"100 g linzen"},{name:"1 wortel"},{name:"1 ui"},{name:"1 teen knoflook"},{name:"1 tomaat"}],
+    steps: ["Fruit ui en knoflook aan in een soeppan.","Voeg wortel, tomaat, linzen en water toe.","Laat 25 minuten koken en pureer tot een romige soep."] },
+  { name: "Gekookt ei met volkoren brood", portions: 1, perPortion: 4, cookTime: "10 min",
+    ingredients: [{name:"1 ei"},{name:"1 snee volkorenbrood"},{name:"schijfjes komkommer"}],
+    steps: ["Kook het ei in 7 minuten hard.","Serveer met het volkoren brood en komkommer."] },
+  { name: "Quinoasalade met feta", portions: 1, perPortion: 6, cookTime: "20 min",
+    ingredients: [{name:"50 g quinoa"},{name:"30 g feta"},{name:"1 tomaat"},{name:"stukje komkommer"}],
+    steps: ["Kook de quinoa volgens de verpakking en laat afkoelen.","Snijd tomaat en komkommer in blokjes.","Meng alles met verkruimelde feta en serveer koud."] },
+  { name: "Gegrilde zalm met groenten", portions: 1, perPortion: 8, cookTime: "20 min",
+    ingredients: [{name:"150 g zalmfilet"},{name:"½ courgette"},{name:"1 paprika"},{name:"1 tl olijfolie"}],
+    steps: ["Snijd de groenten in reepjes en hussel met olie.","Grill ze samen met de zalm in een grillpan.","Bak tot de zalm gaar is en de groenten beetgaar."] },
+  { name: "Kipfilet met zoete aardappel", portions: 1, perPortion: 6, cookTime: "35 min",
+    ingredients: [{name:"150 g kipfilet"},{name:"1 zoete aardappel"}],
+    steps: ["Snijd de zoete aardappel in partjes en bak 25 minuten in de oven.","Grill de kip in een pan tot gaar.","Serveer samen op een bord."] },
+  { name: "Vegetarische curry (snel)", portions: 2, perPortion: 7, cookTime: "25 min",
+    ingredients: [{name:"100 g kikkererwten"},{name:"200 ml kokosmelk"},{name:"1 tomaat"},{name:"1 paprika"},{name:"currykruiden"}],
+    steps: ["Bak de paprika kort aan met currykruiden.","Voeg tomaat, kikkererwten en kokosmelk toe.","Laat 15 minuten zachtjes pruttelen tot een dikke saus."] },
+  { name: "Runderstoofpotje", portions: 2, perPortion: 6, cookTime: "120 min",
+    ingredients: [{name:"150 g rundvlees"},{name:"1 wortel"},{name:"1 ui"},{name:"1 teen knoflook"},{name:"300 ml bouillon"}],
+    steps: ["Braad het rundvlees rondom bruin in een pan.","Fruit ui en knoflook mee en voeg wortel toe.","Schenk bouillon erbij en laat 1,5 tot 2 uur zachtjes stoven."] },
+  { name: "Gevulde paprika met quinoa en feta", portions: 1, perPortion: 7, cookTime: "35 min",
+    ingredients: [{name:"1 paprika"},{name:"50 g quinoa"},{name:"30 g feta"}],
+    steps: ["Kook de quinoa gaar volgens de verpakking.","Halveer de paprika en vul met quinoa en verkruimelde feta.","Bak 20 minuten in een oven op 180 °C."] },
+  { name: "Handje gemengde noten", portions: 1, perPortion: 4, cookTime: "1 min",
+    ingredients: [{name:"amandelen"},{name:"walnoten"},{name:"cashewnoten"}],
+    steps: ["Meng een klein handje van de noten in een schaaltje.","Eet als tussendoortje."] },
+  { name: "Appel met pindakaas", portions: 1, perPortion: 3, cookTime: "2 min",
+    ingredients: [{name:"1 appel"},{name:"1 tl pindakaas"}],
+    steps: ["Snijd de appel in partjes.","Bestrijk de partjes met een dun laagje pindakaas."] },
+  { name: "Worteltjes met hummus", portions: 1, perPortion: 2, cookTime: "3 min",
+    ingredients: [{name:"handje worteltjes"},{name:"1 el hummus"}],
+    steps: ["Snijd de worteltjes in reepjes.","Dip in de hummus en eet direct."] },
+  { name: "Griekse yoghurt met kaneel", portions: 1, perPortion: 2, cookTime: "2 min",
+    ingredients: [{name:"150 g magere Griekse yoghurt"},{name:"1 tl kaneel"}],
+    steps: ["Schep de yoghurt in een schaaltje.","Strooi kaneel erover en roer kort door."] },
+  { name: "Popcorn zonder boter", portions: 1, perPortion: 2, cookTime: "5 min",
+    ingredients: [{name:"20 g maïskorrels"}],
+    steps: ["Verhit een pan met deksel op middelhoog vuur.","Voeg de maïs toe en schud regelmatig tot de korrels gepoft zijn."] },
+];
+
+// Combineer alle seeds (V3 happyhealthy + V3.2 vetvrij)
+function vptAllSeeds() {
+  const v3_2 = VPT_SEED_RECIPES_V3_2.map(r => ({ ...r, _source: 'vetvrij.com' }));
+  const v3_0 = VPT_SEED_RECIPES.map(r => ({ ...r, _source: 'happyhealthy.nl (Oscar Helm)' }));
+  return [...v3_0, ...v3_2];
+}
+
 function vptSeedRecipesIfNeeded() {
-  const SEED_KEY = 'vpt_seeded_v3';
-  if (vptGet(SEED_KEY, false)) return; // al gezaaid
+  // V3.2: nieuwe seed-key zorgt dat gebruikers met al gezaaide V3.0 set
+  // automatisch de extra recepten erbij krijgen (zonder hun eigen recepten te raken)
+  const SEED_KEY_V3 = 'vpt_seeded_v3';
+  const SEED_KEY_V3_2 = 'vpt_seeded_v3_2';
+
+  const allSeeds = vptAllSeeds();
   const recipes = vptGet(VPT_LS.recipes, []);
-  // Alleen zaaien als de gebruiker nog geen recepten heeft
-  if (recipes.length > 0) {
-    vptSet(SEED_KEY, true);
+
+  // Eerste keer ooit (geen recepten): zaai alle 45
+  if (recipes.length === 0) {
+    const seeded = allSeeds.map(r => ({
+      id: 'seed-' + vptUuid(),
+      name: r.name, portions: r.portions, perPortion: r.perPortion,
+      cookTime: r.cookTime, ingredients: r.ingredients, steps: r.steps,
+      source: r._source,
+      seeded: true, created: new Date().toISOString(),
+    }));
+    vptSet(VPT_LS.recipes, seeded);
+    vptSet(SEED_KEY_V3, true);
+    vptSet(SEED_KEY_V3_2, true);
     return;
   }
-  const seeded = VPT_SEED_RECIPES.map(r => ({
-    id: 'seed-' + vptUuid(),
-    name: r.name,
-    portions: r.portions,
-    perPortion: r.perPortion,
-    cookTime: r.cookTime,
-    ingredients: r.ingredients,
-    steps: r.steps,
-    source: 'happyhealthy.nl (Oscar Helm)',
-    seeded: true,
-    created: new Date().toISOString(),
-  }));
-  vptSet(VPT_LS.recipes, seeded);
-  vptSet(SEED_KEY, true);
+
+  // V3.0 gebruiker (heeft al gezaaide set, maar mist V3.2-uitbreiding): voeg alleen
+  // de nieuwe 30 recepten toe, behoud eigen + bestaande recepten ongewijzigd.
+  if (vptGet(SEED_KEY_V3, false) && !vptGet(SEED_KEY_V3_2, false)) {
+    const existingSeedNames = new Set(
+      recipes.filter(r => r.seeded).map(r => r.name.toLowerCase())
+    );
+    const newOnes = VPT_SEED_RECIPES_V3_2
+      .filter(r => !existingSeedNames.has(r.name.toLowerCase()))
+      .map(r => ({
+        id: 'seed-' + vptUuid(),
+        name: r.name, portions: r.portions, perPortion: r.perPortion,
+        cookTime: r.cookTime, ingredients: r.ingredients, steps: r.steps,
+        source: 'vetvrij.com',
+        seeded: true, created: new Date().toISOString(),
+      }));
+    if (newOnes.length > 0) {
+      vptSet(VPT_LS.recipes, [...recipes, ...newOnes]);
+    }
+    vptSet(SEED_KEY_V3_2, true);
+    return;
+  }
+
+  // Markeer beide keys als gezet (gebruiker heeft eigen content of beide sets al)
+  vptSet(SEED_KEY_V3, true);
+  vptSet(SEED_KEY_V3_2, true);
 }
 function vptReloadSeedRecipes() {
-  if (!confirm('Voorbeeld-recepten herstellen? Bestaande eigen recepten blijven behouden.')) return;
+  if (!confirm('Alle 45 voorbeeld-recepten herstellen? Bestaande eigen recepten blijven behouden.')) return;
   const all = vptGet(VPT_LS.recipes, []);
   // Verwijder oude seed-recepten
   const own = all.filter(r => !r.seeded);
-  // Voeg verse seeds toe
-  const seeded = VPT_SEED_RECIPES.map(r => ({
+  // Voeg verse seeds toe — beide bronnen samen (45 totaal)
+  const seeded = vptAllSeeds().map(r => ({
     id: 'seed-' + vptUuid(),
     name: r.name, portions: r.portions, perPortion: r.perPortion,
     cookTime: r.cookTime, ingredients: r.ingredients, steps: r.steps,
-    source: 'happyhealthy.nl (Oscar Helm)',
+    source: r._source,
     seeded: true, created: new Date().toISOString(),
   }));
   vptSet(VPT_LS.recipes, [...seeded, ...own]);
+  vptSet('vpt_seeded_v3', true);
+  vptSet('vpt_seeded_v3_2', true);
   vptRenderRecipes();
 }
 
