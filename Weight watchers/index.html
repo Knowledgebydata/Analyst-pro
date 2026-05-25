@@ -3603,17 +3603,28 @@ async function vptStartScanner() {
       aspectRatio: 1.7777778,
     };
 
-    await vptHtml5QrCode.start(
-      { facingMode: { ideal: 'environment' } },
+    // Probeer eerst de achterkant-camera, val terug op default als die niet bestaat
+    const startWith = async (cameraIdOrConfig) => vptHtml5QrCode.start(
+      cameraIdOrConfig,
       config,
-      (decodedText) => {
-        // Success-callback (eenmalig)
-        vptOnBarcodeDetected(decodedText);
-      },
-      (errorMessage) => {
-        // Per-frame error (negeer — alleen voor debug interessant)
-      }
+      (decodedText) => { vptOnBarcodeDetected(decodedText); },
+      (errorMessage) => { /* per-frame error, negeer */ }
     );
+
+    try {
+      // Optie A: environment-camera (achterkant) als simpele string — werkt op iOS Safari + Android Chrome
+      await startWith({ facingMode: "environment" });
+    } catch (errA) {
+      console.warn('VPT: environment-camera mislukt, probeer eerste beschikbare camera', errA);
+      // Optie B: pak de eerste beschikbare camera (vaak de front-camera op laptops)
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras || cameras.length === 0) {
+        throw new Error('Geen camera gevonden op dit apparaat.');
+      }
+      // Probeer expliciet de laatste camera (vaak de achterkant op smartphones)
+      const lastCam = cameras[cameras.length - 1];
+      await startWith(lastCam.id);
+    }
 
     status.textContent = 'Houd de barcode horizontaal in beeld…';
   } catch (err) {
