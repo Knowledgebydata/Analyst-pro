@@ -85,6 +85,9 @@
       <button onclick="vptToggleFullscreen()" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm" title="Volledig scherm">
         <i class="fas fa-expand" id="vpt-fs-icon"></i>
       </button>
+      <button onclick="vptExitApp()" class="bg-red-500/80 hover:bg-red-600 text-white px-3 py-2 rounded-md text-sm" title="App afsluiten">
+        <i class="fas fa-power-off"></i> <span class="hidden sm:inline">Afsluiten</span>
+      </button>
     </div>
   </div>
 
@@ -150,7 +153,12 @@
         <div class="bg-amber-500 text-white rounded-lg p-3 min-w-[110px] text-center shadow">
           <div class="text-xs uppercase opacity-90">Weekbonus</div>
           <div class="text-2xl font-bold" id="vpt-kpi-weekbonus">42</div>
-          <div class="text-xs opacity-90" id="vpt-kpi-weekbonus-used">0 gebruikt</div>
+          <div class="text-xs opacity-90" id="vpt-kpi-weekbonus-used">over</div>
+        </div>
+        <div id="vpt-kpi-weekbonus-used-card" class="hidden bg-orange-600 text-white rounded-lg p-3 min-w-[110px] text-center shadow">
+          <div class="text-xs uppercase opacity-90">Verbruikt week</div>
+          <div class="text-2xl font-bold" id="vpt-kpi-weekbonus-used-value">0</div>
+          <div class="text-xs opacity-90">weekbonus pt</div>
         </div>
         <div class="bg-emerald-600 text-white rounded-lg p-3 min-w-[110px] text-center shadow">
           <div class="text-xs uppercase opacity-90">Activiteit</div>
@@ -165,8 +173,16 @@
       <div id="vpt-progress-bar" class="h-full bg-gradient-to-r from-brand-600 to-brand-900 transition-all" style="width:0%"></div>
     </div>
 
-    <div id="vpt-limit-warning" class="hidden mt-3 bg-red-500 text-white text-sm font-bold px-4 py-2 rounded animate-pulse text-center">
-      <i class="fas fa-triangle-exclamation mr-2"></i> Daglimiet overschreden — gebruik je weekbonus
+    <div id="vpt-limit-warning" class="hidden mt-3 bg-red-500 text-white text-sm font-bold px-4 py-3 rounded text-center">
+      <div class="flex items-center justify-center gap-3 flex-wrap">
+        <span><i class="fas fa-triangle-exclamation mr-1"></i> Daglimiet overschreden met <span id="vpt-overshoot-pts">0</span> pt — gebruik je weekbonus?</span>
+        <button onclick="vptUseWeekBonus()" class="bg-white text-red-700 hover:bg-amber-100 font-bold px-3 py-1 rounded text-sm whitespace-nowrap">
+          <i class="fas fa-check mr-1"></i> Ja, gebruik weekbonus
+        </button>
+      </div>
+    </div>
+    <div id="vpt-weekbonus-confirm" class="hidden mt-3 bg-emerald-500 text-white text-sm px-4 py-2 rounded text-center">
+      <i class="fas fa-check-circle mr-1"></i> <span id="vpt-wb-confirm-text">Weekbonus afgeboekt voor vandaag.</span>
     </div>
   </div>
 
@@ -2479,11 +2495,24 @@ function vptRenderDay() {
   document.getElementById('vpt-kpi-consumed').textContent = vptRoundPt(foodPts);
   document.getElementById('vpt-kpi-remaining').textContent = vptRoundPt(remaining);
   document.getElementById('vpt-kpi-activity').textContent = vptRoundPt(actPts);
-  document.getElementById('vpt-kpi-weekbonus').textContent = profile.weeklyBonus;
 
-  // Week-bonus gebruik berekenen
-  const weekBonusUsed = vptWeekBonusUsed(vptCurrentDate);
-  document.getElementById('vpt-kpi-weekbonus-used').textContent = `${vptRoundPt(weekBonusUsed)} gebruikt`;
+  // Week-bonus: expliciet afgeboekte punten per dag, opgeteld over de week
+  const wbUsedToday = vptGetWeekBonusUsedToday(vptCurrentDate);
+  const wbUsedThisWeek = vptGetWeekBonusUsedThisWeek(vptCurrentDate);
+  const wbRemaining = Math.max(0, profile.weeklyBonus - wbUsedThisWeek);
+
+  // Weekbonus-tegel telt af; "0 over" als alles op is
+  document.getElementById('vpt-kpi-weekbonus').textContent = vptRoundPt(wbRemaining);
+  document.getElementById('vpt-kpi-weekbonus-used').textContent = wbRemaining > 0 ? 'over' : 'op';
+
+  // "Verbruikt week" tegel zichtbaar zodra > 0
+  const usedCard = document.getElementById('vpt-kpi-weekbonus-used-card');
+  if (wbUsedThisWeek > 0) {
+    usedCard.classList.remove('hidden');
+    document.getElementById('vpt-kpi-weekbonus-used-value').textContent = vptRoundPt(wbUsedThisWeek);
+  } else {
+    usedCard.classList.add('hidden');
+  }
 
   // Progress + waarschuwing
   const pct = Math.min(100, (foodPts / target) * 100);
@@ -2496,7 +2525,25 @@ function vptRenderDay() {
 
   const remCard = document.getElementById('vpt-kpi-remaining-card');
   remCard.style.background = foodPts > target ? '#b91c1c' : '#1e40af';
-  document.getElementById('vpt-limit-warning').classList.toggle('hidden', foodPts <= target);
+
+  // Waarschuwing: alleen tonen bij overschrijding én vandaag nog niet (volledig) afgeboekt
+  const overshoot = Math.max(0, foodPts - target);
+  const unbookedOvershoot = Math.max(0, overshoot - wbUsedToday);
+  const warning = document.getElementById('vpt-limit-warning');
+  const confirmEl = document.getElementById('vpt-weekbonus-confirm');
+  if (unbookedOvershoot > 0) {
+    document.getElementById('vpt-overshoot-pts').textContent = vptRoundPt(unbookedOvershoot);
+    warning.classList.remove('hidden');
+    confirmEl.classList.add('hidden');
+  } else if (wbUsedToday > 0) {
+    warning.classList.add('hidden');
+    confirmEl.classList.remove('hidden');
+    document.getElementById('vpt-wb-confirm-text').textContent =
+      `${vptRoundPt(wbUsedToday)} pt weekbonus afgeboekt voor vandaag. Nog ${vptRoundPt(wbRemaining)} pt over deze week.`;
+  } else {
+    warning.classList.add('hidden');
+    confirmEl.classList.add('hidden');
+  }
 
   // Datum-tekst
   document.getElementById('vpt-date-text').textContent = vptFmtDate(vptCurrentDate);
@@ -2564,6 +2611,8 @@ function vptWeekStart(isoDate) {
   return d.toISOString().split('T')[0];
 }
 function vptWeekBonusUsed(isoDate) {
+  // Legacy auto-berekening op basis van log (gebruikt door statistieken-tab).
+  // Voor de actuele afboeking gebruiken we expliciete keys, zie vptGetWeekBonusUsedThisWeek.
   const profile = vptGetProfile();
   const start = vptWeekStart(isoDate);
   const startDate = new Date(start + 'T00:00:00');
@@ -2577,6 +2626,63 @@ function vptWeekBonusUsed(isoDate) {
     if (food > profile.dailyTarget) used += (food - profile.dailyTarget);
   }
   return used;
+}
+
+// ─── EXPLICIETE WEEKBONUS-AFBOEKING (V3.3) ──────────────────────────────
+// Per dag wordt expliciet vastgelegd hoeveel weekbonus-punten zijn afgeboekt
+// (alleen wanneer de gebruiker op "Ja, gebruik weekbonus" heeft geklikt).
+// Key: vpt_wb_<YYYY-MM-DD>  → integer aantal pt
+function vptGetWeekBonusUsedToday(isoDate) {
+  return vptGet('vpt_wb_' + isoDate, 0);
+}
+function vptSetWeekBonusUsedToday(isoDate, amount) {
+  if (amount <= 0) {
+    try { localStorage.removeItem('vpt_wb_' + isoDate); } catch (e) {}
+  } else {
+    vptSet('vpt_wb_' + isoDate, amount);
+  }
+}
+function vptGetWeekBonusUsedThisWeek(isoDate) {
+  const start = vptWeekStart(isoDate);
+  const startDate = new Date(start + 'T00:00:00');
+  let total = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    const iso = d.toISOString().split('T')[0];
+    total += vptGetWeekBonusUsedToday(iso);
+  }
+  return total;
+}
+function vptUseWeekBonus() {
+  const log = vptGetLog(vptCurrentDate);
+  const profile = vptGetProfile();
+  const food = log.filter(e => e.type === 'food').reduce((s, e) => s + e.points, 0);
+  const overshoot = food - profile.dailyTarget;
+  const alreadyUsedToday = vptGetWeekBonusUsedToday(vptCurrentDate);
+  const unbooked = overshoot - alreadyUsedToday;
+
+  if (unbooked <= 0) {
+    alert('Geen overschrijding om af te boeken. Eet eerst boven je dagdoel.');
+    return;
+  }
+
+  const wbUsedThisWeek = vptGetWeekBonusUsedThisWeek(vptCurrentDate);
+  const wbRemaining = profile.weeklyBonus - wbUsedThisWeek;
+
+  if (wbRemaining <= 0) {
+    alert('Geen weekbonus meer over deze week.');
+    return;
+  }
+
+  const toBook = Math.min(unbooked, wbRemaining);
+  vptSetWeekBonusUsedToday(vptCurrentDate, alreadyUsedToday + toBook);
+
+  if (toBook < unbooked) {
+    alert(`Slechts ${vptRoundPt(toBook)} pt weekbonus afgeboekt — dat is alles wat je nog over had. Je hebt nog ${vptRoundPt(unbooked - toBook)} pt overschrijding zonder dekking.`);
+  }
+
+  vptRenderDay();
 }
 
 // ─── RECEPTEN ───────────────────────────────────────────────────────────
@@ -3621,6 +3727,40 @@ function vptApplyUpdate() {
     vptPendingSwUpdate.postMessage({ type: 'SKIP_WAITING' });
   }
   location.reload();
+}
+
+// ─── APP AFSLUITEN ──────────────────────────────────────────────────────
+// PWA's hebben geen native close-knop. window.close() werkt alleen bij
+// vensters die door script geopend zijn. Op iOS/Android moet de gebruiker
+// de app via systeem-gestures sluiten. We tonen daarom een uitleg-fallback.
+function vptExitApp() {
+  if (!confirm('App afsluiten?\nJe lokale gegevens (dagboek, recepten, gewicht) blijven bewaard.')) return;
+  // Probeer eerst window.close() (werkt in standalone PWA op Chrome/Edge desktop)
+  const opened = window.open('', '_self');
+  if (opened) {
+    try { opened.close(); } catch (e) {}
+  }
+  try { window.close(); } catch (e) {}
+  // Fallback na 200 ms: leg uit hoe de app handmatig te sluiten
+  setTimeout(() => {
+    // Als we hier nog zijn, is window.close() geweigerd door de browser
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.navigator.standalone === true;
+    const ua = navigator.userAgent;
+    let instructie;
+    if (/iPhone|iPad|iPod/.test(ua)) {
+      instructie = isStandalone
+        ? 'Veeg vanaf de onderkant omhoog en swipe deze app weg uit de app-overzicht.'
+        : 'Sluit dit tabblad in Safari (knop met de twee vierkanten rechtsonder → veeg dit tabblad weg).';
+    } else if (/Android/.test(ua)) {
+      instructie = isStandalone
+        ? 'Druk op de vierkant-knop onder en swipe deze app weg.'
+        : 'Sluit dit tabblad via het Chrome-menu.';
+    } else {
+      instructie = 'Sluit dit venster (Cmd+W op Mac, Ctrl+W op Windows).';
+    }
+    alert('De browser staat niet toe dat de app zichzelf sluit.\n\n' + instructie);
+  }, 200);
 }
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
