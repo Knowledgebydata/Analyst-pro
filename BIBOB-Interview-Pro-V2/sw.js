@@ -2,7 +2,7 @@
 // Cache-first strategie voor app-shell. ML-modellen blijven in IndexedDB
 // (worden niet via SW gecached — te groot).
 
-const CACHE_NAME = 'bibob-interview-v2.0.3';
+const CACHE_NAME = 'bibob-interview-v2.0.4';
 const APP_SHELL = [
     './',
     './index.html',
@@ -13,6 +13,7 @@ const APP_SHELL = [
     './js/storage.js',
     './js/app.js',
     './js/transcribe.js',
+    './js/transcribe-apple.js',
     './js/diarize.js',
     './js/recorder.js',
     './icons/icon-192x192.png',

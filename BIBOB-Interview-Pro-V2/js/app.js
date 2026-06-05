@@ -3,10 +3,18 @@
 
 import { Auth } from './auth.js';
 import { Transcribe } from './transcribe.js';
+import { TranscribeApple } from './transcribe-apple.js';
 import { Diarize } from './diarize.js';
 import { Recorder } from './recorder.js';
 import { Storage } from './storage.js';
 import { toast, log, formatTime, formatDate, countWords, uid, escapeHtml } from './utils.js';
+
+// iOS Safari detectie — daar gebruiken we Apple Speech ipv Whisper-WASM
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+const USE_APPLE_SPEECH = isIOS() && TranscribeApple.isSupported();
 
 const State = {
     interviews: [],            // wordt bij bootstrap uit Storage geladen
@@ -167,13 +175,30 @@ async function loadModels(silent = false) {
 
     if (btn) btn.disabled = true;
     if (progressWrap) progressWrap.style.display = 'block';
-    const firstTime = !localStorage.getItem(MODELS_FLAG_KEY);
-    const initMsg = firstTime
-        ? 'Whisper-small downloaden (~466 MB) — kan 2-15 min duren bij eerste keer'
-        : 'Whisper-small laden uit cache (snel)…';
-    setStatus(statusEl, initMsg, 'warning');
 
     try {
+        // ── iOS-pad: Apple Speech — geen download nodig ────────────────────
+        if (USE_APPLE_SPEECH) {
+            setStatus(statusEl, 'Apple Speech (iOS on-device) initialiseren…', 'warning');
+            await TranscribeApple.ensureModel();
+            if (progressBar) { progressBar.style.width = '100%'; progressBar.textContent = 'Apple Speech klaar'; }
+            // Op iOS skippen we pyannote (te zwaar voor iPhone-WASM)
+            localStorage.setItem(MODELS_FLAG_KEY, '1');
+            setStatus(statusEl, '✓ Apple Speech klaar (iOS native, on-device) — je kunt een interview opnemen', 'success');
+            const startBtn = document.getElementById('start-interview-btn');
+            if (startBtn) startBtn.disabled = false;
+            if (btn) btn.style.display = 'none';
+            if (progressWrap) setTimeout(() => { progressWrap.style.display = 'none'; }, 2000);
+            return;
+        }
+
+        // ── Desktop-pad: Whisper + pyannote ────────────────────────────────
+        const firstTime = !localStorage.getItem(MODELS_FLAG_KEY);
+        const initMsg = firstTime
+            ? 'Whisper-small downloaden (~466 MB) — kan 2-15 min duren bij eerste keer'
+            : 'Whisper-small laden uit cache (snel)…';
+        setStatus(statusEl, initMsg, 'warning');
+
         await Transcribe.ensureModel((p) => {
             if (p.status === 'progress' && typeof p.progress === 'number') {
                 const pct = Math.round(p.progress);
@@ -223,9 +248,19 @@ function autoStartModelsIfPossible() {
 async function startInterview() {
     const naam = document.getElementById('interview-naam').value.trim();
     if (!naam) { toast('Naam geïnterviewde verplicht', 'error'); return; }
-    if (!Transcribe.isReady() || !Diarize.isReady()) {
-        toast('Laad eerst de modellen', 'error');
-        return;
+
+    if (USE_APPLE_SPEECH) {
+        // iOS: alleen Apple Speech moet beschikbaar zijn
+        if (!TranscribeApple.isSupported()) {
+            toast('Apple Speech niet beschikbaar op dit apparaat', 'error');
+            return;
+        }
+    } else {
+        // Desktop: Whisper + pyannote moeten geladen zijn
+        if (!Transcribe.isReady() || !Diarize.isReady()) {
+            toast('Laad eerst de modellen', 'error');
+            return;
+        }
     }
 
     try {
@@ -233,14 +268,40 @@ async function startInterview() {
         const recDur = document.getElementById('rec-duration');
         const recBtn = document.getElementById('start-interview-btn');
         const stopBtn = document.getElementById('stop-interview-btn');
+        const liveTextEl = document.getElementById('live-transcript');
 
         recIndicator.classList.remove('hidden');
         recBtn.classList.add('hidden');
         stopBtn.classList.remove('hidden');
+        if (liveTextEl) {
+            liveTextEl.classList.remove('hidden');
+            liveTextEl.textContent = '(luisteren…)';
+        }
 
-        await Recorder.start((sec) => {
-            recDur.textContent = sec.toFixed(0);
-        });
+        if (USE_APPLE_SPEECH) {
+            // Apple Speech LIVE — tekst verschijnt direct
+            await TranscribeApple.startLive((upd) => {
+                if (liveTextEl) {
+                    const interim = upd.interim ? ` <em style="opacity:.5">${escapeHtml(upd.interim)}</em>` : '';
+                    liveTextEl.innerHTML = escapeHtml(upd.final) + interim;
+                    liveTextEl.scrollTop = liveTextEl.scrollHeight;
+                }
+            });
+            // Optioneel: ook MediaRecorder parallel voor audio-archief later
+            // Voor MVP skippen we dat - alleen text via Apple Speech
+            const start = Date.now();
+            const tickTimer = setInterval(() => {
+                if (!TranscribeApple.isActive()) { clearInterval(tickTimer); return; }
+                recDur.textContent = ((Date.now() - start) / 1000).toFixed(0);
+            }, 500);
+            // Bewaar tickTimer voor stop
+            startInterview._tickTimer = tickTimer;
+        } else {
+            // Desktop: gewoon MediaRecorder + later Whisper+Diarize
+            await Recorder.start((sec) => {
+                recDur.textContent = sec.toFixed(0);
+            });
+        }
     } catch (err) {
         toast('Microfoon-fout: ' + err.message, 'error');
         log('Recorder fout: ' + err.message, 'error');
@@ -263,60 +324,106 @@ async function stopInterview() {
 
     try {
         setStatus(runStatus, 'opname verwerken…', 'warning');
-        const { audioFloat32, durationSec } = await Recorder.stop();
-        log(`Opname gestopt: ${durationSec.toFixed(1)}s`);
 
-        // ── KRITIEK: sla interview-stub DIRECT op vóór zware AI begint ────
-        // Als browser crashed tijdens transcribe (iOS Safari memory-issue),
-        // dan blijft minimaal de metadata bewaard.
-        const stub = {
-            id: stubId,
-            naam,
-            onderwerp,
-            dienstnummerVerhoorder,
-            createdAt: new Date().toISOString(),
-            durationSec,
-            status: 'transcribing',
-            speakerCount: 0,
-            chunks: [],
-            wordCount: 0,
-        };
-        State.interviews = Storage.add(stub);
-        State.lastInterview = stub;
-        interviewSaved = true;
-        renderDashboard();
-        renderList();
-        log(`Interview-stub opgeslagen (id=${stubId}) — start transcribe`);
+        let audioFloat32 = null;
+        let durationSec = 0;
+        let merged = [];
+        let speakerSet = new Set();
 
-        resultsCard.classList.remove('hidden');
-        setStatus(runStatus, 'Whisper transcribe loopt…', 'warning');
-        const transResult = await Transcribe.run(audioFloat32);
-        log(`Transcribe klaar — ${transResult.chunks?.length || 0} chunks`);
+        if (USE_APPLE_SPEECH) {
+            // ── iOS-pad: Apple Speech klaar ─────────────────────────────────
+            if (startInterview._tickTimer) {
+                clearInterval(startInterview._tickTimer);
+                startInterview._tickTimer = null;
+            }
+            const appleResult = await TranscribeApple.stopLive();
+            durationSec = appleResult.durationSec;
+            log(`Apple Speech klaar — ${appleResult.chunks.length} chunks, ${appleResult.text.length} chars`);
 
-        setStatus(runStatus, 'pyannote diarize loopt…', 'warning');
-        const diarSegments = await Diarize.run(audioFloat32, (p) => {
-            setStatus(runStatus, `diarize window ${p.window}/${p.total}…`, 'warning');
-        });
-        log(`Diarize klaar — ${diarSegments.length} segments`);
+            // Bouw chunks-array zoals Whisper-format (dominantSpeaker = 0 = verhoorder)
+            // Apple Speech geeft geen diarization. Voor MVP: alles op Speaker 1 (= verhoorder).
+            // Subject vs verhoorder kan in v2.1 met audio-buffer + pyannote toegevoegd worden.
+            merged = appleResult.chunks.map((c, idx) => ({
+                startSec: c.timestampMs / 1000,
+                endSec: (idx + 1 < appleResult.chunks.length
+                    ? appleResult.chunks[idx + 1].timestampMs / 1000
+                    : durationSec),
+                text: c.text,
+                dominantSpeaker: 0, // = "Verhoorder DN xxx"
+                hasMultipleSpeakers: false,
+            }));
+            speakerSet.add(0);
 
-        const merged = Diarize.mergeChunksWithSpeakers(transResult.chunks || [], diarSegments);
-        const speakerSet = new Set();
-        for (const r of merged) if (r.dominantSpeaker !== null) speakerSet.add(r.dominantSpeaker);
+            // Sla stub direct op (consistent met desktop-pad)
+            const stub = {
+                id: stubId,
+                naam, onderwerp, dienstnummerVerhoorder,
+                createdAt: new Date().toISOString(),
+                durationSec,
+                status: 'completed',
+                speakerCount: 1,
+                chunks: merged,
+                wordCount: merged.reduce((s, c) => s + countWords(c.text), 0),
+                engine: 'apple-speech',
+            };
+            State.interviews = Storage.add(stub);
+            State.lastInterview = stub;
+            interviewSaved = true;
+        } else {
+            // ── Desktop-pad: Whisper + pyannote ──────────────────────────────
+            const r = await Recorder.stop();
+            audioFloat32 = r.audioFloat32;
+            durationSec = r.durationSec;
+            log(`Opname gestopt: ${durationSec.toFixed(1)}s`);
 
-        // Update bestaande stub met volledig resultaat
-        const wordCount = merged.reduce((s, c) => s + countWords(c.text), 0);
-        Storage.update(stubId, {
-            status: 'completed',
-            speakerCount: speakerSet.size,
-            chunks: merged,
-            wordCount,
-        });
-        State.interviews = Storage.loadAll();
-        State.lastInterview = Storage.get(stubId);
-        log(`Interview ${stubId} → completed (${merged.length} chunks, ${speakerSet.size} sprekers)`);
+            // Stub eerst opslaan (overleeft crash)
+            const stub = {
+                id: stubId,
+                naam, onderwerp, dienstnummerVerhoorder,
+                createdAt: new Date().toISOString(),
+                durationSec,
+                status: 'transcribing',
+                speakerCount: 0,
+                chunks: [],
+                wordCount: 0,
+                engine: 'whisper-pyannote',
+            };
+            State.interviews = Storage.add(stub);
+            State.lastInterview = stub;
+            interviewSaved = true;
+            renderDashboard();
+            renderList();
+            log(`Interview-stub opgeslagen (id=${stubId}) — start transcribe`);
 
-        // Lokale variabele voor de rest van render-flow
+            resultsCard.classList.remove('hidden');
+            setStatus(runStatus, 'Whisper transcribe loopt…', 'warning');
+            const transResult = await Transcribe.run(audioFloat32);
+            log(`Transcribe klaar — ${transResult.chunks?.length || 0} chunks`);
+
+            setStatus(runStatus, 'pyannote diarize loopt…', 'warning');
+            const diarSegments = await Diarize.run(audioFloat32, (p) => {
+                setStatus(runStatus, `diarize window ${p.window}/${p.total}…`, 'warning');
+            });
+            log(`Diarize klaar — ${diarSegments.length} segments`);
+
+            merged = Diarize.mergeChunksWithSpeakers(transResult.chunks || [], diarSegments);
+            for (const r2 of merged) if (r2.dominantSpeaker !== null) speakerSet.add(r2.dominantSpeaker);
+
+            const wordCount = merged.reduce((s, c) => s + countWords(c.text), 0);
+            Storage.update(stubId, {
+                status: 'completed',
+                speakerCount: speakerSet.size,
+                chunks: merged,
+                wordCount,
+            });
+            State.interviews = Storage.loadAll();
+            State.lastInterview = Storage.get(stubId);
+            log(`Interview ${stubId} → completed (${merged.length} chunks, ${speakerSet.size} sprekers)`);
+        }
+
+        // ── Render-flow voor beide paden ────────────────────────────────────
         const interview = State.lastInterview;
+        resultsCard.classList.remove('hidden');
 
         // Render transcript in resultaat-kaart
         const colors = ['var(--spk1)', 'var(--spk2)', 'var(--spk3)'];
@@ -375,6 +482,8 @@ function resetRecorderUI() {
     document.getElementById('rec-indicator').classList.add('hidden');
     document.getElementById('start-interview-btn').classList.remove('hidden');
     document.getElementById('stop-interview-btn').classList.add('hidden');
+    const liveEl = document.getElementById('live-transcript');
+    if (liveEl) liveEl.classList.add('hidden');
 }
 
 // ── JSON-export v2.0.0 ───────────────────────────────────────────────────────
