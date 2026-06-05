@@ -2,7 +2,7 @@
 // Cache-first strategie voor app-shell. ML-modellen blijven in IndexedDB
 // (worden niet via SW gecached — te groot).
 
-const CACHE_NAME = 'bibob-interview-v2.0.1';
+const CACHE_NAME = 'bibob-interview-v2.0.2';
 const APP_SHELL = [
     './',
     './index.html',
@@ -10,15 +10,14 @@ const APP_SHELL = [
     './css/style.css',
     './js/utils.js',
     './js/auth.js',
+    './js/storage.js',
     './js/app.js',
     './js/transcribe.js',
     './js/diarize.js',
     './js/recorder.js',
     './icons/icon-192x192.png',
     './icons/icon-512x512.png',
-    // FontAwesome via CDN
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-    // onnxruntime-web — wordt door browser ook gecached via http-cache
     'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js',
 ];
 

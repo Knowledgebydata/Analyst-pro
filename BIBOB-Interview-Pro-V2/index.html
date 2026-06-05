@@ -21,6 +21,7 @@
         <h1>Welkom</h1>
         <p class="sub">Eenmalige setup van uw account</p>
         <input type="text" id="setup-name" class="auth-input" placeholder="Uw naam" maxlength="50" autocomplete="name">
+        <input type="text" id="setup-dienstnummer" class="auth-input" placeholder="Uw dienstnummer" maxlength="20" autocomplete="off">
         <input type="password" id="setup-pin" class="auth-input" placeholder="6-cijferige PIN" maxlength="6" inputmode="numeric" autocomplete="new-password">
         <input type="password" id="setup-pin-confirm" class="auth-input" placeholder="Bevestig PIN" maxlength="6" inputmode="numeric" autocomplete="new-password">
         <button id="setup-submit" class="btn btn-primary btn-block btn-lg">
@@ -142,6 +143,10 @@
                     <label class="form-label">Onderwerp / zaaknummer</label>
                     <input type="text" id="interview-onderwerp" class="form-control" placeholder="Bibob-onderzoek of dossier-ref">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Dienstnummer verhoorder</label>
+                    <input type="text" id="interview-dienstnummer" class="form-control" placeholder="DN-nummer ambtenaar die interview afneemt" maxlength="20">
+                </div>
                 <button id="start-interview-btn" class="btn btn-success btn-block btn-lg" disabled>
                     <i class="fas fa-microphone"></i> Start opname
                 </button>
@@ -172,10 +177,7 @@
                 <div class="card-header">
                     <div class="card-title"><i class="fas fa-list"></i> Alle interviews</div>
                 </div>
-                <div class="empty">
-                    <i class="fas fa-folder-open"></i>
-                    <p>Nog geen interviews — komt in storage-module (stap 9)</p>
-                </div>
+                <div id="all-list"></div>
             </div>
         </div>
 
@@ -185,9 +187,15 @@
                 <div class="card-header">
                     <div class="card-title"><i class="fas fa-user"></i> Profiel</div>
                 </div>
-                <p style="font-size:.85rem;color:rgba(255,255,255,0.7);margin-bottom:10px">
+                <p style="font-size:.85rem;color:rgba(255,255,255,0.7);margin-bottom:6px">
                     Gebruiker: <strong id="display-user-settings">-</strong>
                 </p>
+                <p style="font-size:.85rem;color:rgba(255,255,255,0.7);margin-bottom:14px">
+                    Dienstnummer: <strong id="display-dn-settings">-</strong>
+                </p>
+                <button id="change-dn-btn" class="btn btn-outline btn-block">
+                    <i class="fas fa-id-badge"></i> Dienstnummer wijzigen
+                </button>
             </div>
 
             <div class="card">

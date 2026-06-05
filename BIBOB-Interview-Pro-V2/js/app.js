@@ -5,10 +5,11 @@ import { Auth } from './auth.js';
 import { Transcribe } from './transcribe.js';
 import { Diarize } from './diarize.js';
 import { Recorder } from './recorder.js';
-import { toast, log, formatTime, countWords, uid, escapeHtml } from './utils.js';
+import { Storage } from './storage.js';
+import { toast, log, formatTime, formatDate, countWords, uid, escapeHtml } from './utils.js';
 
 const State = {
-    interviews: [],            // tijdelijk in-memory; storage.js komt later
+    interviews: [],            // wordt bij bootstrap uit Storage geladen
     lastInterview: null,
 };
 
@@ -38,54 +39,177 @@ function renderDashboard() {
                 <p>Nog geen interviews opgenomen</p>
             </div>`;
     } else {
-        recentEl.innerHTML = State.interviews.slice(0, 5).map(i => `
-            <div style="padding:12px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:8px">
-                <div style="font-weight:600">${escapeHtml(i.naam || 'Onbekend')}</div>
-                <div style="font-size:.75rem;color:rgba(255,255,255,0.5);margin-top:4px">
-                    ${escapeHtml(i.onderwerp || '')} — ${i.wordCount || 0} woorden
-                </div>
-            </div>
-        `).join('');
+        recentEl.innerHTML = State.interviews.slice(0, 5).map(i => renderInterviewSummary(i)).join('');
     }
 }
 
+function renderInterviewSummary(i) {
+    const dt = i.createdAt ? formatDate(i.createdAt) : '';
+    const dn = i.dienstnummerVerhoorder ? `· DN ${escapeHtml(i.dienstnummerVerhoorder)}` : '';
+    return `
+        <div data-iid="${escapeHtml(i.id)}" class="interview-summary"
+             style="padding:12px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:8px;cursor:pointer">
+            <div style="font-weight:600">${escapeHtml(i.naam || 'Onbekend')}</div>
+            <div style="font-size:.75rem;color:rgba(255,255,255,0.5);margin-top:4px">
+                ${escapeHtml(i.onderwerp || '')} ${dn} — ${i.wordCount || 0} woorden · ${dt}
+            </div>
+        </div>`;
+}
+
+// ── Lijst-tab rendering (alle interviews) ───────────────────────────────────
+function renderList() {
+    const wrap = document.getElementById('all-list');
+    if (!wrap) return;
+    if (State.interviews.length === 0) {
+        wrap.innerHTML = `
+            <div class="empty">
+                <i class="fas fa-folder-open"></i>
+                <p>Nog geen interviews opgenomen</p>
+            </div>`;
+        return;
+    }
+    wrap.innerHTML = State.interviews.map(i => renderInterviewSummary(i)).join('');
+
+    // Click-handlers voor detail-view
+    wrap.querySelectorAll('.interview-summary').forEach(el => {
+        el.addEventListener('click', () => showInterviewDetail(el.dataset.iid));
+    });
+}
+
+function showInterviewDetail(id) {
+    const i = State.interviews.find(x => x.id === id);
+    if (!i) { toast('Interview niet gevonden', 'error'); return; }
+
+    const colors = ['var(--spk1)', 'var(--spk2)', 'var(--spk3)'];
+    const dn = i.dienstnummerVerhoorder || '';
+    const speakerName = (idx) => {
+        if (idx === 0 && dn) return `Verhoorder DN ${escapeHtml(dn)}`;
+        return `Speaker ${idx + 1}`;
+    };
+
+    const html = `
+        <div style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;overflow-y:auto;padding:20px">
+            <div style="max-width:700px;margin:20px auto;background:linear-gradient(135deg,#0a0f1a,#16213e);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:25px">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px">
+                    <div>
+                        <h2 style="color:var(--primary-light);font-size:1.2rem;margin-bottom:4px">${escapeHtml(i.naam)}</h2>
+                        <div style="font-size:.78rem;color:rgba(255,255,255,0.6)">
+                            ${escapeHtml(i.onderwerp || '')} · DN ${escapeHtml(dn)} · ${formatDate(i.createdAt)}
+                        </div>
+                    </div>
+                    <button id="close-detail" class="btn btn-ghost" style="padding:8px 14px">✕</button>
+                </div>
+                <div style="display:flex;gap:15px;margin-bottom:15px;font-size:.85rem;color:rgba(255,255,255,0.7)">
+                    <span>Duur: <strong style="color:white">${(i.durationSec||0).toFixed(0)}s</strong></span>
+                    <span>Sprekers: <strong style="color:white">${i.speakerCount||0}</strong></span>
+                    <span>Woorden: <strong style="color:white">${i.wordCount||0}</strong></span>
+                </div>
+                <div style="background:rgba(0,0,0,0.3);border-radius:10px;overflow:hidden;margin-bottom:15px">
+                    ${(i.chunks||[]).map(c => {
+                        const ts = c.startSec !== null ? `${formatTime(c.startSec)} → ${formatTime(c.endSec)}` : '?';
+                        let lbl = 'onbekend', col = '#666';
+                        if (c.dominantSpeaker !== null) {
+                            lbl = speakerName(c.dominantSpeaker);
+                            col = colors[c.dominantSpeaker] || '#666';
+                            if (c.hasMultipleSpeakers) lbl += ' (overlap)';
+                        }
+                        return `
+                            <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+                                <div style="display:flex;gap:10px;align-items:center;margin-bottom:5px">
+                                    <span style="font-family:Menlo,monospace;color:var(--accent);font-size:.75rem">${ts}</span>
+                                    <span style="background:${col};color:white;padding:2px 10px;border-radius:10px;font-size:.7rem;font-weight:600">${escapeHtml(lbl)}</span>
+                                </div>
+                                <div style="color:rgba(255,255,255,0.92);line-height:1.5;font-size:.9rem">${escapeHtml(c.text)}</div>
+                            </div>`;
+                    }).join('')}
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                    <button id="detail-export" class="btn btn-primary"><i class="fas fa-download"></i> Export JSON</button>
+                    <button id="detail-delete" class="btn btn-danger"><i class="fas fa-trash"></i> Verwijder</button>
+                </div>
+            </div>
+        </div>`;
+
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    const overlay = wrap.firstElementChild;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#close-detail').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#detail-export').addEventListener('click', () => {
+        State.lastInterview = i;
+        exportJson();
+    });
+    overlay.querySelector('#detail-delete').addEventListener('click', () => {
+        if (!confirm(`Interview met ${i.naam} verwijderen?`)) return;
+        State.interviews = Storage.delete(id);
+        overlay.remove();
+        renderDashboard();
+        renderList();
+        toast('Interview verwijderd', 'success');
+    });
+}
+
 // ── Modellen laden (Step 2) ──────────────────────────────────────────────────
-async function loadModels() {
+const MODELS_FLAG_KEY = 'bibob_v2_models_ever_loaded';
+
+async function loadModels(silent = false) {
     const btn = document.getElementById('load-models-btn');
     const progressBar = document.getElementById('models-progress');
     const progressWrap = document.getElementById('models-progress-wrap');
     const statusEl = document.getElementById('models-status');
 
-    btn.disabled = true;
-    progressWrap.style.display = 'block';
-    setStatus(statusEl, 'Whisper-small downloaden (~466 MB) — kan 2-15 min duren bij eerste keer', 'warning');
+    if (btn) btn.disabled = true;
+    if (progressWrap) progressWrap.style.display = 'block';
+    const firstTime = !localStorage.getItem(MODELS_FLAG_KEY);
+    const initMsg = firstTime
+        ? 'Whisper-small downloaden (~466 MB) — kan 2-15 min duren bij eerste keer'
+        : 'Whisper-small laden uit cache (snel)…';
+    setStatus(statusEl, initMsg, 'warning');
 
     try {
-        // Whisper laden met progress per bestand
         await Transcribe.ensureModel((p) => {
             if (p.status === 'progress' && typeof p.progress === 'number') {
                 const pct = Math.round(p.progress);
-                progressBar.style.width = pct + '%';
-                progressBar.textContent = `Whisper: ${p.file || '...'} ${pct}%`;
+                if (progressBar) {
+                    progressBar.style.width = pct + '%';
+                    progressBar.textContent = `Whisper: ${p.file || '...'} ${pct}%`;
+                }
             }
         });
-        progressBar.style.width = '100%';
-        progressBar.textContent = 'Whisper klaar';
+        if (progressBar) { progressBar.style.width = '100%'; progressBar.textContent = 'Whisper klaar'; }
         setStatus(statusEl, '✓ Whisper geladen — nu pyannote diarization (~6 MB)', 'success');
 
-        // Pyannote laden
         await Diarize.ensureModel((p) => {
-            progressBar.style.width = (p.pct || 100) + '%';
-            progressBar.textContent = `Pyannote: ${p.pct || 100}%`;
+            if (progressBar) {
+                progressBar.style.width = (p.pct || 100) + '%';
+                progressBar.textContent = `Pyannote: ${p.pct || 100}%`;
+            }
         });
 
-        setStatus(statusEl, '✓ Beide modellen klaar — je kunt nu een interview opnemen', 'success');
-        document.getElementById('start-interview-btn').disabled = false;
-        btn.style.display = 'none';
+        localStorage.setItem(MODELS_FLAG_KEY, '1');
+        setStatus(statusEl, '✓ Beide modellen klaar — je kunt een interview opnemen', 'success');
+        const startBtn = document.getElementById('start-interview-btn');
+        if (startBtn) startBtn.disabled = false;
+        if (btn) btn.style.display = 'none';
+        if (progressWrap) setTimeout(() => { progressWrap.style.display = 'none'; }, 2000);
     } catch (err) {
         setStatus(statusEl, '✗ Fout: ' + err.message, 'error');
         log('Models load fout: ' + err.message, 'error');
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
+    }
+}
+
+// Auto-start: bij elk login direct modellen laden uit cache (of eerste keer download)
+function autoStartModelsIfPossible() {
+    // Als de gebruiker eerder al modellen heeft geladen → automatisch in achtergrond laden
+    // Eerste-keer-gebruikers moeten zelf op knop klikken (om bewust de ~466 MB download te accepteren)
+    const everLoaded = localStorage.getItem(MODELS_FLAG_KEY);
+    if (everLoaded) {
+        log('Modellen eerder geladen — auto-load uit cache…');
+        loadModels(true);
+    } else {
+        log('Eerste sessie — gebruiker moet zelf modellen-download starten');
     }
 }
 
@@ -121,13 +245,15 @@ async function startInterview() {
 async function stopInterview() {
     const naam = document.getElementById('interview-naam').value.trim();
     const onderwerp = document.getElementById('interview-onderwerp').value.trim();
+    const dnInput = document.getElementById('interview-dienstnummer');
+    const dienstnummerVerhoorder = (dnInput?.value || Auth.getDienstnummer()).trim();
     const resultsCard = document.getElementById('results-card');
     const transcriptBody = document.getElementById('transcript-body');
     const runStatus = document.getElementById('run-status');
 
     try {
         setStatus(runStatus, 'opname verwerken…', 'warning');
-        const { audioFloat32, durationSec, blob } = await Recorder.stop();
+        const { audioFloat32, durationSec } = await Recorder.stop();
         log(`Opname gestopt: ${durationSec.toFixed(1)}s`);
 
         resultsCard.classList.remove('hidden');
@@ -149,23 +275,29 @@ async function stopInterview() {
             id: uid(),
             naam,
             onderwerp,
+            dienstnummerVerhoorder,
             createdAt: new Date().toISOString(),
             durationSec,
             speakerCount: speakerSet.size,
             chunks: merged,
             wordCount: merged.reduce((s, c) => s + countWords(c.text), 0),
         };
-        State.interviews.unshift(interview);
+
+        // Persistent opslaan
+        State.interviews = Storage.add(interview);
         State.lastInterview = interview;
 
-        // Render transcript
+        // Render transcript in resultaat-kaart
         const colors = ['var(--spk1)', 'var(--spk2)', 'var(--spk3)'];
+        const speakerName = (idx) => {
+            if (idx === 0 && dienstnummerVerhoorder) return `Verhoorder DN ${escapeHtml(dienstnummerVerhoorder)}`;
+            return `Speaker ${idx + 1}`;
+        };
         transcriptBody.innerHTML = merged.map(r => {
             const ts = r.startSec !== null ? `${formatTime(r.startSec)} → ${formatTime(r.endSec)}` : '?';
-            let spkLabel = 'onbekend';
-            let color = '#666';
+            let spkLabel = 'onbekend', color = '#666';
             if (r.dominantSpeaker !== null) {
-                spkLabel = `Speaker ${r.dominantSpeaker + 1}`;
+                spkLabel = speakerName(r.dominantSpeaker);
                 color = colors[r.dominantSpeaker] || '#666';
                 if (r.hasMultipleSpeakers) spkLabel += ' (overlap)';
             }
@@ -173,17 +305,19 @@ async function stopInterview() {
                 <div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.05)">
                     <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
                         <span style="font-family:Menlo,monospace;color:var(--accent);font-size:.75rem">${ts}</span>
-                        <span style="background:${color};color:white;padding:2px 10px;border-radius:10px;font-size:.7rem;font-weight:600">${escapeHtml(spkLabel)}</span>
+                        <span style="background:${color};color:white;padding:2px 10px;border-radius:10px;font-size:.7rem;font-weight:600">${spkLabel}</span>
                     </div>
                     <div style="color:rgba(255,255,255,0.92);line-height:1.5;font-size:.92rem">${escapeHtml(r.text)}</div>
                 </div>
             `;
         }).join('');
 
-        setStatus(runStatus, `✓ klaar — ${speakerSet.size} sprekers, ${merged.length} chunks`, 'success');
+        setStatus(runStatus, `✓ klaar — ${speakerSet.size} sprekers, ${merged.length} chunks, opgeslagen`, 'success');
         document.getElementById('export-json-btn').classList.remove('hidden');
         renderDashboard();
+        renderList();
         resetRecorderUI();
+        toast('Interview opgeslagen', 'success');
     } catch (err) {
         setStatus(runStatus, '✗ Fout: ' + err.message, 'error');
         log('Stop-interview fout: ' + err.message, 'error');
@@ -201,6 +335,11 @@ function resetRecorderUI() {
 function exportJson() {
     if (!State.lastInterview) return;
     const i = State.lastInterview;
+    const dn = i.dienstnummerVerhoorder || '';
+    const speakerNameFor = (idx) => {
+        if (idx === 0 && dn) return `Verhoorder_DN_${dn}`;
+        return `Speaker_${idx + 1}`;
+    };
     const exportObj = {
         type: 'bibob-interview-pro-export',
         version: '2.0.0',
@@ -214,6 +353,7 @@ function exportJson() {
             id: i.id,
             naam_subject: i.naam,
             onderwerp: i.onderwerp,
+            dienstnummer_verhoorder: dn,
             createdAt: i.createdAt,
             durationSec: i.durationSec,
         },
@@ -223,7 +363,7 @@ function exportJson() {
             startSec: c.startSec,
             endSec: c.endSec,
             durationSec: c.startSec !== null ? +(c.endSec - c.startSec).toFixed(2) : null,
-            speaker: c.dominantSpeaker !== null ? `Speaker_${c.dominantSpeaker + 1}` : null,
+            speaker: c.dominantSpeaker !== null ? speakerNameFor(c.dominantSpeaker) : null,
             hasMultipleSpeakers: c.hasMultipleSpeakers,
             text: c.text,
         })),
@@ -260,6 +400,10 @@ function bootstrap() {
             .catch(err => log('SW registratie faalde: ' + err.message, 'warn'));
     }
 
+    // Laad interviews uit persistent storage
+    State.interviews = Storage.loadAll();
+    log(`${State.interviews.length} interview(s) uit storage geladen`);
+
     // Numpad
     document.querySelectorAll('[data-numpad]').forEach(btn => {
         const action = btn.dataset.numpad;
@@ -275,20 +419,46 @@ function bootstrap() {
     document.getElementById('logout-btn')?.addEventListener('click', () => { if (confirm('Uitloggen?')) Auth.logout(); });
     document.getElementById('change-pin-btn')?.addEventListener('click', () => Auth.changePin());
 
+    // Dienstnummer wijzigen (Settings)
+    document.getElementById('change-dn-btn')?.addEventListener('click', () => {
+        const cur = Auth.getDienstnummer();
+        const nw = prompt('Dienstnummer (nieuwe waarde):', cur);
+        if (nw === null) return;
+        const trimmed = nw.trim();
+        if (!trimmed) { toast('Dienstnummer mag niet leeg zijn', 'error'); return; }
+        Auth.setDienstnummer(trimmed);
+        document.getElementById('display-dn-settings').textContent = trimmed;
+        // Vul ook het interview-form veld bij
+        const dnFld = document.getElementById('interview-dienstnummer');
+        if (dnFld) dnFld.value = trimmed;
+        toast('Dienstnummer bijgewerkt', 'success');
+    });
+
     // Tabs
     document.querySelectorAll('.nav-tab').forEach(t => {
         t.addEventListener('click', () => switchTab(t.dataset.tab));
     });
 
     // Modellen + recorder
-    document.getElementById('load-models-btn')?.addEventListener('click', loadModels);
+    document.getElementById('load-models-btn')?.addEventListener('click', () => loadModels(false));
     document.getElementById('start-interview-btn')?.addEventListener('click', startInterview);
     document.getElementById('stop-interview-btn')?.addEventListener('click', stopInterview);
     document.getElementById('export-json-btn')?.addEventListener('click', exportJson);
 
+    // Hook na succesvolle login: auto-load models + render lijst + pre-fill dienstnummer
+    Auth.onAfterLogin = () => {
+        const dn = Auth.getDienstnummer();
+        const dnFld = document.getElementById('interview-dienstnummer');
+        if (dnFld) dnFld.value = dn || '';
+        const dnSettingsEl = document.getElementById('display-dn-settings');
+        if (dnSettingsEl) dnSettingsEl.textContent = dn || '(niet ingesteld)';
+        renderDashboard();
+        renderList();
+        autoStartModelsIfPossible();
+    };
+
     Auth.init();
-    renderDashboard();
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);
-window.BibobApp = { State, switchTab, renderDashboard };
+window.BibobApp = { State, switchTab, renderDashboard, renderList, Storage };

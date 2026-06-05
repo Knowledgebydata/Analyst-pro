@@ -23,10 +23,11 @@
 import { toast, log } from './utils.js';
 
 const KEYS = {
-    PIN_RECORD: 'bibob_v2_pin_record',
-    USER:       'bibob_v2_user',
-    CREATED:    'bibob_v2_created',
-    FAILS:      'bibob_v2_fails',
+    PIN_RECORD:    'bibob_v2_pin_record',
+    USER:          'bibob_v2_user',
+    DIENSTNUMMER:  'bibob_v2_dienstnummer',
+    CREATED:       'bibob_v2_created',
+    FAILS:         'bibob_v2_fails',
 };
 
 const PIN_LENGTH = 6;
@@ -143,7 +144,13 @@ export const Auth = {
         const settingsUserEl = document.getElementById('display-user-settings');
         if (settingsUserEl) settingsUserEl.textContent = user || '';
         this.state.mode = 'app';
+        // Hook voor app.js: auto-load models, render list, etc.
+        if (typeof this.onAfterLogin === 'function') {
+            try { this.onAfterLogin(); } catch (e) { console.error('onAfterLogin failed:', e); }
+        }
     },
+
+    onAfterLogin: null, // wordt door app.js gezet
 
     // ── PIN-numpad handling ────────────────────────────────────────────────
     digit(n) {
@@ -271,12 +278,17 @@ export const Auth = {
     // ── Setup flow (eerste opstart) ────────────────────────────────────────
     async completeSetup() {
         const name = document.getElementById('setup-name').value.trim();
+        const dienstnummer = document.getElementById('setup-dienstnummer').value.trim();
         const pin = document.getElementById('setup-pin').value;
         const confirm = document.getElementById('setup-pin-confirm').value;
         const errEl = document.getElementById('setup-error');
 
         if (!name) {
             errEl.textContent = 'Voer uw naam in';
+            return;
+        }
+        if (!dienstnummer) {
+            errEl.textContent = 'Voer uw dienstnummer in';
             return;
         }
         if (!new RegExp(`^\\d{${PIN_LENGTH}}$`).test(pin)) {
@@ -293,15 +305,24 @@ export const Auth = {
             const record = await createPinRecord(pin);
             localStorage.setItem(KEYS.PIN_RECORD, JSON.stringify(record));
             localStorage.setItem(KEYS.USER, name);
+            localStorage.setItem(KEYS.DIENSTNUMMER, dienstnummer);
             localStorage.setItem(KEYS.CREATED, new Date().toISOString());
             this.resetFails();
-            log(`Account aangemaakt voor ${name} — PBKDF2-SHA-256 (${PBKDF2_ITERATIONS} iteraties)`);
+            log(`Account aangemaakt voor ${name} (dienstnr ${dienstnummer}) — PBKDF2-SHA-256 (${PBKDF2_ITERATIONS} iteraties)`);
             toast('Account aangemaakt', 'success');
             this.showApp();
         } catch (err) {
             errEl.textContent = 'Fout: ' + err.message;
             log('Setup-fout: ' + err.message, 'error');
         }
+    },
+
+    getDienstnummer() {
+        return localStorage.getItem(KEYS.DIENSTNUMMER) || '';
+    },
+
+    setDienstnummer(dn) {
+        if (dn) localStorage.setItem(KEYS.DIENSTNUMMER, dn.trim());
     },
 
     // ── Logout / reset ─────────────────────────────────────────────────────
