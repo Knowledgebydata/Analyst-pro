@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1e3a5f">
+<title>BIBOB Interview Pro v2.0</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<!-- ── Setup-screen (eerste keer) ───────────────────────────────────────────── -->
+<div id="screen-setup" class="auth-screen hidden">
+    <div class="auth-box">
+        <div class="auth-logo"><i class="fas fa-user-plus"></i></div>
+        <h1>Welkom</h1>
+        <p class="sub">Eenmalige setup van uw account</p>
+        <input type="text" id="setup-name" class="auth-input" placeholder="Uw naam" maxlength="50" autocomplete="name">
+        <input type="password" id="setup-pin" class="auth-input" placeholder="6-cijferige PIN" maxlength="6" inputmode="numeric" autocomplete="new-password">
+        <input type="password" id="setup-pin-confirm" class="auth-input" placeholder="Bevestig PIN" maxlength="6" inputmode="numeric" autocomplete="new-password">
+        <button id="setup-submit" class="btn btn-primary btn-block btn-lg">
+            <i class="fas fa-check"></i> Account aanmaken
+        </button>
+        <div id="setup-error" class="auth-error"></div>
+    </div>
+</div>
+
+<!-- ── Login-screen ─────────────────────────────────────────────────────────── -->
+<div id="screen-login" class="auth-screen">
+    <div class="auth-box">
+        <div class="auth-logo"><i class="fas fa-microphone-alt"></i></div>
+        <h1>BIBOB Interview Pro</h1>
+        <p class="sub">Voer uw 6-cijferige PIN in</p>
+        <div class="pin-dots">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+        <div class="numpad">
+            <button class="numpad-btn" data-numpad="1">1</button>
+            <button class="numpad-btn" data-numpad="2">2</button>
+            <button class="numpad-btn" data-numpad="3">3</button>
+            <button class="numpad-btn" data-numpad="4">4</button>
+            <button class="numpad-btn" data-numpad="5">5</button>
+            <button class="numpad-btn" data-numpad="6">6</button>
+            <button class="numpad-btn" data-numpad="7">7</button>
+            <button class="numpad-btn" data-numpad="8">8</button>
+            <button class="numpad-btn" data-numpad="9">9</button>
+            <button class="numpad-btn action" data-numpad="clear"><i class="fas fa-times"></i></button>
+            <button class="numpad-btn" data-numpad="0">0</button>
+            <button class="numpad-btn action" data-numpad="backspace"><i class="fas fa-backspace"></i></button>
+        </div>
+        <div id="login-error" class="auth-error"></div>
+    </div>
+</div>
+
+<!-- ── App-shell (na auth) ──────────────────────────────────────────────────── -->
+<div id="app-shell" class="app">
+
+    <div class="security-bar">
+        <i class="fas fa-shield-alt"></i>
+        Beveiligde omgeving — alle data en audio blijft op dit apparaat
+    </div>
+
+    <header class="app-header">
+        <h1><i class="fas fa-microphone-alt"></i> BIBOB Interview Pro v2.0</h1>
+        <div class="user-info">Welkom, <span id="display-user">Gebruiker</span></div>
+    </header>
+
+    <main class="main">
+
+        <!-- ── Tab: Dashboard ─────────────────────────────────────────────── -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="card">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="label">Interviews</div>
+                        <div class="value" id="stat-count">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="label">Totaal woorden</div>
+                        <div class="value" id="stat-words">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-history"></i> Recente interviews</div>
+                </div>
+                <div id="recent-list"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-info-circle"></i> Status v2.0</div>
+                </div>
+                <p style="font-size:.85rem;color:rgba(255,255,255,0.7);line-height:1.6">
+                    Fundament + auth-flow zijn klaar (deze sessie).<br>
+                    Modellen-loader (Whisper + pyannote) en recorder komen in volgende sessies.<br>
+                    Zie de tabs voor placeholders.
+                </p>
+            </div>
+        </div>
+
+        <!-- ── Tab: Nieuw Interview ───────────────────────────────────────── -->
+        <div id="tab-interview" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-cog"></i> Modellen laden</div>
+                </div>
+                <p style="font-size:.85rem;color:rgba(255,255,255,0.7);margin-bottom:14px">
+                    Eenmalige download van Whisper-small (~466 MB) + pyannote-3.0 (~6 MB).
+                    Wordt gecached in IndexedDB voor offline gebruik na de eerste keer.
+                </p>
+                <button id="load-models-btn" class="btn btn-primary btn-block btn-lg">
+                    <i class="fas fa-download"></i> Laad modellen
+                </button>
+                <div id="models-progress-wrap" style="display:none;margin-top:15px;background:rgba(0,0,0,0.3);border-radius:8px;overflow:hidden;height:24px">
+                    <div id="models-progress" style="background:linear-gradient(90deg,var(--primary),var(--primary-light));height:100%;width:0%;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;color:white;font-size:.72rem;font-weight:600;transition:width .3s"></div>
+                </div>
+                <div id="models-status" class="status" style="margin-top:12px">Status: nog niet geladen</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-microphone"></i> Nieuw interview</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Naam geïnterviewde *</label>
+                    <input type="text" id="interview-naam" class="form-control" placeholder="Volledige naam subject">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Onderwerp / zaaknummer</label>
+                    <input type="text" id="interview-onderwerp" class="form-control" placeholder="Bibob-onderzoek of dossier-ref">
+                </div>
+                <button id="start-interview-btn" class="btn btn-success btn-block btn-lg" disabled>
+                    <i class="fas fa-microphone"></i> Start opname
+                </button>
+                <button id="stop-interview-btn" class="btn btn-danger btn-block btn-lg hidden" style="margin-top:8px">
+                    <i class="fas fa-stop"></i> Stop opname + transcribe
+                </button>
+                <div id="rec-indicator" class="hidden" style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;color:var(--danger);font-weight:600">
+                    <span style="width:14px;height:14px;background:var(--danger);border-radius:50%;animation:pulse 1s infinite"></span>
+                    <span>Opname loopt — <span id="rec-duration">0</span>s</span>
+                </div>
+            </div>
+
+            <div id="results-card" class="card hidden">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-file-alt"></i> Resultaat</div>
+                </div>
+                <div id="run-status" class="status">Status: bezig…</div>
+                <div id="transcript-body" style="margin-top:14px;background:rgba(0,0,0,0.2);border-radius:10px"></div>
+                <button id="export-json-btn" class="btn btn-primary btn-block hidden" style="margin-top:14px">
+                    <i class="fas fa-download"></i> Download v2.0 JSON-export
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Tab: Interviews-lijst ──────────────────────────────────────── -->
+        <div id="tab-list" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-list"></i> Alle interviews</div>
+                </div>
+                <div class="empty">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Nog geen interviews — komt in storage-module (stap 9)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Tab: Settings ──────────────────────────────────────────────── -->
+        <div id="tab-settings" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-user"></i> Profiel</div>
+                </div>
+                <p style="font-size:.85rem;color:rgba(255,255,255,0.7);margin-bottom:10px">
+                    Gebruiker: <strong id="display-user-settings">-</strong>
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-shield-alt"></i> Beveiliging</div>
+                </div>
+                <button id="change-pin-btn" class="btn btn-outline btn-block" style="margin-bottom:10px">
+                    <i class="fas fa-key"></i> PIN wijzigen
+                </button>
+                <button id="logout-btn" class="btn btn-danger btn-block">
+                    <i class="fas fa-sign-out-alt"></i> Uitloggen
+                </button>
+            </div>
+
+            <div class="card">
+                <p style="font-size:.78rem;color:rgba(255,255,255,0.4);text-align:center;line-height:1.5">
+                    <strong>BIBOB Interview Pro v2.0</strong><br>
+                    PWA — 100% on-device transcriptie + diarization<br>
+                    © 2026 Knowledge by Data
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ── Bottom nav-tabs ────────────────────────────────────────────────── -->
+    <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="dashboard"><i class="fas fa-home"></i>Dashboard</button>
+        <button class="nav-tab" data-tab="interview"><i class="fas fa-microphone"></i>Interview</button>
+        <button class="nav-tab" data-tab="list"><i class="fas fa-list"></i>Lijst</button>
+        <button class="nav-tab" data-tab="settings"><i class="fas fa-cog"></i>Instellingen</button>
+    </nav>
+
+</div>
+
+<!-- ── Toast container (wordt dynamisch gevuld door utils.js) ───────────────── -->
+<div id="toast-wrap" class="toast-wrap"></div>
+
+<!-- ── onnxruntime-web (voor pyannote diarization) ─────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+
+<!-- ── App loader ──────────────────────────────────────────────────────────── -->
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
