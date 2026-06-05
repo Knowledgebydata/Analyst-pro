@@ -46,10 +46,16 @@ function renderDashboard() {
 function renderInterviewSummary(i) {
     const dt = i.createdAt ? formatDate(i.createdAt) : '';
     const dn = i.dienstnummerVerhoorder ? `· DN ${escapeHtml(i.dienstnummerVerhoorder)}` : '';
+    let statusBadge = '';
+    if (i.status === 'transcribing') {
+        statusBadge = `<span style="background:#fb8c00;color:white;padding:2px 8px;border-radius:8px;font-size:.65rem;font-weight:600;margin-left:6px">bezig…</span>`;
+    } else if (i.status === 'failed') {
+        statusBadge = `<span style="background:#dc3545;color:white;padding:2px 8px;border-radius:8px;font-size:.65rem;font-weight:600;margin-left:6px">gefaald</span>`;
+    }
     return `
         <div data-iid="${escapeHtml(i.id)}" class="interview-summary"
              style="padding:12px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:8px;cursor:pointer">
-            <div style="font-weight:600">${escapeHtml(i.naam || 'Onbekend')}</div>
+            <div style="font-weight:600">${escapeHtml(i.naam || 'Onbekend')}${statusBadge}</div>
             <div style="font-size:.75rem;color:rgba(255,255,255,0.5);margin-top:4px">
                 ${escapeHtml(i.onderwerp || '')} ${dn} — ${i.wordCount || 0} woorden · ${dt}
             </div>
@@ -251,10 +257,36 @@ async function stopInterview() {
     const transcriptBody = document.getElementById('transcript-body');
     const runStatus = document.getElementById('run-status');
 
+    // Stub OUTSIDE try zodat hij in catch ook bekend is
+    const stubId = uid();
+    let interviewSaved = false;
+
     try {
         setStatus(runStatus, 'opname verwerken…', 'warning');
         const { audioFloat32, durationSec } = await Recorder.stop();
         log(`Opname gestopt: ${durationSec.toFixed(1)}s`);
+
+        // ── KRITIEK: sla interview-stub DIRECT op vóór zware AI begint ────
+        // Als browser crashed tijdens transcribe (iOS Safari memory-issue),
+        // dan blijft minimaal de metadata bewaard.
+        const stub = {
+            id: stubId,
+            naam,
+            onderwerp,
+            dienstnummerVerhoorder,
+            createdAt: new Date().toISOString(),
+            durationSec,
+            status: 'transcribing',
+            speakerCount: 0,
+            chunks: [],
+            wordCount: 0,
+        };
+        State.interviews = Storage.add(stub);
+        State.lastInterview = stub;
+        interviewSaved = true;
+        renderDashboard();
+        renderList();
+        log(`Interview-stub opgeslagen (id=${stubId}) — start transcribe`);
 
         resultsCard.classList.remove('hidden');
         setStatus(runStatus, 'Whisper transcribe loopt…', 'warning');
@@ -271,21 +303,20 @@ async function stopInterview() {
         const speakerSet = new Set();
         for (const r of merged) if (r.dominantSpeaker !== null) speakerSet.add(r.dominantSpeaker);
 
-        const interview = {
-            id: uid(),
-            naam,
-            onderwerp,
-            dienstnummerVerhoorder,
-            createdAt: new Date().toISOString(),
-            durationSec,
+        // Update bestaande stub met volledig resultaat
+        const wordCount = merged.reduce((s, c) => s + countWords(c.text), 0);
+        Storage.update(stubId, {
+            status: 'completed',
             speakerCount: speakerSet.size,
             chunks: merged,
-            wordCount: merged.reduce((s, c) => s + countWords(c.text), 0),
-        };
+            wordCount,
+        });
+        State.interviews = Storage.loadAll();
+        State.lastInterview = Storage.get(stubId);
+        log(`Interview ${stubId} → completed (${merged.length} chunks, ${speakerSet.size} sprekers)`);
 
-        // Persistent opslaan
-        State.interviews = Storage.add(interview);
-        State.lastInterview = interview;
+        // Lokale variabele voor de rest van render-flow
+        const interview = State.lastInterview;
 
         // Render transcript in resultaat-kaart
         const colors = ['var(--spk1)', 'var(--spk2)', 'var(--spk3)'];
@@ -321,6 +352,21 @@ async function stopInterview() {
     } catch (err) {
         setStatus(runStatus, '✗ Fout: ' + err.message, 'error');
         log('Stop-interview fout: ' + err.message, 'error');
+        if (interviewSaved) {
+            // Markeer stub als failed zodat gebruiker weet dat hervat nodig is
+            try {
+                Storage.update(stubId, {
+                    status: 'failed',
+                    error: err.message,
+                });
+                State.interviews = Storage.loadAll();
+                renderDashboard();
+                renderList();
+                toast('Transcribe gefaald — interview-metadata bewaard', 'warning');
+            } catch (saveErr) {
+                log('Kon failed-status niet opslaan: ' + saveErr.message, 'error');
+            }
+        }
         resetRecorderUI();
     }
 }
