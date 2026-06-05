@@ -270,6 +270,14 @@ async function startInterview() {
         const stopBtn = document.getElementById('stop-interview-btn');
         const liveTextEl = document.getElementById('live-transcript');
 
+        // Verberg vorig resultaat — Bibob: schone start, geen oude data zichtbaar
+        const prevResults = document.getElementById('results-card');
+        if (prevResults) prevResults.classList.add('hidden');
+        const transcriptBody = document.getElementById('transcript-body');
+        if (transcriptBody) transcriptBody.innerHTML = '';
+        const exportBtn = document.getElementById('export-json-btn');
+        if (exportBtn) exportBtn.classList.add('hidden');
+
         recIndicator.classList.remove('hidden');
         recBtn.classList.add('hidden');
         stopBtn.classList.remove('hidden');
@@ -456,6 +464,11 @@ async function stopInterview() {
         renderList();
         resetRecorderUI();
         toast('Interview opgeslagen', 'success');
+        // Form-velden leegmaken voor volgend interview (Bibob: schone start,
+        // geen oude subject-gegevens zichtbaar). Resultaten-card blijft zichtbaar
+        // tot gebruiker een nieuw interview start of naar andere tab gaat.
+        document.getElementById('interview-naam').value = '';
+        document.getElementById('interview-onderwerp').value = '';
     } catch (err) {
         setStatus(runStatus, '✗ Fout: ' + err.message, 'error');
         log('Stop-interview fout: ' + err.message, 'error');
@@ -483,7 +496,26 @@ function resetRecorderUI() {
     document.getElementById('start-interview-btn').classList.remove('hidden');
     document.getElementById('stop-interview-btn').classList.add('hidden');
     const liveEl = document.getElementById('live-transcript');
-    if (liveEl) liveEl.classList.add('hidden');
+    if (liveEl) { liveEl.classList.add('hidden'); liveEl.innerHTML = ''; }
+}
+
+/** Wist interview-formulier voor schone start van volgend interview (Bibob: geen
+ *  oude subject-gegevens zichtbaar bij nieuw onderzoek).
+ *  Dienstnummer blijft staan (verhoorder is doorgaans dezelfde). */
+function resetInterviewForm() {
+    const fields = ['interview-naam', 'interview-onderwerp'];
+    for (const id of fields) {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    }
+    // Resultaten-card verbergen
+    const resultsCard = document.getElementById('results-card');
+    if (resultsCard) resultsCard.classList.add('hidden');
+    const transcriptBody = document.getElementById('transcript-body');
+    if (transcriptBody) transcriptBody.innerHTML = '';
+    const exportBtn = document.getElementById('export-json-btn');
+    if (exportBtn) exportBtn.classList.add('hidden');
+    log('Interview-form gewist — klaar voor nieuw interview');
 }
 
 // ── JSON-export v2.0.0 ───────────────────────────────────────────────────────
