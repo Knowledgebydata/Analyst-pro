@@ -7,24 +7,18 @@
  *   /api/locaties  — gebieden (vakantieparken / jachthavens)
  *   /api/panden    — individuele panden/huisjes binnen een locatie
  *   /api/controles — controlehistorie per pand
- *
- * Voor de GitHub Pages versie wijst BASE naar de externe server.
- * De server moet CORS toestaan voor het domein van de PWA.
  */
 var API = (function () {
-    // === CONFIGURATIE ===
-    // Bij GitHub Pages hosting: volledig URL naar de backend server.
-    // Bij hosting op dezelfde server: gebruik '/api'.
+    // Deze kopie draait op twee plekken. Op de server zelf is de backend
+    // same-origin; op GitHub Pages (app.knowledgebydata.nl/wijdemeren/)
+    // staat hij op een ander domein en moet de volledige URL erin, anders
+    // gaat elk verzoek naar GitHub en krijg je 404 in plaats van data.
     var BASE = (function () {
-        var host = window.location.hostname;
-        // Als we op de server zelf draaien, gebruik relatieve URL
-        if (host === 'vakantieparken.knowledgebydata.nl') {
+        if (window.location.hostname === 'vakantieparken.knowledgebydata.nl') {
             return '/api';
         }
-        // Anders (GitHub Pages, localhost, etc): volledig URL
         return 'https://vakantieparken.knowledgebydata.nl/api';
     })();
-
     var token = null;
 
     function setToken(t) { token = t; }
@@ -48,7 +42,16 @@ var API = (function () {
             opts.credentials = 'omit';
         }
 
-        var res = await fetch(BASE + path, opts);
+        var res;
+        try {
+            res = await fetch(BASE + path, opts);
+        } catch (netwerkFout) {
+            // Een TypeError uit fetch is geen inlogfout maar een verbinding
+            // die niet tot stand kwam: geen netwerk, certificaatprobleem of
+            // een server die niet antwoordt. Dat onderscheid heeft ons op
+            // 24-08 zeven weken gekost; daarom hier expliciet benoemd.
+            throw new Error('Geen verbinding met de server. Controleer de netwerkverbinding; blijft dit terugkomen, dan is er iets met de server of het certificaat.');
+        }
 
         if (res.status === 401) {
             clearToken();
@@ -110,12 +113,40 @@ var API = (function () {
         addPand: function (data) {
             return request('POST', '/panden', data);
         },
-        updatePandStatus: function (pandId, status, samenvatting) {
-            return request('PATCH', '/panden/' + pandId + '/status', { status: status, samenvatting: samenvatting });
+        updatePandStatus: function (pandId, status, samenvatting, extraStatussen) {
+            var lijf = { status: status, samenvatting: samenvatting };
+            if (Array.isArray(extraStatussen)) { lijf.extraStatussen = extraStatussen; }
+            return request('PATCH', '/panden/' + pandId + '/status', lijf);
         },
         updatePand: function (id, data) {
             return request('PUT', '/panden/' + id, data);
         },
+        setPandAanduiding: function (id, label) {
+            return request('PATCH', '/panden/' + id + '/aanduiding', { label: label });
+        },
+        movePand: function (id, lat, lon) {
+            return request('PATCH', '/panden/' + id + '/positie', { lat: lat, lon: lon });
+        },
+        resetPandPosities: function (locatieSlug) {
+            return request('POST', '/panden/reset-posities', locatieSlug ? { locatie_slug: locatieSlug } : {});
+        },
+        zoekPanden: function (term) {
+            return request('GET', '/panden?q=' + encodeURIComponent(term));
+        },
+        archiveerPand: function (id) {
+            return request('DELETE', '/panden/' + id);
+        },
+        herstelPand: function (id) {
+            return request('POST', '/panden/' + id + '/herstellen', {});
+        },
+        getGearchiveerdePanden: function () {
+            return request('GET', '/panden?gearchiveerd=ja');
+        },
+        importeerBagPanden: function (locatieSlug, straal) {
+            return request('POST', '/panden/importeer-bag', { locatie_slug: locatieSlug, straal: straal });
+        },
+        // Blijft bestaan omdat oudere schermen deze naam nog aanroepen; hij
+        // archiveert nu, net als archiveerPand.
         deletePand: function (id) {
             return request('DELETE', '/panden/' + id);
         },

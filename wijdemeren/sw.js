@@ -1,23 +1,31 @@
 'use strict';
 
-/**
- * Service Worker voor Wijdemeren Handhaving PWA.
- *
- * Werkt in een subdirectory (/wijdemeren/) op GitHub Pages.
- * API-calls gaan cross-origin naar vakantieparken.knowledgebydata.nl.
- */
-var CACHE_NAME = 'wijdemeren-v6';
-
-// Relatieve paden — werken vanuit de SW scope (de map waar sw.js staat)
+// Bij ELKE wijziging aan index.html of aan een script hoort dit nummer
+// omhoog, samen met de ?v= in index.html. De service worker levert
+// same-origin bestanden cache-first uit: zonder nieuwe naam blijft
+// iedereen de oude pagina zien en lijkt de wijziging niet doorgevoerd.
+var CACHE_NAME = 'wijdemeren-v11';
+// LET OP: de ?v=-nummers hier moeten exact gelijk zijn aan die in
+// index.html. Op v5/v6 liepen ze uiteen, waardoor de precache dode
+// bestanden bevatte en de echte scripts pas bij eerste gebruik werden
+// gecachet - op een handheld zonder bereik is de app dan halfleeg.
 var PRECACHE = [
     './',
     './index.html',
-    './css/app.css?v=5',
-    './js/api.js?v=5',
-    './js/map.js?v=5',
-    './js/bevindingen.js?v=5',
-    './js/vragenlijst.js?v=5',
-    './js/app.js?v=5',
+    './css/app.css?v=11',
+    './js/api.js?v=11',
+    './js/map.js?v=11',
+    './js/bevindingen.js?v=11',
+    './js/vragenlijst.js?v=11',
+    './js/app.js?v=11',
+    './libs/leaflet.js',
+    './libs/leaflet.css',
+    './libs/socket.io.min.js',
+    './libs/images/marker-icon.png',
+    './libs/images/marker-icon-2x.png',
+    './libs/images/marker-shadow.png',
+    './libs/images/layers.png',
+    './libs/images/layers-2x.png',
     './manifest.json',
     './icons/favicon.svg',
 ];
@@ -44,19 +52,23 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
     var url = new URL(e.request.url);
 
-    // API calls naar de backend server: altijd netwerk, nooit cachen
-    if (url.hostname === 'vakantieparken.knowledgebydata.nl') {
-        e.respondWith(fetch(e.request));
+    // API en WebSocket calls: altijd netwerk. Faalt de verbinding zelf
+    // (geen netwerk, certificaat), dan geven we een leesbaar 503-antwoord
+    // terug in plaats van de kale 'FetchEvent.respondWith'-fout die op
+    // 24-08 een certificaatstoring zeven weken als inlogprobleem vermomde.
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/')) {
+        e.respondWith(
+            fetch(e.request).catch(function () {
+                return new Response(
+                    JSON.stringify({ error: 'Geen verbinding met de server (netwerkfout op dit toestel of storing aan de serverkant).' }),
+                    { status: 503, headers: { 'Content-Type': 'application/json' } }
+                );
+            })
+        );
         return;
     }
 
-    // WebSocket/Socket.IO: altijd netwerk
-    if (url.pathname.indexOf('/socket.io/') !== -1) {
-        e.respondWith(fetch(e.request));
-        return;
-    }
-
-    // Externe resources (tiles, CDN libs): network-first met cache fallback
+    // Externe resources (tiles, CDN): network-first met cache fallback
     if (url.origin !== location.origin) {
         e.respondWith(
             fetch(e.request).then(function (res) {
@@ -70,7 +82,7 @@ self.addEventListener('fetch', function (e) {
         return;
     }
 
-    // App bestanden: cache-first met netwerk fallback
+    // App bestanden: cache-first
     e.respondWith(
         caches.match(e.request).then(function (cached) {
             if (cached) { return cached; }

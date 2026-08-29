@@ -181,8 +181,63 @@
             || window.navigator.standalone === true
             || window.location.hostname === 'app.knowledgebydata.nl';
         document.getElementById('btn-admin').hidden = (currentUser.role !== 'beheerder' || isPWA);
+        // Kaart-beheerfuncties (verplaatsen/bewerken/GPS-reset): alleen beheerder, niet op handhelds
+        MapModule.setBeheerModus(currentUser.role === 'beheerder' && !isPWA);
 
-        // Auto-set controleur naam als die nog leeg is
+    
+    // === Versie tonen en de app bijwerken ===
+    //
+    // Op een geinstalleerde webapp is geen console beschikbaar. Zonder deze
+    // knop kan een controleur op straat een oude, vastgelopen cache niet
+    // opruimen -- en ziet hij een uitrol simpelweg niet gebeuren.
+
+    async function toonAppVersie() {
+        var el = document.getElementById('app-versie');
+        if (!el) { return; }
+        try {
+            var res = await fetch('sw.js?t=' + Date.now(), { cache: 'no-store' });
+            var tekst = await res.text();
+            var m = tekst.match(/CACHE_NAME = '([^']+)'/);
+            var beschikbaar = m ? m[1].replace('wijdemeren-', '') : 'onbekend';
+            var draaiend = 'onbekend';
+            var namen = await caches.keys();
+            var eigen = namen.filter(function (n) { return n.indexOf('wijdemeren-') === 0; });
+            if (eigen.length > 0) { draaiend = eigen[0].replace('wijdemeren-', ''); }
+            if (draaiend === beschikbaar) {
+                el.textContent = draaiend + ' — actueel';
+                el.style.color = '';
+            } else {
+                el.textContent = draaiend + ' — er staat ' + beschikbaar + ' klaar. Tik op "App bijwerken".';
+                el.style.color = '#C87A1E';
+            }
+        } catch (err) {
+            el.textContent = 'kon de versie niet bepalen (geen verbinding?)';
+        }
+    }
+
+    async function appBijwerken() {
+        var knop = document.getElementById('btn-app-bijwerken');
+        if (knop) { knop.disabled = true; knop.textContent = 'Bezig...'; }
+        try {
+            var namen = await caches.keys();
+            for (var i = 0; i < namen.length; i++) { await caches.delete(namen[i]); }
+            if (navigator.serviceWorker) {
+                var regs = await navigator.serviceWorker.getRegistrations();
+                for (var j = 0; j < regs.length; j++) { await regs[j].unregister(); }
+            }
+            window.location.reload(true);
+        } catch (err) {
+            if (knop) { knop.disabled = false; knop.textContent = 'App bijwerken'; }
+            alert('Bijwerken mislukt: ' + (err && err.message ? err.message : err) +
+                  '\n\nSluit de app helemaal af en open hem opnieuw.');
+        }
+    }
+
+    // Auto-set controleur naam als die nog leeg is
+        var btnBijwerken = document.getElementById('btn-app-bijwerken');
+        if (btnBijwerken) { btnBijwerken.addEventListener('click', appBijwerken); }
+        toonAppVersie();
+
         if (!BevModule.getControleurNaam() && currentUser.displayName) {
             BevModule.setControleurNaam(currentUser.displayName);
         }
@@ -210,10 +265,13 @@
     function updateHeaderInfo(locaties) {
         var parks = locaties.filter(function (l) { return l.type === 'vakantiepark'; }).length;
         var havens = locaties.filter(function (l) { return l.type === 'jachthaven'; }).length;
+        var tests = locaties.filter(function (l) { return l.type === 'testlocatie'; }).length;
         var totaalPanden = locaties.reduce(function (sum, l) { return sum + (parseInt(l.totaal_panden, 10) || 0); }, 0);
         var verkendPanden = locaties.reduce(function (sum, l) { return sum + (parseInt(l.verkend, 10) || 0); }, 0);
         document.getElementById('header-info').textContent =
-            parks + ' parken | ' + havens + ' havens | ' + verkendPanden + '/' + totaalPanden + ' panden verkend';
+            parks + ' parken | ' + havens + ' havens | '
+            + (tests > 0 ? tests + ' testlocatie' + (tests === 1 ? '' : 's') + ' | ' : '')
+            + verkendPanden + '/' + totaalPanden + ' panden verkend';
     }
 
     // === WebSocket ===
@@ -427,7 +485,7 @@
     // === PWA ===
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-            navigator.serviceWorker.register('./sw.js').catch(function () { });
+            navigator.serviceWorker.register('sw.js').catch(function () { });
         });
     }
 })();

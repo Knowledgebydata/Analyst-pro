@@ -59,6 +59,79 @@ var VragenlijstModule = (function () {
             ],
         },
         {
+            key: 'rapportage',
+            titel: 'Ambtsedige controlerapportage',
+            beschrijving: 'PERSOONSGEGEVENS. Dit blok volgt de officiele controlerapportage en bevat naam, geboortedatum en BSN. Alles wat hier wordt ingevuld blijft uitsluitend op dit toestel en wordt nooit naar de server verzonden. Invullen is een bewuste keuze van de toezichthouder; sla het blok over als er geen rapportage wordt opgemaakt.',
+            vragen: [
+                { key: 'rapportageInvullen', label: 'Ambtsedige controlerapportage invullen (met persoonsgegevens)?', type: 'janee' },
+                { key: 'rapportageDatumTijd', label: 'Datum en tijdstip van de ontmoeting', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'rapportagePlek', label: 'Waar bevond de toezichthouder zich?', type: 'keuze', opties: ['Bij/nabij de uitgang van het vakantiepark', 'Op/bij/in de directe omgeving van het recreatieobject', 'Anders'], conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'legitimatieGetoond', label: 'Legitimatiebewijs getoond en voorgesteld als toezichthouder?', type: 'janee', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'idSoort', label: 'Identiteit vastgesteld op basis van', type: 'keuze', opties: ['Paspoort', 'ID-kaart', 'Rijbewijs', 'Geen document / anders'], conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'voorletters', label: 'Voorletter(s)', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'achternaam', label: 'Achternaam', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'geboortedatum', label: 'Geboortedatum', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'bsn', label: 'BSN (alleen indien vastgesteld van het document)', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'telefoonnummer', label: 'Telefoonnummer waarop persoon bereikbaar is', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'objectGevonden', label: 'Hoe heeft persoon dit recreatieobject gevonden?', type: 'keuze', opties: ['Op internet via een website', 'Via een ander persoon', 'Via de werkgever', 'Anders', 'Onbekend'], conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'objectGevondenToelichting', label: 'Toelichting (website, naam en relatie, werkgever)', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'verblijfDoel', label: 'Doel van het verblijf', type: 'keuze', opties: ['Recreatie', '(Tijdelijk) wonen', 'Anders'], conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'verblijfVan', label: 'Verblijf van (begindatum)', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'verblijfTot', label: 'Verblijf tot (einddatum)', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'aantalHuurovereenkomsten', label: 'Aantal separate huurovereenkomsten', type: 'getal', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'brpAdres', label: 'BRP: op welk adres ingeschreven?', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'brpMedebewoners', label: 'Wie staan er nog meer op dat adres ingeschreven, en wat is de relatie?', type: 'lang', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+            ],
+        },
+        {
+            key: 'rapportage_kosten',
+            titel: 'Rapportage: kosten en betalen',
+            beschrijving: 'Alleen van toepassing bij de ambtsedige rapportage. Noteer per kostensoort: aan wie betaald, wijze (contant of rekeningnummer) en het bedrag.',
+            vragen: [
+                { key: 'kostenHuur', label: 'Huur — aan wie, wijze, bedrag', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'kostenSta', label: 'Sta-/parkkosten — aan wie, wijze, bedrag', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'kostenGas', label: 'Gas — aan wie, wijze, bedrag', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'kostenWater', label: 'Water — aan wie, wijze, bedrag', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'kostenElektra', label: 'Elektra — aan wie, wijze, bedrag', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'beschedenOvergelegd', label: 'Persoon overlegde bescheiden ter onderbouwing', type: 'janee', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'fotosGemaakt', label: "Foto's van de bescheiden gemaakt", type: 'janee', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+            ],
+        },
+        {
+            key: 'rapportage_werk',
+            titel: 'Rapportage: werk en inkomen',
+            beschrijving: 'Alleen van toepassing bij de ambtsedige rapportage.',
+            vragen: [
+                { key: 'werkgeverPlaats', label: 'Werkzaam bij (bedrijf) te (plaats)', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'teWerkGesteldBij', label: 'Te werk gesteld bij (inlener) te (plaats)', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'woonWerkVerkeer', label: 'Gaat persoon vanuit het recreatieobject naar het werk en terug?', type: 'janee', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'urenPerWeek', label: 'Uren per week werkzaam', type: 'getal', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'loonBedrag', label: 'Loon (bedrag in euro)', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'loonNettoBruto', label: 'Netto of bruto', type: 'keuze', opties: ['Netto', 'Bruto', 'Onbekend'], conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'loonPeriode', label: 'Per welke periode', type: 'keuze', opties: ['Per uur', 'Per week', 'Per maand', 'Per jaar', 'Onbekend'], conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'uitkering', label: 'Geniet persoon uitkeringen?', type: 'janeeonbekend', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'zorgtoeslag', label: 'Ontvangt persoon zorgtoeslag?', type: 'janeeonbekend', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+            ],
+        },
+        {
+            key: 'rapportage_voertuigen',
+            titel: 'Rapportage: motorvoertuigen',
+            beschrijving: 'Alleen van toepassing bij de ambtsedige rapportage.',
+            vragen: [
+                { key: 'kentekenAankomst', label: 'Kenteken waarmee persoon kwam aanrijden/vertrok, met landcode', type: 'tekst', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'kentekensNabij', label: 'Kentekens in de directe nabijheid van het object (een per regel, met landcode, maximaal vijf)', type: 'lang', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+            ],
+        },
+        {
+            key: 'rapportage_afsluiting',
+            titel: 'Rapportage: afsluiting',
+            beschrijving: 'Alleen van toepassing bij de ambtsedige rapportage.',
+            vragen: [
+                { key: 'aanvullendeVerklaring', label: 'Aanvullende opmerkingen — wat is verder geconstateerd of verklaard', type: 'lang', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+                { key: 'ambtsedigOpgemaakt', label: 'Aldus naar waarheid en ambtsedig opgemaakt', type: 'janee', conditie: { key: 'rapportageInvullen', waarde: 'Ja' } },
+            ],
+        },
+        {
             key: 'woonsituatie',
             titel: 'Woonsituatie',
             vragen: [
@@ -704,6 +777,68 @@ var VragenlijstModule = (function () {
 
     // === Export ===
 
+
+    /** Pandgegevens bij een label opzoeken in de kaartmodule. De analyse-
+     *  applicatie heeft geen verbinding met de database, dus wat zij over een
+     *  pand moet weten reist mee in het exportbestand. */
+    function pandContext(locatieSlug, pandLabel) {
+        if (typeof MapModule === 'undefined' || !pandLabel) { return null; }
+        var alle;
+        try { alle = MapModule.getPanden() || []; } catch (e) { return null; }
+        for (var i = 0; i < alle.length; i++) {
+            var p = alle[i];
+            if (p.locatie_slug === locatieSlug && (p.label || '') === pandLabel) {
+                return {
+                    pandCode: p.pand_code || null,
+                    bagPandnummer: p.bag_pandnummer || null,
+                    bouwjaar: p.bouwjaar || null,
+                    pandStatus: p.status || null,
+                    adresDetail: p.adres_detail || null,
+                };
+            }
+        }
+        return null;
+    }
+
+
+    /** Alle panden van een locatie ophalen voor de export. Bij voorkeur vers
+     *  van de server; zonder bereik valt hij terug op wat de kaart in het
+     *  geheugen heeft. Nooit een lege lijst als er wel iets bekend is. */
+    async function pandenVoorExport(locatieSlug) {
+        var uitKaart = [];
+        if (typeof MapModule !== 'undefined') {
+            try {
+                uitKaart = (MapModule.getPanden() || []).filter(function (p) {
+                    return p.locatie_slug === locatieSlug;
+                });
+            } catch (e) { uitKaart = []; }
+        }
+        var lijst = uitKaart;
+        if (typeof API !== 'undefined' && API.getPanden) {
+            try {
+                var data = await API.getPanden(locatieSlug);
+                var vers = (data && data.panden) ? data.panden : data;
+                if (Array.isArray(vers) && vers.length >= uitKaart.length) { lijst = vers; }
+            } catch (e) { /* geen bereik: de kaartkopie volstaat */ }
+        }
+        return lijst.map(function (p) {
+            var lat = (p.display_lat != null) ? p.display_lat : p.lat;
+            var lon = (p.display_lon != null) ? p.display_lon : p.lon;
+            return {
+                label: p.label || null,
+                pandCode: p.pand_code || null,
+                bagPandnummer: p.bag_pandnummer || null,
+                bouwjaar: p.bouwjaar || null,
+                status: p.status || 'niet_verkend',
+                extraStatussen: Array.isArray(p.extra_statussen) ? p.extra_statussen : [],
+                adresDetail: p.adres_detail || null,
+                lat: (lat != null) ? Number(lat) : null,
+                lon: (lon != null) ? Number(lon) : null,
+                handmatigGeplaatst: (p.display_lat != null),
+            };
+        });
+    }
+
     async function exportJSON() {
         var lijsten = await getVragenlijsten();
 
@@ -717,12 +852,46 @@ var VragenlijstModule = (function () {
             controleur = BevModule.getControleurNaam();
         }
 
+        // De export beschrijft zichzelf: sectie- en vraaglabels gaan mee, zodat
+        // de analyse-applicatie de antwoorden leesbaar kan tonen zonder de
+        // vragenlijst te kennen. Groeit de lijst, dan groeit het bestand mee
+        // en is er geen nieuwe release van die applicatie nodig.
+        var sectieBeschrijving = SECTIES.map(function (s) {
+            return {
+                key: s.key,
+                titel: s.titel,
+                vragen: s.vragen.map(function (v) {
+                    return { key: v.key, label: v.label, type: v.type };
+                }),
+            };
+        });
+
+        var slugs = {};
+        lijsten.forEach(function (vl) { if (vl.locatieSlug) { slugs[vl.locatieSlug] = true; } });
+        var pandenPerLocatie = {};
+        for (var s of Object.keys(slugs)) {
+            try { pandenPerLocatie[s] = await pandenVoorExport(s); }
+            catch (e) { pandenPerLocatie[s] = []; }
+        }
+
         var exportData = {
             type: 'vragenlijsten-export',
+            pandenPerLocatie: pandenPerLocatie,
+            schema_version: '1.1',
+            secties: sectieBeschrijving,
             controleur: controleur,
             exportDatum: new Date().toISOString(),
             aantalVragenlijsten: lijsten.length,
-            vragenlijsten: lijsten,
+            vragenlijsten: lijsten.map(function (vl) {
+                var ctx = pandContext(vl.locatieSlug, vl.pandLabel);
+                if (!ctx) { return vl; }
+                var kopie = {};
+                Object.keys(vl).forEach(function (k) { kopie[k] = vl[k]; });
+                kopie.pandCode = ctx.pandCode;
+                kopie.bagPandnummer = ctx.bagPandnummer;
+                kopie.pandStatus = ctx.pandStatus;
+                return kopie;
+            }),
         };
 
         var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });

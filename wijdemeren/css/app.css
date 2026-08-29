@@ -243,3 +243,10 @@ body { font-family: var(--font); font-size: 14px; color: var(--color-text); back
 @supports (padding-top: env(safe-area-inset-top)) {
     .header { padding-top: env(safe-area-inset-top); height: calc(var(--header-height) + env(safe-area-inset-top)); }
 }
+
+/* Aanvullende statussen in de pand-popup. De bovenste knoppenrij zet de
+   dominante status; deze rij verandert de kleur op de kaart niet. */
+.popup__extra { margin-top: 8px; border-top: 1px solid rgba(0,0,0,.08); padding-top: 6px; }
+.popup__extra-kop { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--color-muted); margin-bottom: 4px; }
+.popup__chip { display: inline-block; font-size: 11px; padding: 2px 7px; margin: 0 4px 4px 0; border: 1px solid rgba(0,0,0,.15); border-radius: 3px; background: #fff; cursor: pointer; opacity: .55; }
+.popup__chip--aan { opacity: 1; font-weight: 600; background: #f3f6f9; border-color: rgba(0,0,0,.3); }

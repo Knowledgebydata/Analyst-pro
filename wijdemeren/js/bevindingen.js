@@ -32,6 +32,7 @@ var BevModule = (function () {
         { key: 'asbest', label: 'Asbest verdacht' },
         { key: 'milieu', label: 'Milieu-overtreding' },
         { key: 'brandveiligheid', label: 'Brandveiligheid' },
+        { key: 'fotos', label: "Foto's bij het pand" },
         { key: 'overig', label: 'Overig' },
     ];
 
@@ -141,12 +142,15 @@ var BevModule = (function () {
 
     // === Foto capture ===
 
-    function capturePhoto() {
+    function capturePhoto(vanCamera) {
         return new Promise((resolve) => {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
-            input.capture = 'environment';
+            // `capture` dwingt de camera af en verbergt de fotobibliotheek.
+            // Alleen zetten als de gebruiker uitdrukkelijk wil fotograferen;
+            // anders kan hij ook beelden van een los toestel toevoegen.
+            if (vanCamera) { input.capture = 'environment'; }
             input.multiple = true;
 
             input.addEventListener('change', async () => {
@@ -283,23 +287,56 @@ var BevModule = (function () {
                     locatieSlug: slug,
                     locatieNaam: bev.locatieNaam || slug,
                     bevindingen: [],
+                    panden: [],
                 };
             }
-            // Strip base64 foto data voor export (te groot)
+            // Foto's gaan sinds schema 1.1 WEL mee: ze zijn bij het
+            // vastleggen al teruggeschaald naar maximaal 1600 px, en zonder
+            // beeld is een rapportage in de desktop-app weinig waard.
             const exportBev = { ...bev };
             if (exportBev.fotos && exportBev.fotos.length > 0) {
                 exportBev.fotos = exportBev.fotos.map((f) => ({
                     naam: f.naam,
                     type: f.type,
                     timestamp: f.timestamp,
-                    // Data wordt niet meegenomen in export, alleen metadata
-                    heeftFoto: true,
+                    data: f.data || null,
+                    heeftFoto: !!f.data,
                 }));
+            }
+            var ctx = pandContext(slug, bev.pandLabel);
+            if (ctx) {
+                exportBev.pandCode = ctx.pandCode;
+                exportBev.bagPandnummer = ctx.bagPandnummer;
+                exportBev.pandStatus = ctx.pandStatus;
+                var reeds = perLocatie[slug].panden.some(function (p) { return p.label === bev.pandLabel; });
+                if (!reeds) {
+                    perLocatie[slug].panden.push({
+                        label: bev.pandLabel,
+                        pandCode: ctx.pandCode,
+                        bagPandnummer: ctx.bagPandnummer,
+                        bouwjaar: ctx.bouwjaar,
+                        status: ctx.pandStatus,
+                        adresDetail: ctx.adresDetail,
+                    });
+                }
             }
             perLocatie[slug].bevindingen.push(exportBev);
         }
 
+        // Alle panden van de bezochte locaties meesturen, zodat de kaart in de
+        // analyse-applicatie gelijk is aan die op de handheld.
+        for (const slug of Object.keys(perLocatie)) {
+            try {
+                const volledig = await pandenVoorExport(slug);
+                if (volledig.length > 0) { perLocatie[slug].panden = volledig; }
+            } catch (err) {
+                console.warn('Panden ophalen mislukt voor ' + slug + ':', err);
+            }
+        }
+
         const exportData = {
+            type: 'bevindingen-export',
+            schema_version: '1.1',
             controleur: controleurNaam,
             exportDatum: new Date().toISOString(),
             aantalBevindingen: bevindingen.length,
@@ -313,6 +350,68 @@ var BevModule = (function () {
         a.download = `bevindingen-${controleurNaam || 'export'}-${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
+    }
+
+
+    /** Pandgegevens bij een label opzoeken in de kaartmodule. De analyse-
+     *  applicatie heeft geen verbinding met de database, dus wat zij over een
+     *  pand moet weten reist mee in het exportbestand. */
+    function pandContext(locatieSlug, pandLabel) {
+        if (typeof MapModule === 'undefined' || !pandLabel) { return null; }
+        var alle;
+        try { alle = MapModule.getPanden() || []; } catch (e) { return null; }
+        for (var i = 0; i < alle.length; i++) {
+            var p = alle[i];
+            if (p.locatie_slug === locatieSlug && (p.label || '') === pandLabel) {
+                return {
+                    pandCode: p.pand_code || null,
+                    bagPandnummer: p.bag_pandnummer || null,
+                    bouwjaar: p.bouwjaar || null,
+                    pandStatus: p.status || null,
+                    adresDetail: p.adres_detail || null,
+                };
+            }
+        }
+        return null;
+    }
+
+
+    /** Alle panden van een locatie ophalen voor de export. Bij voorkeur vers
+     *  van de server; zonder bereik valt hij terug op wat de kaart in het
+     *  geheugen heeft. Nooit een lege lijst als er wel iets bekend is. */
+    async function pandenVoorExport(locatieSlug) {
+        var uitKaart = [];
+        if (typeof MapModule !== 'undefined') {
+            try {
+                uitKaart = (MapModule.getPanden() || []).filter(function (p) {
+                    return p.locatie_slug === locatieSlug;
+                });
+            } catch (e) { uitKaart = []; }
+        }
+        var lijst = uitKaart;
+        if (typeof API !== 'undefined' && API.getPanden) {
+            try {
+                var data = await API.getPanden(locatieSlug);
+                var vers = (data && data.panden) ? data.panden : data;
+                if (Array.isArray(vers) && vers.length >= uitKaart.length) { lijst = vers; }
+            } catch (e) { /* geen bereik: de kaartkopie volstaat */ }
+        }
+        return lijst.map(function (p) {
+            var lat = (p.display_lat != null) ? p.display_lat : p.lat;
+            var lon = (p.display_lon != null) ? p.display_lon : p.lon;
+            return {
+                label: p.label || null,
+                pandCode: p.pand_code || null,
+                bagPandnummer: p.bag_pandnummer || null,
+                bouwjaar: p.bouwjaar || null,
+                status: p.status || 'niet_verkend',
+                extraStatussen: Array.isArray(p.extra_statussen) ? p.extra_statussen : [],
+                adresDetail: p.adres_detail || null,
+                lat: (lat != null) ? Number(lat) : null,
+                lon: (lon != null) ? Number(lon) : null,
+                handmatigGeplaatst: (p.display_lat != null),
+            };
+        });
     }
 
     // === UI: Formulier ===
@@ -372,7 +471,8 @@ var BevModule = (function () {
             '    </div>' +
             '    <div class="form-group">' +
             '      <label>Foto\'s</label>' +
-            '      <button type="button" class="btn btn--sm" id="bev-foto-btn">Foto toevoegen</button>' +
+            '      <button type="button" class="btn btn--sm" id="bev-foto-btn">Foto maken</button>' +
+            '      <button type="button" class="btn btn--sm" id="bev-foto-kies-btn" style="margin-left:4px">Foto\'s kiezen</button>' +
             '      <div id="bev-foto-preview" class="foto-preview"></div>' +
             '    </div>' +
             '    <div class="form-actions">' +
@@ -407,7 +507,12 @@ var BevModule = (function () {
         // Foto's
         let fotos = [];
         document.getElementById('bev-foto-btn').addEventListener('click', async () => {
-            const newFotos = await capturePhoto();
+            const newFotos = await capturePhoto(true);
+            fotos = fotos.concat(newFotos);
+            renderFotoPreview(fotos);
+        });
+        document.getElementById('bev-foto-kies-btn').addEventListener('click', async () => {
+            const newFotos = await capturePhoto(false);
             fotos = fotos.concat(newFotos);
             renderFotoPreview(fotos);
         });
@@ -551,6 +656,144 @@ var BevModule = (function () {
 
     // === Init ===
 
+
+    // === Fotoalbum per pand ===
+
+    /** Zoekt het fotoalbum van een pand, of maakt er een aan. Bewust een
+     *  gewone bevinding met categorie 'fotos': opslag, export en de
+     *  desktop-import werken daardoor ongewijzigd mee. */
+    async function vindOfMaakAlbum(slug, naam, pandLabel) {
+        const alle = await dbGetAll(STORE_NAME);
+        const bestaand = alle.find((b) =>
+            b.categorie === 'fotos' &&
+            b.locatieSlug === slug &&
+            (b.pandLabel || '') === (pandLabel || '')
+        );
+        if (bestaand) { return bestaand; }
+
+        const nu = new Date();
+        return {
+            locatieSlug: slug,
+            locatieNaam: naam,
+            pandLabel: pandLabel || null,
+            datum: nu.toISOString().slice(0, 10),
+            tijd: nu.toTimeString().slice(0, 5),
+            categorie: 'fotos',
+            adresDetail: '',
+            beschrijving: "Foto's bij dit pand",
+            gps: null,
+            fotos: [],
+            timestamp: nu.toISOString(),
+        };
+    }
+
+    /** Opent het fotoalbum van een pand: bekijken, toevoegen, verwijderen.
+     *  Bereikbaar vanuit de kaart, zonder het bevindingenformulier. */
+    async function openPandFotos(slug, naam, pandLabel) {
+        let album;
+        try {
+            album = await vindOfMaakAlbum(slug, naam, pandLabel);
+        } catch (err) {
+            alert('Album openen mislukt: ' + err.message);
+            return;
+        }
+        let fotos = Array.isArray(album.fotos) ? album.fotos.slice() : [];
+
+        const modal = document.getElementById('bev-modal');
+        if (!modal) { alert('Fotovenster niet beschikbaar.'); return; }
+
+        const titel = pandLabel ? escHtmlBev(pandLabel) : escHtmlBev(naam);
+        modal.innerHTML =
+            '<div class="modal__content">' +
+            '  <div class="modal__header">' +
+            '    <h2>Foto\'s — ' + titel + '</h2>' +
+            '    <button class="modal__close" id="pf-close">&times;</button>' +
+            '  </div>' +
+            '  <div class="modal__body">' +
+            '    <p class="text-muted" style="margin-top:0">Blijven op dit toestel. Ze gaan mee in de export naar de analyse-applicatie en komen nooit op de server.</p>' +
+            '    <button type="button" class="btn btn--sm" id="pf-maak">Foto maken</button>' +
+            '    <button type="button" class="btn btn--sm" id="pf-kies" style="margin-left:4px">Foto\'s kiezen</button>' +
+            '    <div id="pf-preview" class="foto-preview" style="margin-top:10px"></div>' +
+            '  </div>' +
+            '  <div class="form-actions">' +
+            '    <button class="btn" id="pf-annuleer">Sluiten</button>' +
+            '    <button class="btn btn--primary" id="pf-bewaar">Bewaren</button>' +
+            '  </div>' +
+            '</div>';
+        modal.classList.add('modal--open');
+
+        function toon() {
+            const el = document.getElementById('pf-preview');
+            if (!el) { return; }
+            if (fotos.length === 0) {
+                el.innerHTML = '<span class="text-muted">Nog geen foto\'s bij dit pand.</span>';
+                return;
+            }
+            let html = '';
+            fotos.forEach((f, i) => {
+                html += '<div class="foto-preview__item" style="position:relative;display:inline-block;margin:0 6px 6px 0">';
+                html += '<img class="foto-preview__img" src="' + f.data + '" alt="Foto ' + (i + 1) + '">';
+                html += '<button class="btn--icon" style="position:absolute;top:-4px;right:-4px;background:#fff;border-radius:50%;width:18px;height:18px;font-size:12px;line-height:1;border:1px solid #ccc" data-pf-idx="' + i + '">&times;</button>';
+                html += '</div>';
+            });
+            el.innerHTML = html;
+            el.querySelectorAll('[data-pf-idx]').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-pf-idx'), 10);
+                    fotos.splice(idx, 1);
+                    toon();
+                });
+            });
+        }
+        toon();
+
+        const sluit = () => { modal.classList.remove('modal--open'); };
+        document.getElementById('pf-close').addEventListener('click', sluit);
+        document.getElementById('pf-annuleer').addEventListener('click', sluit);
+
+        document.getElementById('pf-maak').addEventListener('click', async () => {
+            fotos = fotos.concat(await capturePhoto(true));
+            toon();
+        });
+        document.getElementById('pf-kies').addEventListener('click', async () => {
+            fotos = fotos.concat(await capturePhoto(false));
+            toon();
+        });
+
+        document.getElementById('pf-bewaar').addEventListener('click', async () => {
+            album.fotos = fotos;
+            try {
+                if (fotos.length === 0 && album.id) {
+                    await dbDelete(STORE_NAME, album.id);
+                } else if (fotos.length > 0) {
+                    await saveBevinding(album);
+                }
+                sluit();
+                updateBevCounter();
+            } catch (err) {
+                alert('Bewaren mislukt: ' + err.message);
+            }
+        });
+    }
+
+    /** Aantal foto's dat bij een pand hoort, voor het knoplabel op de kaart. */
+    async function telPandFotos(slug, pandLabel) {
+        try {
+            const alle = await dbGetAll(STORE_NAME);
+            return alle
+                .filter((b) => b.locatieSlug === slug && (b.pandLabel || '') === (pandLabel || ''))
+                .reduce((n, b) => n + (Array.isArray(b.fotos) ? b.fotos.length : 0), 0);
+        } catch (err) {
+            return 0;
+        }
+    }
+
+    function escHtmlBev(str) {
+        const d = document.createElement('div');
+        d.textContent = str == null ? '' : String(str);
+        return d.innerHTML;
+    }
+
     async function init() {
         await openDB();
         await loadControleurNaam();
@@ -566,6 +809,8 @@ var BevModule = (function () {
         getControleurNaam: () => controleurNaam,
         setControleurNaam: saveControleurNaam,
         updateBevCounter: updateBevCounter,
+        openPandFotos: openPandFotos,
+        telPandFotos: telPandFotos,
         CATEGORIEEN: CATEGORIEEN,
     };
 })();

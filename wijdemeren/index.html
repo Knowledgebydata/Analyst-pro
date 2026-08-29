@@ -9,8 +9,8 @@
     <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <title>Vakantieparken Wijdemeren</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="css/app.css?v=5">
+    <link rel="stylesheet" href="libs/leaflet.css">
+    <link rel="stylesheet" href="css/app.css?v=11">
 </head>
 <body>
     <!-- Login scherm -->
@@ -78,8 +78,12 @@
                         <button class="map-sidebar__close" id="sidebar-close">&times;</button>
                     </div>
                     <div class="map-sidebar__filter">
-                        <input type="text" id="sidebar-search" placeholder="Zoeken..." class="input input--sm">
+                        <input type="text" id="sidebar-search" placeholder="Zoek locatie..." class="input input--sm">
                     </div>
+                    <div class="map-sidebar__filter">
+                        <input type="text" id="pand-search" placeholder="Zoek pandcode of pandnaam..." class="input input--sm" autocomplete="off">
+                    </div>
+                    <div class="map-sidebar__list" id="pand-search-list" hidden></div>
                     <div class="map-sidebar__list" id="sidebar-list"></div>
                 </div>
 
@@ -88,6 +92,7 @@
                     <button class="btn btn--sm" id="btn-filter-parks">Parken</button>
                     <button class="btn btn--sm" id="btn-filter-havens">Havens</button>
                     <button class="btn btn--sm" id="btn-reset-view">Reset</button>
+                    <button class="btn btn--sm" id="btn-reset-gps" hidden title="Alle handmatig verplaatste punten terug naar hun GPS-registratie">GPS-reset</button>
                 </div>
             </div>
         </div>
@@ -123,6 +128,19 @@
             <div class="panel">
                 <div class="panel__header">
                     <h2>Instellingen</h2>
+                </div>
+
+                <div class="beheer-section">
+                    <h4>Applicatie</h4>
+                    <div class="form-group">
+                        <label>Versie die nu draait</label>
+                        <div id="app-versie" class="form-static">wordt bepaald...</div>
+                    </div>
+                    <button type="button" class="btn btn--block" id="btn-app-bijwerken">App bijwerken</button>
+                    <p class="text-muted" style="font-size:12px;margin-top:6px">
+                        Haalt de nieuwste versie op. Je bevindingen en vragenlijsten blijven staan;
+                        die staan op dit toestel en worden hierdoor niet aangeraakt.
+                    </p>
                 </div>
 
                 <div class="beheer-section">
@@ -176,12 +194,12 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="js/api.js?v=5"></script>
-    <script src="js/map.js?v=5"></script>
-    <script src="js/bevindingen.js?v=5"></script>
-    <script src="js/vragenlijst.js?v=5"></script>
-    <script src="js/app.js?v=5"></script>
+    <script src="libs/leaflet.js"></script>
+    <script src="libs/socket.io.min.js"></script>
+    <script src="js/api.js?v=11"></script>
+    <script src="js/map.js?v=11"></script>
+    <script src="js/bevindingen.js?v=11"></script>
+    <script src="js/vragenlijst.js?v=11"></script>
+    <script src="js/app.js?v=11"></script>
 </body>
 </html>
