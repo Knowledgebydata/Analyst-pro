@@ -155,7 +155,9 @@ var MapModule = (function () {
         // Externe links
         html += '<div class="popup__links">';
         html += '<a href="https://www.google.com/maps/search/?api=1&query=' + loc.lat + ',' + loc.lon + '" target="_blank">Google Maps</a>';
-        html += '<a href="https://bagviewer.kadaster.nl/lvbag/bag-viewer/#?geometry.x=' + loc.lon + '&geometry.y=' + loc.lat + '&zoomlevel=7" target="_blank">BAG</a>';
+        // GEEN coordinaten meer: geometry.x/geometry.y zijn RD (EPSG:28992) en
+        // hier ging WGS84 mee, waardoor de viewer buiten Nederland uitkwam.
+        html += '<a href="https://bagviewer.kadaster.nl/lvbag/bag-viewer/" target="_blank" rel="noopener">BAG-viewer</a>';
         html += '<a href="https://kadastralekaart.com/kaart/@' + loc.lat + ',' + loc.lon + ',17z" target="_blank">Kadaster</a>';
         html += '</div>';
 
@@ -203,7 +205,10 @@ var MapModule = (function () {
         html += '<div class="popup__title">' + escHtml(pand.label) + '</div>';
         html += '<div class="popup__addr">' + escHtml(pand.locatie_naam || '') + (pand.adres_detail ? ' — ' + escHtml(pand.adres_detail) : '') + '</div>';
         if (pand.bag_pandnummer && !(pand.label || '').trim()) {
-            html += '<div class="popup__note">BAG-pand ' + escHtml(pand.bag_pandnummer) + (pand.bouwjaar ? ' &middot; bouwjaar ' + escHtml(pand.bouwjaar) : '') + '</div>';
+            html += '<div class="popup__note">BAG-pand <a href="https://bagviewer.kadaster.nl/lvbag/bag-viewer?objectId='
+                + encodeURIComponent(pand.bag_pandnummer) + '" target="_blank" rel="noopener">'
+                + escHtml(pand.bag_pandnummer) + '</a>'
+                + (pand.bouwjaar ? ' &middot; bouwjaar ' + escHtml(pand.bouwjaar) : '') + '</div>';
         }
         html += '<div class="popup__status"><div class="popup__status-dot" style="background:' + color + '"></div><span class="popup__status-label">' + label + '</span></div>';
 
