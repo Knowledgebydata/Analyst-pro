@@ -662,20 +662,40 @@ var BevModule = (function () {
     /** Zoekt het fotoalbum van een pand, of maakt er een aan. Bewust een
      *  gewone bevinding met categorie 'fotos': opslag, export en de
      *  desktop-import werken daardoor ongewijzigd mee. */
-    async function vindOfMaakAlbum(slug, naam, pandLabel) {
+    /** Herkent het fotoalbum van een pand.
+     *
+     *  Op het pand-id als dat bekend is, anders op het label. Het label is
+     *  namelijk de aanduiding die de controleur zelf mag wijzigen ("Z2 02");
+     *  wie na het fotograferen de aanduiding aanpast, raakte zijn album
+     *  daarmee kwijt. Albums van voor deze wijziging dragen nog geen id en
+     *  worden daarom nog steeds op het label gevonden -- ze krijgen het id er
+     *  bij de eerste aanraking bij. Er gaat niets verloren.
+     */
+    function isAlbumVan(b, slug, pandLabel, pandId) {
+        if (b.categorie !== 'fotos' || b.locatieSlug !== slug) { return false; }
+        if (pandId && b.pandId) { return String(b.pandId) === String(pandId); }
+        return (b.pandLabel || '') === (pandLabel || '');
+    }
+
+    async function vindOfMaakAlbum(slug, naam, pandLabel, pandId) {
+        await openDB();
         const alle = await dbGetAll(STORE_NAME);
-        const bestaand = alle.find((b) =>
-            b.categorie === 'fotos' &&
-            b.locatieSlug === slug &&
-            (b.pandLabel || '') === (pandLabel || '')
-        );
-        if (bestaand) { return bestaand; }
+        const bestaand = alle.find((b) => isAlbumVan(b, slug, pandLabel, pandId));
+        if (bestaand) {
+            // Bijwerken bij het openen: een album van voor deze wijziging
+            // krijgt het id erbij, en een hernoemd pand krijgt zijn nieuwe
+            // aanduiding op de kaart in de bevindingenlijst.
+            if (pandId && !bestaand.pandId) { bestaand.pandId = pandId; }
+            if (pandLabel) { bestaand.pandLabel = pandLabel; }
+            return bestaand;
+        }
 
         const nu = new Date();
         return {
             locatieSlug: slug,
             locatieNaam: naam,
             pandLabel: pandLabel || null,
+            pandId: pandId || null,
             datum: nu.toISOString().slice(0, 10),
             tijd: nu.toTimeString().slice(0, 5),
             categorie: 'fotos',
@@ -689,10 +709,10 @@ var BevModule = (function () {
 
     /** Opent het fotoalbum van een pand: bekijken, toevoegen, verwijderen.
      *  Bereikbaar vanuit de kaart, zonder het bevindingenformulier. */
-    async function openPandFotos(slug, naam, pandLabel) {
+    async function openPandFotos(slug, naam, pandLabel, pandId) {
         let album;
         try {
-            album = await vindOfMaakAlbum(slug, naam, pandLabel);
+            album = await vindOfMaakAlbum(slug, naam, pandLabel, pandId);
         } catch (err) {
             alert('Album openen mislukt: ' + err.message);
             return;
@@ -777,11 +797,18 @@ var BevModule = (function () {
     }
 
     /** Aantal foto's dat bij een pand hoort, voor het knoplabel op de kaart. */
-    async function telPandFotos(slug, pandLabel) {
+    async function telPandFotos(slug, pandLabel, pandId) {
         try {
+            await openDB();
             const alle = await dbGetAll(STORE_NAME);
+            // Alle foto's bij dit pand tellen, dus ook die bij een gewone
+            // bevinding horen -- de controleur ziet ze immers als een geheel.
             return alle
-                .filter((b) => b.locatieSlug === slug && (b.pandLabel || '') === (pandLabel || ''))
+                .filter((b) => {
+                    if (b.locatieSlug !== slug) { return false; }
+                    if (pandId && b.pandId) { return String(b.pandId) === String(pandId); }
+                    return (b.pandLabel || '') === (pandLabel || '');
+                })
                 .reduce((n, b) => n + (Array.isArray(b.fotos) ? b.fotos.length : 0), 0);
         } catch (err) {
             return 0;

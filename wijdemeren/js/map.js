@@ -166,6 +166,35 @@ var MapModule = (function () {
         return html;
     }
 
+    /**
+     * Vult in de geopende popup het aantal foto's bij dit pand in.
+     *
+     * Waarom bij popupopen en niet bij het bouwen van de popup: het aantal
+     * komt uit IndexedDB en dat is asynchroon, terwijl buildPandPopup() een
+     * string moet teruggeven. Leaflet houdt standaard een popup tegelijk open,
+     * dus een vast id volstaat.
+     *
+     * Faalt de telling, dan blijft de knop kaal staan -- dat is de oude
+     * toestand en nooit een reden om de popup te breken.
+     */
+    function vulFotoTelling(pand) {
+        if (typeof BevModule === 'undefined' || !BevModule.telPandFotos) { return; }
+
+        BevModule.telPandFotos(pand.locatie_slug, pand.label, pand.id).then(function (aantal) {
+            var teller = document.getElementById('pf-telling');
+            if (teller) { teller.textContent = aantal > 0 ? ' (' + aantal + ')' : ''; }
+
+            var melding = document.getElementById('pf-melding');
+            if (!melding) { return; }
+            if (aantal > 0) {
+                melding.innerHTML = '<div class="popup__note">' + aantal + ' foto'
+                    + (aantal === 1 ? '' : '\'s') + ' opgeslagen bij dit pand.</div>';
+            } else {
+                melding.innerHTML = '';
+            }
+        }).catch(function () { /* stil: de knop blijft dan zonder telling */ });
+    }
+
     function buildPandPopup(pand) {
         var color = STATUS_COLORS[pand.status] || '#9E9E9E';
         var label = STATUS_LABELS[pand.status] || 'Niet verkend';
@@ -197,11 +226,17 @@ var MapModule = (function () {
         });
         html += '</div></div>';
 
+        // Hier komt bij het openen van de popup te staan hoeveel foto's er bij
+        // dit pand liggen. Leeg zolang dat niet geteld is; het tellen gaat via
+        // IndexedDB en dat is asynchroon, terwijl deze HTML synchroon wordt
+        // opgebouwd.
+        html += '<div id="pf-melding"></div>';
+
         // Actie knoppen: bevinding + vragenlijst
         html += '<div class="popup__actions">';
         html += '<button class="btn btn--sm btn--primary" onclick="BevModule.openForm(\'' + pand.locatie_slug + '\',\'' + (pand.locatie_naam || '').replace(/'/g, "\\'") + '\',\'' + pand.label.replace(/'/g, "\\'") + '\')">+ Bevinding</button>';
         html += '<button class="btn btn--sm" onclick="VragenlijstModule.openForm(\'' + pand.locatie_slug + '\',\'' + (pand.locatie_naam || '').replace(/'/g, "\\'") + '\',\'' + pand.label.replace(/'/g, "\\'") + '\')" style="margin-left:4px">Vragenlijst</button>';
-        html += '<button class="btn btn--sm" onclick="BevModule.openPandFotos(\'' + pand.locatie_slug + '\',\'' + (pand.locatie_naam || '').replace(/'/g, "\\'") + '\',\'' + pand.label.replace(/'/g, "\\'") + '\')" style="margin-left:4px">Foto\'s</button>';
+        html += '<button class="btn btn--sm" onclick="BevModule.openPandFotos(\'' + pand.locatie_slug + '\',\'' + (pand.locatie_naam || '').replace(/'/g, "\\'") + '\',\'' + String(pand.label || '').replace(/'/g, "\\'") + '\',\'' + pand.id + '\')" style="margin-left:4px">Foto\'s<span id="pf-telling"></span></button>';
         html += '<button class="btn btn--sm" onclick="MapModule.zetAanduiding(\'' + pand.id + '\')" style="margin-left:4px">Aanduiding</button>';
         html += '</div>';
 
@@ -394,6 +429,8 @@ var MapModule = (function () {
                 draggable: beheerModus,
                 title: kanZweven ? undefined : aanduiding,
             }).bindPopup(buildPandPopup(pand), { maxWidth: 300 });
+
+            marker.on('popupopen', function () { vulFotoTelling(pand); });
 
             if (kanZweven) {
                 marker.bindTooltip(aanduiding, { direction: 'top', offset: [0, -10], opacity: 0.95 });
