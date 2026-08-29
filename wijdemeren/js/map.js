@@ -439,6 +439,7 @@ var MapModule = (function () {
         var entry = locatieMarkers[slug];
         if (!entry) return;
 
+        sluitLijstOpSmalScherm();
         map.flyTo([entry.loc.lat, entry.loc.lon], 17, { duration: 1 });
 
         // Laad panden voor deze locatie
@@ -761,6 +762,8 @@ var MapModule = (function () {
         }
         if (!gevonden) return;
 
+        sluitLijstOpSmalScherm();
+
         if (selectedLocatieSlug !== gevonden.locatie_slug) {
             await selectLocatie(gevonden.locatie_slug);
         }
@@ -813,6 +816,29 @@ var MapModule = (function () {
             html += '<div class="map-legend__row"><div class="map-legend__dot" style="background:' + STATUS_COLORS[key] + '"></div><span>' + STATUS_LABELS[key] + '</span></div>';
         });
         el.innerHTML = html;
+    }
+
+    /**
+     * Sluit de lijst wanneer die de kaart afdekt.
+     *
+     * De grens van 600px is dezelfde als in css/app.css; wijzigt die daar, dan
+     * hier mee. Op een breed scherm staat de lijst naast de kaart en blijft hij
+     * open, zodat je door de locaties kunt lopen zonder hem telkens opnieuw te
+     * openen.
+     */
+    function sluitLijstOpSmalScherm() {
+        var smal = !!(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+        if (!smal || !sidebarOpen) { return; }
+
+        sidebarOpen = false;
+        var el = document.getElementById('map-sidebar');
+        if (el && el.classList) { el.classList.remove('map-sidebar--open'); }
+
+        // De kaart is niet van formaat veranderd - de lijst lag eroverheen -
+        // maar een kaart die ooit verborgen is opgebouwd houdt een verkeerde
+        // maat vast en tekent dan halve tegels. invalidateSize laat het midden
+        // staan en herstelt dat.
+        if (map && typeof map.invalidateSize === 'function') { map.invalidateSize(); }
     }
 
     function renderSidebar() {
