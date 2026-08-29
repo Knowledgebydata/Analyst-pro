@@ -140,6 +140,65 @@ var BevModule = (function () {
         });
     }
 
+    // === GPS-guardrail (AVG) ===
+
+    /**
+     * Hoe ver van het middelpunt van een locatie een positie nog als "op het
+     * terrein" geldt. Startwaarde, vast te stellen door de vakgroep: een
+     * vakantiepark is zelden groter dan een paar honderd meter, en 500 m vangt
+     * GPS-drift en de rand van het terrein ruim af terwijl een woonadres elders
+     * er nooit binnen valt.
+     */
+    const MAX_AFSTAND_M = 500;
+
+    /** Afstand in meters tussen twee posities (haversine). */
+    function afstandMeter(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const rad = Math.PI / 180;
+        const dLat = (lat2 - lat1) * rad;
+        const dLon = (lon2 - lon1) * rad;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+            + Math.cos(lat1 * rad) * Math.cos(lat2 * rad)
+            * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return Math.round(2 * R * Math.asin(Math.min(1, Math.sqrt(a))));
+    }
+
+    /** Het middelpunt van een locatie, voor zover de kaart dat kent. */
+    function locatiePositie(slug) {
+        if (typeof MapModule === 'undefined' || !MapModule.getLocaties) { return null; }
+        try {
+            const gevonden = (MapModule.getLocaties() || []).find(function (l) { return l.slug === slug; });
+            if (!gevonden || gevonden.lat == null || gevonden.lon == null) { return null; }
+            return { lat: Number(gevonden.lat), lon: Number(gevonden.lon) };
+        } catch (err) {
+            return null;
+        }
+    }
+
+    /**
+     * Beoordeelt of een gemeten positie bij de gekozen locatie hoort.
+     *
+     * Geeft terug wat er van de positie in het dossier mag: `gps` als hij op het
+     * terrein ligt, anders `null` met de afstand erbij zodat de controleur ziet
+     * waarom. Kan er niet getoetst worden (locatie zonder coördinaat), dan blijft
+     * de positie staan: een toets die niet uitvoerbaar is mag geen gegevens
+     * weggooien.
+     */
+    function toetsGps(gps, slug) {
+        if (!gps || gps.lat == null || gps.lon == null) {
+            return { gps: null, getoetst: false, afstand: null };
+        }
+        const midden = locatiePositie(slug);
+        if (!midden) {
+            return { gps: gps, getoetst: false, afstand: null };
+        }
+        const afstand = afstandMeter(gps.lat, gps.lon, midden.lat, midden.lon);
+        if (afstand <= MAX_AFSTAND_M) {
+            return { gps: gps, getoetst: true, afstand: afstand };
+        }
+        return { gps: null, getoetst: true, afstand: afstand, buiten: true };
+    }
+
     // === Foto capture ===
 
     function capturePhoto(vanCamera) {
@@ -414,6 +473,68 @@ var BevModule = (function () {
         });
     }
 
+    /**
+     * Exporteert het complete kaartmateriaal: alle locaties met al hun panden.
+     *
+     * Dit is bewust géén afgeleide van de bevindingen. De analyse-applicatie
+     * moet de kaart kunnen tonen zoals hij hier is -- inclusief de panden die
+     * uit de BAG zijn ingetekend en waar nog niemand is geweest, en inclusief
+     * locatietypes die de bevroren lijst daar niet kent, zoals een testlocatie.
+     *
+     * De vorm is gelijk aan die van de controleur-export, zodat de andere kant
+     * er niets nieuws voor hoeft te leren.
+     */
+    async function exportKaartmateriaal() {
+        if (typeof API === 'undefined' || !API.getLocaties) {
+            throw new Error('Geen verbinding met de server; kaartmateriaal komt daar vandaan.');
+        }
+
+        const data = await API.getLocaties();
+        const locaties = (data && data.locaties) ? data.locaties : data;
+        if (!Array.isArray(locaties) || locaties.length === 0) {
+            throw new Error('De server gaf geen locaties terug.');
+        }
+
+        const uit = [];
+        let totaalPanden = 0;
+        for (const loc of locaties) {
+            let panden = [];
+            try {
+                panden = await pandenVoorExport(loc.slug);
+            } catch (err) {
+                // Eén locatie die niet wil, mag de rest niet tegenhouden; het
+                // aantal panden verraadt daarna vanzelf dat er iets ontbreekt.
+                panden = [];
+            }
+            totaalPanden += panden.length;
+            uit.push({
+                locatieSlug: loc.slug,
+                locatieNaam: loc.naam,
+                slug: loc.slug,
+                naam: loc.naam,
+                type: loc.type || 'onbekend',
+                adres: loc.adres || '',
+                postcode: loc.postcode || '',
+                plaats: loc.plaats || '',
+                lat: (loc.lat != null) ? Number(loc.lat) : null,
+                lon: (loc.lon != null) ? Number(loc.lon) : null,
+                nauwkeurigheid: loc.nauwkeurigheid || 'onbekend',
+                codePrefix: loc.code_prefix || null,
+                panden: panden,
+            });
+        }
+
+        return {
+            schema_version: '1.2',
+            export_type: 'kaartmateriaal',
+            exportDatum: new Date().toISOString(),
+            gemeente: { naam: 'Wijdemeren' },
+            aantalLocaties: uit.length,
+            aantalPanden: totaalPanden,
+            locaties: uit,
+        };
+    }
+
     // === UI: Formulier ===
 
     function openForm(slug, naam, pandLabel) {
@@ -493,15 +614,32 @@ var BevModule = (function () {
         const gpsEl = document.getElementById('bev-gps-info');
         let gpsData = null;
 
+        let gpsBuiten = false;
+        let gpsAfstand = null;
+
         getGPS().then((pos) => {
-            if (pos) {
-                gpsData = pos;
-                gpsEl.textContent = pos.lat.toFixed(6) + ', ' + pos.lon.toFixed(6) + ' (\u00B1' + Math.round(pos.accuracy) + 'm)';
-                gpsEl.style.color = 'var(--color-success)';
-            } else {
+            const oordeel = toetsGps(pos, slug);
+            gpsData = oordeel.gps;
+            gpsBuiten = !!oordeel.buiten;
+            gpsAfstand = oordeel.afstand;
+
+            if (!pos) {
                 gpsEl.textContent = 'GPS niet beschikbaar';
                 gpsEl.style.color = 'var(--color-danger)';
+                return;
             }
+            if (oordeel.buiten) {
+                // Bewust geen coördinaten in beeld: dit is de plek waar de
+                // controleur zelf is, en die hoort niet in dit dossier.
+                gpsEl.textContent = 'Je bevindt je ongeveer ' + oordeel.afstand
+                    + ' meter van ' + naam + '. De positie wordt daarom niet vastgelegd.'
+                    + ' De bevinding zelf wordt gewoon bewaard.';
+                gpsEl.style.color = 'var(--color-warning, #C87A1E)';
+                return;
+            }
+            gpsEl.textContent = pos.lat.toFixed(6) + ', ' + pos.lon.toFixed(6) + ' (\u00B1' + Math.round(pos.accuracy) + 'm)'
+                + (oordeel.getoetst ? ' \u2014 op het terrein' : '');
+            gpsEl.style.color = 'var(--color-success)';
         });
 
         // Foto's
@@ -540,6 +678,11 @@ var BevModule = (function () {
                 adresDetail: document.getElementById('bev-adres-detail').value.trim(),
                 beschrijving: beschrijving,
                 gps: gpsData,
+                // Geen locatiegegeven maar de reden waarom er geen is; zonder
+                // dat veld is later niet te verklaren waarom een bevinding
+                // zonder positie in het dossier staat.
+                gpsBuitenTerrein: gpsBuiten || undefined,
+                gpsAfstandMeter: gpsBuiten ? gpsAfstand : undefined,
                 fotos: fotos,
                 timestamp: new Date().toISOString(),
             };
@@ -832,6 +975,7 @@ var BevModule = (function () {
         openForm: openForm,
         renderList: renderList,
         exportJSON: exportJSON,
+        exportKaartmateriaal: exportKaartmateriaal,
         getBevindingen: getBevindingen,
         getControleurNaam: () => controleurNaam,
         setControleurNaam: saveControleurNaam,

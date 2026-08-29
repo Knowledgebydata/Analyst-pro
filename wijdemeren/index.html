@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <title>Vakantieparken Wijdemeren</title>
     <link rel="stylesheet" href="libs/leaflet.css">
-    <link rel="stylesheet" href="css/app.css?v=14">
+    <link rel="stylesheet" href="css/app.css?v=15">
 </head>
 <body>
     <!-- Login scherm -->
@@ -186,6 +186,12 @@
                         <div id="geocode-result"></div>
                     </div>
                     <div class="beheer-section">
+                        <h4>Kaartmateriaal</h4>
+                        <p class="text-muted">Exporteert alle locaties en alle panden zoals ze hier op de kaart staan, inclusief panden waar nog niemand is geweest. Bedoeld om in de analyse-applicatie in te lezen, zodat de kaart daar gelijk is aan deze. Bevat geen bevindingen, vragenlijsten of persoonsgegevens.</p>
+                        <button class="btn btn--sm btn--primary" id="btn-export-kaartmateriaal">Kaartmateriaal exporteren</button>
+                        <div id="kaartmateriaal-result"></div>
+                    </div>
+                    <div class="beheer-section">
                         <h4>Samenvatting</h4>
                         <div id="admin-samenvatting"></div>
                     </div>
@@ -196,10 +202,10 @@
 
     <script src="libs/leaflet.js"></script>
     <script src="libs/socket.io.min.js"></script>
-    <script src="js/api.js?v=14"></script>
-    <script src="js/map.js?v=14"></script>
-    <script src="js/bevindingen.js?v=14"></script>
-    <script src="js/vragenlijst.js?v=14"></script>
-    <script src="js/app.js?v=14"></script>
+    <script src="js/api.js?v=15"></script>
+    <script src="js/map.js?v=15"></script>
+    <script src="js/bevindingen.js?v=15"></script>
+    <script src="js/vragenlijst.js?v=15"></script>
+    <script src="js/app.js?v=15"></script>
 </body>
 </html>

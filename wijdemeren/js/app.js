@@ -191,6 +191,37 @@
     // knop kan een controleur op straat een oude, vastgelopen cache niet
     // opruimen -- en ziet hij een uitrol simpelweg niet gebeuren.
 
+    /** Zet het kaartmateriaal in een bestand dat de analyse-applicatie inleest. */
+    async function exporteerKaartmateriaal() {
+        var knop = document.getElementById('btn-export-kaartmateriaal');
+        var melding = document.getElementById('kaartmateriaal-result');
+        if (knop) { knop.disabled = true; knop.textContent = 'Bezig...'; }
+        if (melding) { melding.textContent = 'Alle locaties en panden ophalen...'; }
+
+        try {
+            var pakket = await BevModule.exportKaartmateriaal();
+            var naam = 'kaartmateriaal-' + new Date().toISOString().slice(0, 10) + '.json';
+            var blob = new Blob([JSON.stringify(pakket, null, 2)], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = naam;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+
+            if (melding) {
+                melding.textContent = pakket.aantalLocaties + ' locaties en '
+                    + pakket.aantalPanden + ' panden opgeslagen als ' + naam + '.';
+            }
+        } catch (err) {
+            if (melding) { melding.textContent = 'Exporteren mislukt: ' + err.message; }
+        } finally {
+            if (knop) { knop.disabled = false; knop.textContent = 'Kaartmateriaal exporteren'; }
+        }
+    }
+
     async function toonAppVersie() {
         var el = document.getElementById('app-versie');
         if (!el) { return; }
@@ -364,6 +395,13 @@
         });
         document.getElementById('btn-add-user').addEventListener('click', addUser);
         document.getElementById('btn-geocode-all').addEventListener('click', geocodeAll);
+
+        // Alleen in de beheerdersversie aanwezig; op een handheld staat het
+        // beheerscherm uit, dus de knop kan ontbreken.
+        var knopKaartmateriaal = document.getElementById('btn-export-kaartmateriaal');
+        if (knopKaartmateriaal) {
+            knopKaartmateriaal.addEventListener('click', exporteerKaartmateriaal);
+        }
     }
 
     async function loadUsers() {
