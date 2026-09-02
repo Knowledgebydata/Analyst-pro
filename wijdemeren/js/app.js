@@ -365,7 +365,9 @@
 
         // Export knop
         document.getElementById('btn-export-bev').addEventListener('click', function () {
-            BevModule.exportJSON();
+            BevModule.exportJSON().catch(function (err) {
+                alert('Exporteren mislukt: ' + (err && err.message ? err.message : err));
+            });
         });
     }
 
@@ -507,7 +509,9 @@
         var exportBtn = document.getElementById('btn-export-vl');
         if (exportBtn && typeof VragenlijstModule !== 'undefined') {
             exportBtn.addEventListener('click', function () {
-                VragenlijstModule.exportJSON();
+                VragenlijstModule.exportJSON().catch(function (err) {
+                    alert('Exporteren mislukt: ' + (err && err.message ? err.message : err));
+                });
             });
         }
     }

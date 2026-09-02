@@ -4,7 +4,7 @@
 // omhoog, samen met de ?v= in index.html. De service worker levert
 // same-origin bestanden cache-first uit: zonder nieuwe naam blijft
 // iedereen de oude pagina zien en lijkt de wijziging niet doorgevoerd.
-var CACHE_NAME = 'wijdemeren-v17';
+var CACHE_NAME = 'wijdemeren-v18';
 // LET OP: de ?v=-nummers hier moeten exact gelijk zijn aan die in
 // index.html. Op v5/v6 liepen ze uiteen, waardoor de precache dode
 // bestanden bevatte en de echte scripts pas bij eerste gebruik werden
@@ -12,12 +12,12 @@ var CACHE_NAME = 'wijdemeren-v17';
 var PRECACHE = [
     './',
     './index.html',
-    './css/app.css?v=17',
-    './js/api.js?v=17',
-    './js/map.js?v=17',
-    './js/bevindingen.js?v=17',
-    './js/vragenlijst.js?v=17',
-    './js/app.js?v=17',
+    './css/app.css?v=18',
+    './js/api.js?v=18',
+    './js/map.js?v=18',
+    './js/bevindingen.js?v=18',
+    './js/vragenlijst.js?v=18',
+    './js/app.js?v=18',
     './libs/leaflet.js',
     './libs/leaflet.css',
     './libs/socket.io.min.js',

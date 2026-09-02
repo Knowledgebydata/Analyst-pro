@@ -10,20 +10,92 @@
  * pagina en een uitgesteld revoke -- Safari leest de blob anders soms niet
  * meer. Kiest de gebruiker Annuleer in het deelvenster, dan stopt het stil.
  */
+/**
+ * Toont een klein venster met een eigen Bewaar-knop en deelt pas op DIE tik.
+ *
+ * Nodig omdat Safari de tik-toestemming intrekt zodra er wachttijd (database,
+ * netwerk) tussen de oorspronkelijke tik en het delen zit: navigator.share
+ * weigert dan met NotAllowedError. Een verse tik op deze knop geeft nieuwe
+ * toestemming, en dan opent het deelvenster gewoon.
+ */
+function whBewaarKnopOverlay(naam, f) {
+    return new Promise(function (klaar) {
+        var oud = document.getElementById('wh-bewaar-overlay');
+        if (oud && oud.parentNode) { oud.parentNode.removeChild(oud); }
+        var ov = document.createElement('div');
+        ov.id = 'wh-bewaar-overlay';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+        var kaart = document.createElement('div');
+        kaart.style.cssText = 'background:#fff;border-radius:10px;padding:18px;max-width:340px;width:100%;text-align:center;font-size:14px';
+        var t = document.createElement('div');
+        t.textContent = 'Het bestand staat klaar: ' + naam;
+        t.style.cssText = 'margin-bottom:14px;word-break:break-all';
+        var knop = document.createElement('button');
+        knop.id = 'wh-bewaar-knop';
+        knop.textContent = 'Bewaar bestand';
+        knop.style.cssText = 'display:block;width:100%;padding:12px;background:#1565c0;color:#fff;border:0;border-radius:8px;font-size:15px;margin-bottom:8px';
+        var weg = document.createElement('button');
+        weg.textContent = 'Annuleren';
+        weg.style.cssText = 'display:block;width:100%;padding:10px;background:#eee;border:0;border-radius:8px;font-size:14px';
+        knop.addEventListener('click', function () {
+            navigator.share({ files: [f], title: naam }).then(function () {
+                if (ov.parentNode) { ov.parentNode.removeChild(ov); }
+                klaar(true);
+            }).catch(function (e) {
+                if (e && e.name === 'AbortError') { return; } // venster blijft: nog een kans
+                if (ov.parentNode) { ov.parentNode.removeChild(ov); }
+                alert('Bewaren lukte niet: ' + (e && e.message ? e.message : e));
+                klaar(false);
+            });
+        });
+        weg.addEventListener('click', function () {
+            if (ov.parentNode) { ov.parentNode.removeChild(ov); }
+            klaar(false);
+        });
+        kaart.appendChild(t); kaart.appendChild(knop); kaart.appendChild(weg);
+        ov.appendChild(kaart);
+        document.body.appendChild(ov); // direct onder body: position:fixed-regel
+    });
+}
+
+/**
+ * Bestand bewaren op elk toestel -- met een melding op ELK doodlopend pad.
+ *
+ * Volgorde: (1) deelvenster van het toestel ("Bewaar in Bestanden"); (2) is de
+ * tik-toestemming onderweg verlopen, dan het venster hierboven met een eigen
+ * Bewaar-knop; (3) kan het toestel geen bestanden delen en draait de app als
+ * beginscherm-app, dan een eerlijke uitleg (een download-anchor doet daar
+ * NIETS); (4) anders de gewone download met de anchor IN de pagina.
+ */
 window.whBewaarBestand = async function (naam, tekst, mime) {
     var soort = mime || 'application/json';
     var blob = new Blob([tekst], { type: soort });
+    var f = null;
+    var deelbaar = false;
     try {
-        if (navigator.canShare) {
-            var f = new File([blob], naam, { type: soort });
-            if (navigator.canShare({ files: [f] })) {
-                await navigator.share({ files: [f], title: naam });
-                return true;
-            }
+        if (navigator.canShare && typeof File !== 'undefined') {
+            f = new File([blob], naam, { type: soort });
+            deelbaar = navigator.canShare({ files: [f] });
         }
-    } catch (e) {
-        if (e && e.name === 'AbortError') { return false; }
+    } catch (e) { deelbaar = false; }
+
+    if (deelbaar) {
+        try {
+            await navigator.share({ files: [f], title: naam });
+            return true;
+        } catch (e) {
+            if (e && e.name === 'AbortError') { return false; }
+            return whBewaarKnopOverlay(naam, f);
+        }
     }
+
+    var beginscherm = !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+        || window.navigator.standalone === true;
+    if (beginscherm) {
+        alert('Dit toestel kan vanuit de beginscherm-app geen bestand bewaren: het deelvenster is hier niet beschikbaar (oudere iOS-versie). Open de app in Safari zelf en exporteer daar.');
+        return false;
+    }
+
     try {
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
