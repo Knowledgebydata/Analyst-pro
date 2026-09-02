@@ -48,7 +48,9 @@ var MapModule = (function () {
     var sidebarOpen = false;
     var selectedLocatieSlug = null; // welke locatie is geselecteerd / ingezoomd
     var beheerModus = false;        // beheerder op de server: verplaatsen/bewerken/GPS-reset
-    var addPandContext = null;      // { slug, naam, bestaand[] } tijdens pand-toevoegen
+    var addPandContext = null;      // { slug, naam, bestaand[], prikPositie } tijdens pand-toevoegen
+    var grpAanduidingen = null;     // gele BAG-huisnummerlabels (laagmenu)
+    var prikActief = false;         // eenmalige wijs-de-plek-aan-modus
     var editPandId = null;          // pand-id tijdens bewerken
     var zoekResultaten = [];        // laatste zoekuitkomst op pandcode/pandnaam
 
@@ -81,7 +83,14 @@ var MapModule = (function () {
             if (!brtFail) { brtFail = true; map.removeLayer(brtLayer); osmLayer.addTo(map); }
         });
         brtLayer.addTo(map);
-        L.control.layers({ 'Topografisch (PDOK)': brtLayer, 'OpenStreetMap': osmLayer, 'Luchtfoto': luchtLayer }, null, { position: 'topright' }).addTo(map);
+        // De gele BAG-huisnummerlabels: groep MOET bestaan voor hij in het
+        // laagmenu gaat (de proef van 02-09 ving hem als null). Laden zodra de
+        // laag aangaat, verversen bij locatiewissel, opruimen bij uitzetten.
+        grpAanduidingen = L.layerGroup();
+        map.on('overlayadd', function (e) { if (e.layer === grpAanduidingen) laadAanduidingen(); });
+        map.on('overlayremove', function (e) { if (e.layer === grpAanduidingen) grpAanduidingen.clearLayers(); });
+
+        L.control.layers({ 'Topografisch (PDOK)': brtLayer, 'OpenStreetMap': osmLayer, 'Luchtfoto': luchtLayer }, { 'Huisnummers (BAG)': grpAanduidingen }, { position: 'topright' }).addTo(map);
         L.control.scale({ metric: true, imperial: false, position: 'bottomright' }).addTo(map);
 
         grpLocaties = L.layerGroup().addTo(map);
@@ -491,6 +500,43 @@ var MapModule = (function () {
         } catch (err) {
             console.error('Panden laden mislukt:', err);
         }
+
+        if (grpAanduidingen && map.hasLayer(grpAanduidingen)) { laadAanduidingen(); }
+    }
+
+    // === BAG-huisnummerlabels (gele bordjes, zoals de BAG-viewer) ===
+
+    async function laadAanduidingen() {
+        if (!grpAanduidingen) return;
+        grpAanduidingen.clearLayers();
+        if (!selectedLocatieSlug) {
+            alert('Kies eerst een locatie; de huisnummers worden per locatie geladen.');
+            return;
+        }
+        try {
+            var data = await API.getBagAanduidingen(selectedLocatieSlug, 300);
+            (data.aanduidingen || []).forEach(function (a) {
+                var m = L.marker([a.lat, a.lon], {
+                    icon: L.divIcon({
+                        className: 'bag-aanduiding',
+                        html: '<span style="display:inline-block;background:#f6c700;color:#1a1a1a;border:1px solid #8a7300;' +
+                              'border-radius:3px;padding:1px 5px;font:600 11px/1.5 sans-serif;white-space:nowrap;' +
+                              'box-shadow:0 1px 2px rgba(0,0,0,.35)">' + escHtml(a.label) + '</span>',
+                        iconSize: null,
+                        iconAnchor: [0, 8],
+                    }),
+                    interactive: true,
+                    keyboard: false,
+                });
+                m.bindTooltip(escHtml((a.straat ? a.straat + ' ' : '') + a.label +
+                    (a.gebruiksdoel ? ' \u2014 ' + a.gebruiksdoel : '')), { direction: 'top' });
+                m.addTo(grpAanduidingen);
+            });
+            if (!map.hasLayer(grpAanduidingen)) { grpAanduidingen.addTo(map); }
+        } catch (err) {
+            console.error('BAG-aanduidingen laden mislukt:', err);
+            alert('Huisnummers laden mislukte: ' + err.message);
+        }
     }
 
     // === Pand toevoegen ===
@@ -517,12 +563,60 @@ var MapModule = (function () {
         html += '<div id="wh-pand-label-warn" style="color:#c62828;font-size:12px;min-height:16px"></div>';
         html += '<label style="font-size:13px">Adresdetail (optioneel)<input type="text" id="wh-pand-adres" placeholder="bijv. Moleneind 20a" style="width:100%;padding:8px;margin-top:4px"></label>';
         html += '<label style="font-size:13px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="wh-pand-gps" checked> Huidige GPS-positie gebruiken</label>';
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+        html += '<button class="btn btn--sm" type="button" onclick="MapModule.startPrik()">Wijs de plek aan op de kaart</button>';
+        html += '<span id="wh-pand-prik-status" style="font-size:12px;color:#2e7d32"></span>';
+        html += '</div>';
         html += '<button class="btn btn--primary" id="wh-pand-submit" onclick="MapModule.submitAddPand()">Toevoegen</button>';
 
         document.getElementById('wh-pand-modal-body').innerHTML = html;
         if (!('geolocation' in navigator)) { document.getElementById('wh-pand-gps').checked = false; }
         el.classList.add('modal--open');
         setTimeout(function () { document.getElementById('wh-pand-label').focus(); }, 100);
+    }
+
+    // === Plek aanwijzen op de kaart (voor iedereen: controleur en beheerder) ===
+    //
+    // Eenmalige prikmodus, zoals het punt-toevoegen in de analyse-applicatie:
+    // de modal gaat tijdelijk opzij, EEN klik op de kaart kiest de plek, en de
+    // modal komt terug met de keuze zichtbaar. Een aangewezen plek gaat als
+    // positie_bron 'kaart' mee, zodat de herkomst nooit voor GPS doorgaat.
+
+    /** Afstand in meters (haversine); zelfde formule als de GPS-kooi. */
+    function afstandMeterKaart(lat1, lon1, lat2, lon2) {
+        var R = 6371000;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
+    function startPrik() {
+        if (!addPandContext || prikActief) return;
+        prikActief = true;
+        var modal = document.getElementById('wh-pand-modal');
+        if (modal) modal.classList.remove('modal--open');
+        map.getContainer().style.cursor = 'crosshair';
+        alert('Tik op de kaart op de plek van het pand. De invoer komt daarna vanzelf terug.');
+        map.once('click', function (e) {
+            prikActief = false;
+            map.getContainer().style.cursor = '';
+            if (!addPandContext) return;
+            // Plausibiliteit: de aangewezen plek hoort bij DEZE locatie. Een
+            // klik ver daarbuiten is vrijwel zeker een vergissing (verkeerd
+            // ingezoomd) en zou het pand onvindbaar ver wegzetten.
+            var entry = locatieMarkers[addPandContext.slug];
+            if (entry && afstandMeterKaart(e.latlng.lat, e.latlng.lng, entry.loc.lat, entry.loc.lon) > 2000) {
+                alert('Die plek ligt meer dan 2 km van ' + addPandContext.naam + '. De klik is niet overgenomen; zoom in op de locatie en wijs opnieuw aan.');
+            } else {
+                addPandContext.prikPositie = { lat: e.latlng.lat, lon: e.latlng.lng };
+            }
+            if (modal) modal.classList.add('modal--open');
+            var st = document.getElementById('wh-pand-prik-status');
+            if (st) st.textContent = addPandContext.prikPositie ? '\u2713 Plek aangewezen op de kaart (gaat voor op GPS)' : '';
+        });
     }
 
     function normLabel(v) { return String(v || '').toLowerCase().replace(/[\s\-_./]/g, ''); }
@@ -571,6 +665,13 @@ var MapModule = (function () {
 
         var lat = null;
         var lon = null;
+        var positieBron = null;
+        if (addPandContext.prikPositie) {
+            lat = addPandContext.prikPositie.lat;
+            lon = addPandContext.prikPositie.lon;
+            positieBron = 'kaart';
+            wilGps = false; // de aangewezen plek gaat voor
+        }
         if (wilGps && 'geolocation' in navigator) {
             try {
                 var pos = await new Promise(function (resolve, reject) {
@@ -594,6 +695,7 @@ var MapModule = (function () {
                 adres_detail: adresDetail || null,
                 lat: lat,
                 lon: lon,
+                positie_bron: positieBron,
             });
             var slug = addPandContext.slug;
             sluitPandModal();
@@ -840,6 +942,8 @@ var MapModule = (function () {
         if (el) { el.classList.remove('modal--open'); }
         addPandContext = null;
         editPandId = null;
+        prikActief = false;
+        if (map) { map.getContainer().style.cursor = ''; }
     }
 
     function flyTo(slug) {
@@ -1016,6 +1120,8 @@ var MapModule = (function () {
         addPand: addPand,
         checkPandLabel: checkPandLabel,
         submitAddPand: submitAddPand,
+        startPrik: startPrik,
+        laadAanduidingen: laadAanduidingen,
         zetAanduiding: zetAanduiding,
         wisselExtraStatus: wisselExtraStatus,
         setBeheerModus: setBeheerModus,

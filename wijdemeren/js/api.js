@@ -113,6 +113,9 @@ var API = (function () {
         addPand: function (data) {
             return request('POST', '/panden', data);
         },
+        getBagAanduidingen: function (slug, straal) {
+            return request('GET', '/panden/bag-aanduidingen?locatie_slug=' + encodeURIComponent(slug) + '&straal=' + (straal || 300));
+        },
         updatePandStatus: function (pandId, status, samenvatting, extraStatussen) {
             var lijf = { status: status, samenvatting: samenvatting };
             if (Array.isArray(extraStatussen)) { lijf.extraStatussen = extraStatussen; }
