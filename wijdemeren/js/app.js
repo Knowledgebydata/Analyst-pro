@@ -201,15 +201,7 @@
         try {
             var pakket = await BevModule.exportKaartmateriaal();
             var naam = 'kaartmateriaal-' + new Date().toISOString().slice(0, 10) + '.json';
-            var blob = new Blob([JSON.stringify(pakket, null, 2)], { type: 'application/json' });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = naam;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+            await window.whBewaarBestand(naam, JSON.stringify(pakket, null, 2));
 
             if (melding) {
                 melding.textContent = pakket.aantalLocaties + ' locaties en '

@@ -1,6 +1,48 @@
 'use strict';
 
 /**
+ * Bestand bewaren op elk toestel.
+ *
+ * De oude route -- een losgekoppelde <a download> aanklikken -- doet op de
+ * handheld (als beginscherm-app) helemaal NIETS: geen bestand, geen fout.
+ * Daarom eerst het deelvenster van het toestel zelf (Web Share, "Bewaar in
+ * Bestanden"); lukt dat niet, dan de gewone download met de anchor IN de
+ * pagina en een uitgesteld revoke -- Safari leest de blob anders soms niet
+ * meer. Kiest de gebruiker Annuleer in het deelvenster, dan stopt het stil.
+ */
+window.whBewaarBestand = async function (naam, tekst, mime) {
+    var soort = mime || 'application/json';
+    var blob = new Blob([tekst], { type: soort });
+    try {
+        if (navigator.canShare) {
+            var f = new File([blob], naam, { type: soort });
+            if (navigator.canShare({ files: [f] })) {
+                await navigator.share({ files: [f], title: naam });
+                return true;
+            }
+        }
+    } catch (e) {
+        if (e && e.name === 'AbortError') { return false; }
+    }
+    try {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = naam;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+            if (a.parentNode) { a.parentNode.removeChild(a); }
+            URL.revokeObjectURL(a.href);
+        }, 1000);
+        return true;
+    } catch (e2) {
+        alert('Bewaren mislukt: ' + e2.message);
+        return false;
+    }
+};
+
+
+/**
  * BevModule — Lokale bevindingen-module met IndexedDB opslag.
  *
  * Bevindingen worden LOKAAL opgeslagen op het device van de controleur.
@@ -402,13 +444,8 @@ var BevModule = (function () {
             locaties: Object.values(perLocatie),
         };
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `bevindingen-${controleurNaam || 'export'}-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        var naam = 'bevindingen-' + (controleurNaam || 'export') + '-' + new Date().toISOString().slice(0, 10) + '.json';
+        await window.whBewaarBestand(naam, JSON.stringify(exportData, null, 2));
     }
 
 

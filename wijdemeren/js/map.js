@@ -50,7 +50,9 @@ var MapModule = (function () {
     var beheerModus = false;        // beheerder op de server: verplaatsen/bewerken/GPS-reset
     var addPandContext = null;      // { slug, naam, bestaand[], prikPositie } tijdens pand-toevoegen
     var grpAanduidingen = null;     // gele BAG-huisnummerlabels (laagmenu)
-    var prikActief = false;         // eenmalige wijs-de-plek-aan-modus
+    var prikActief = false;         // eenmalige wijs-de-plek-aan-modus (oude flow)
+    var puntModusAan = false;       // toevoegmodus: elke tik op de kaart = punt daar
+    var aanduidingenCache = [];     // laatst geladen BAG-aanduidingen (voor labelvoorstel)
     var editPandId = null;          // pand-id tijdens bewerken
     var zoekResultaten = [];        // laatste zoekuitkomst op pandcode/pandnaam
 
@@ -515,6 +517,7 @@ var MapModule = (function () {
         }
         try {
             var data = await API.getBagAanduidingen(selectedLocatieSlug, 300);
+            aanduidingenCache = data.aanduidingen || [];
             (data.aanduidingen || []).forEach(function (a) {
                 var m = L.marker([a.lat, a.lon], {
                     icon: L.divIcon({
@@ -530,6 +533,9 @@ var MapModule = (function () {
                 });
                 m.bindTooltip(escHtml((a.straat ? a.straat + ' ' : '') + a.label +
                     (a.gebruiksdoel ? ' \u2014 ' + a.gebruiksdoel : '')), { direction: 'top' });
+                // In toevoegmodus is een tik op het gele bordje het snelste pad:
+                // plek EN label komen dan allebei uit de BAG.
+                m.on('click', function () { if (puntModusAan) openSnelPunt(a.lat, a.lon, a.label); });
                 m.addTo(grpAanduidingen);
             });
             if (!map.hasLayer(grpAanduidingen)) { grpAanduidingen.addTo(map); }
@@ -619,6 +625,103 @@ var MapModule = (function () {
         });
     }
 
+    // === Toevoegmodus: tik op de kaart = punt daar (controleur en beheerder) ===
+    //
+    // De omgekeerde volgorde van de oude flow: EERST tikken, DAN een klein
+    // invulvakje met de plek al gezet. Ligt er een BAG-bordje binnen 20 meter,
+    // dan staat het label ("22 C07") al ingevuld. De modus blijft aan zodat je
+    // bordje voor bordje kunt doorwerken; de +Punt-knop zet hem weer uit.
+
+    function dichtstbijzijndeAanduiding(lat, lon) {
+        var beste = null, besteAfstand = 20; // meter
+        aanduidingenCache.forEach(function (a) {
+            var d = afstandMeterKaart(lat, lon, a.lat, a.lon);
+            if (d < besteAfstand) { besteAfstand = d; beste = a; }
+        });
+        return beste;
+    }
+
+    function wisselPuntModus() {
+        if (!puntModusAan && !selectedLocatieSlug) {
+            alert('Kies eerst een locatie (tik op een park of haven); daarna zet je de toevoegmodus aan.');
+            return;
+        }
+        puntModusAan = !puntModusAan;
+        var btn = document.getElementById('btn-punt-modus');
+        if (btn) { btn.classList.toggle('btn--primary', puntModusAan); }
+        map.getContainer().style.cursor = puntModusAan ? 'crosshair' : '';
+        if (puntModusAan) {
+            alert('Toevoegmodus aan: tik op de kaart (of op een geel BAG-bordje) op de plek van het pand. Zet de modus uit met de +Punt-knop.');
+        }
+    }
+
+    function onKaartKlikPunt(e) {
+        if (!puntModusAan || prikActief) return;
+        if (!selectedLocatieSlug) { return; }
+        var entry = locatieMarkers[selectedLocatieSlug];
+        if (entry && afstandMeterKaart(e.latlng.lat, e.latlng.lng, entry.loc.lat, entry.loc.lon) > 2000) {
+            alert('Die plek ligt meer dan 2 km van ' + entry.loc.naam + '. Zoom in op de locatie en tik opnieuw.');
+            return;
+        }
+        var voorstel = dichtstbijzijndeAanduiding(e.latlng.lat, e.latlng.lng);
+        openSnelPunt(e.latlng.lat, e.latlng.lng, voorstel ? voorstel.label : null);
+    }
+
+    async function snelOpslaan(label, lat, lon) {
+        try {
+            await API.addPand({
+                locatie_slug: selectedLocatieSlug,
+                label: label,
+                adres_detail: null,
+                lat: lat,
+                lon: lon,
+                positie_bron: 'kaart',
+            });
+            selectLocatie(selectedLocatieSlug);
+        } catch (err) {
+            alert('Punt niet toegevoegd: ' + err.message);
+        }
+    }
+
+    function openSnelPunt(lat, lon, labelVoorstel) {
+        if (!selectedLocatieSlug) return;
+        var entry = locatieMarkers[selectedLocatieSlug];
+        var naam = entry ? entry.loc.naam : selectedLocatieSlug;
+        var bestaand = panden.map(function (p) { return p.label; });
+
+        // Bordje-pad: label EN plek zijn bekend -> een korte bevestiging
+        // volstaat en het punt staat er. Geen invulvakje.
+        var voorstelIsNieuw = labelVoorstel &&
+            !bestaand.some(function (b) { return normLabel(b) === normLabel(labelVoorstel); });
+        if (voorstelIsNieuw) {
+            if (window.confirm('Punt "' + labelVoorstel + '" hier toevoegen?')) {
+                snelOpslaan(labelVoorstel, lat, lon);
+            }
+            return;
+        }
+
+        addPandContext = { slug: selectedLocatieSlug, naam: naam, bestaand: bestaand,
+                           prikPositie: { lat: lat, lon: lon } };
+
+        var el = ensureModal();
+        document.getElementById('wh-pand-modal-title').textContent = 'Punt toevoegen \u2014 ' + naam;
+
+        var html = '<div style="font-size:12px;color:#2e7d32">\u2713 Plek overgenomen van je tik op de kaart</div>';
+        if (labelVoorstel) {
+            html += '<div style="font-size:12px;color:#c62828">BAG-bordje ' + escHtml(labelVoorstel) + ' bestaat al als pand \u2014 kies een ander label.</div>';
+        }
+        html += '<label style="font-size:13px">Label (uniek per locatie)<input type="text" id="wh-pand-label" value="" placeholder="bijv. 22-C10, Huisje 12" style="width:100%;padding:8px;margin-top:4px" oninput="MapModule.checkPandLabel(this.value)"></label>';
+        html += '<div id="wh-pand-label-warn" style="color:#c62828;font-size:12px;min-height:16px"></div>';
+        html += '<label style="font-size:13px">Adresdetail (optioneel)<input type="text" id="wh-pand-adres" placeholder="bijv. Moleneind 22" style="width:100%;padding:8px;margin-top:4px"></label>';
+        html += '<span id="wh-pand-prik-status" hidden></span>';
+        html += '<button class="btn btn--primary" id="wh-pand-submit" onclick="MapModule.submitAddPand()">Toevoegen</button>';
+        html += '<div style="font-size:11px;color:#888;margin-top:6px">De toevoegmodus blijft aan: na het opslaan tik je gewoon het volgende pand aan.</div>';
+
+        document.getElementById('wh-pand-modal-body').innerHTML = html;
+        el.classList.add('modal--open');
+        setTimeout(function () { var i = document.getElementById('wh-pand-label'); if (i) i.focus(); }, 100);
+    }
+
     function normLabel(v) { return String(v || '').toLowerCase().replace(/[\s\-_./]/g, ''); }
 
     function escHtml(v) {
@@ -658,7 +761,8 @@ var MapModule = (function () {
         }
 
         var adresDetail = (document.getElementById('wh-pand-adres').value || '').trim();
-        var wilGps = document.getElementById('wh-pand-gps').checked;
+        var gpsVak = document.getElementById('wh-pand-gps');
+        var wilGps = !!(gpsVak && gpsVak.checked);
         var btn = document.getElementById('wh-pand-submit');
         btn.disabled = true;
         btn.textContent = 'Bezig...';
@@ -1095,6 +1199,10 @@ var MapModule = (function () {
         var btnGps = document.getElementById('btn-reset-gps');
         if (btnGps) { btnGps.addEventListener('click', resetGpsPosities); }
 
+        map.on('click', onKaartKlikPunt);
+        var btnPunt = document.getElementById('btn-punt-modus');
+        if (btnPunt) { btnPunt.addEventListener('click', wisselPuntModus); }
+
         document.getElementById('btn-reset-view').addEventListener('click', function () {
             if (allBounds) { map.fitBounds(allBounds, { padding: [60, 40] }); }
             selectedLocatieSlug = null;
@@ -1122,6 +1230,8 @@ var MapModule = (function () {
         submitAddPand: submitAddPand,
         startPrik: startPrik,
         laadAanduidingen: laadAanduidingen,
+        wisselPuntModus: wisselPuntModus,
+        openSnelPunt: openSnelPunt,
         zetAanduiding: zetAanduiding,
         wisselExtraStatus: wisselExtraStatus,
         setBeheerModus: setBeheerModus,

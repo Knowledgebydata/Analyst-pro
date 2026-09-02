@@ -894,13 +894,8 @@ var VragenlijstModule = (function () {
             }),
         };
 
-        var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'vragenlijsten-' + (controleur || 'export') + '-' + new Date().toISOString().slice(0, 10) + '.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        var naam = 'vragenlijsten-' + (controleur || 'export') + '-' + new Date().toISOString().slice(0, 10) + '.json';
+        await window.whBewaarBestand(naam, JSON.stringify(exportData, null, 2));
     }
 
     // === Counter badge ===
