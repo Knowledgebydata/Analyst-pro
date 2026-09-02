@@ -183,8 +183,30 @@
         document.getElementById('btn-admin').hidden = (currentUser.role !== 'beheerder' || isPWA);
         // Kaart-beheerfuncties (verplaatsen/bewerken/GPS-reset): alleen beheerder, niet op handhelds
         MapModule.setBeheerModus(currentUser.role === 'beheerder' && !isPWA);
+        // Versieknop en -weergave: weergave bij elke login verversen,
+        // de klik-koppeling maar een keer leggen
+        var btnBijwerken = document.getElementById('btn-app-bijwerken');
+        if (btnBijwerken && !btnBijwerken.dataset.gebonden) {
+            btnBijwerken.dataset.gebonden = '1';
+            btnBijwerken.addEventListener('click', appBijwerken);
+        }
+        toonAppVersie();
 
-    
+        // Auto-set controleur naam als die nog leeg is
+        if (!BevModule.getControleurNaam() && currentUser.displayName) {
+            BevModule.setControleurNaam(currentUser.displayName);
+        }
+
+        loadLocaties();
+        connectSocket();
+
+        // Kaart moet herladen na screen-switch, anders heeft Leaflet 0x0 container
+        var map = MapModule.getMap();
+        if (map) {
+            setTimeout(function () { map.invalidateSize(); }, 200);
+        }
+    }
+
     // === Versie tonen en de app bijwerken ===
     //
     // Op een geinstalleerde webapp is geen console beschikbaar. Zonder deze
@@ -253,25 +275,6 @@
             if (knop) { knop.disabled = false; knop.textContent = 'App bijwerken'; }
             alert('Bijwerken mislukt: ' + (err && err.message ? err.message : err) +
                   '\n\nSluit de app helemaal af en open hem opnieuw.');
-        }
-    }
-
-    // Auto-set controleur naam als die nog leeg is
-        var btnBijwerken = document.getElementById('btn-app-bijwerken');
-        if (btnBijwerken) { btnBijwerken.addEventListener('click', appBijwerken); }
-        toonAppVersie();
-
-        if (!BevModule.getControleurNaam() && currentUser.displayName) {
-            BevModule.setControleurNaam(currentUser.displayName);
-        }
-
-        loadLocaties();
-        connectSocket();
-
-        // Kaart moet herladen na screen-switch, anders heeft Leaflet 0x0 container
-        var map = MapModule.getMap();
-        if (map) {
-            setTimeout(function () { map.invalidateSize(); }, 200);
         }
     }
 
