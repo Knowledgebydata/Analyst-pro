@@ -6,10 +6,10 @@
     <meta name="theme-color" content="#9b59b6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="AP Straat">
-    <title>AP Straat - Knowledge by Data</title>
+    <meta name="apple-mobile-web-app-title" content="Waarnemingen">
+    <title>Waarnemingen - Knowledge by Data</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon192x192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         :root {
@@ -305,6 +305,65 @@
         .photo-upload:hover { border-color: var(--primary); background: #f8f0fc; }
         .photo-upload i { font-size: 32px; color: var(--primary); margin-bottom: 10px; }
         .photo-upload p { color: var(--text-light); font-size: 14px; }
+        .photo-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .photo-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 18px 10px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .photo-btn i { font-size: 26px; color: var(--primary); }
+        .photo-btn--primary { border-style: solid; border-color: var(--primary-light); background: #f8f0fc; }
+        .photo-btn:active { transform: scale(0.98); }
+        .photo-btn:disabled { opacity: 0.5; cursor: wait; }
+        .photo-busy { font-size: 13px; color: var(--text-light); margin-bottom: 10px; }
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .label-row label { margin-bottom: 0; }
+        .btn-dictate {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 20px;
+            background: var(--primary);
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .btn-dictate:active { background: var(--primary-dark); }
+        .dictate-hint {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #f8f0fc;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .dictate-hint i { color: var(--primary); margin-right: 6px; }
         .photo-preview {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -413,6 +472,12 @@
             background: #ffebee;
             color: var(--error);
         }
+        .export-note {
+            margin-top: 10px;
+            color: var(--text-light);
+            font-size: 13px;
+            line-height: 1.4;
+        }
         .toast {
             position: fixed;
             bottom: 100px;
@@ -441,7 +506,7 @@
         <div class="auth-card">
             <div class="auth-logo">
                 <i class="fas fa-binoculars"></i>
-                <h1>AP Straat</h1>
+                <h1>Waarnemingen</h1>
                 <p id="auth-subtitle">Voer uw PIN in</p>
             </div>
             <div id="login-section">
@@ -494,8 +559,8 @@
         </div>
 
         <header class="app-header">
-            <h1>AP Straat</h1>
-            <p>Straatobservaties vastleggen</p>
+            <h1>Waarnemingen</h1>
+            <p>Waarnemingen vastleggen</p>
         </header>
 
         <nav class="tabs">
@@ -550,18 +615,26 @@
 
                 <div class="card">
                     <div class="card-title">Foto's toevoegen</div>
-                    <input type="file" id="photo-input" accept="image/*" multiple capture="environment" class="hidden">
-                    <div class="photo-upload" onclick="document.getElementById('photo-input').click()">
-                        <i class="fas fa-camera"></i>
-                        <p>Tik om foto's te maken of selecteren</p>
+                    <input type="file" id="photo-library" accept="image/*" multiple class="hidden" aria-hidden="true" tabindex="-1">
+                    <input type="file" id="photo-camera" accept="image/*" capture="environment" class="hidden" aria-hidden="true" tabindex="-1">
+                    <div class="photo-actions">
+                        <button type="button" class="photo-btn photo-btn--primary" data-photo-source="photo-library">
+                            <i class="fas fa-images"></i>
+                            <span>Kies uit bibliotheek</span>
+                        </button>
+                        <button type="button" class="photo-btn" data-photo-source="photo-camera">
+                            <i class="fas fa-camera"></i>
+                            <span>Maak een foto</span>
+                        </button>
                     </div>
+                    <p id="photo-busy" class="photo-busy hidden" role="status">Foto's worden verwerkt...</p>
                     <div id="photo-preview" class="photo-preview"></div>
                 </div>
 
                 <div class="card">
                     <div class="card-title">Waarneming details</div>
                     <div class="form-group">
-                        <label>Type waarneming</label>
+                        <label for="obs-type">Type waarneming</label>
                         <select id="obs-type">
                             <option value="verdacht">Verdachte situatie</option>
                             <option value="hennep">Hennepkwekerij</option>
@@ -574,18 +647,27 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Adres / Locatie</label>
-                        <input type="text" id="obs-address" placeholder="Straat en huisnummer">
+                        <label for="obs-address">Adres / Locatie</label>
+                        <input type="text" id="obs-address" placeholder="Straat en huisnummer" autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label>Plaats</label>
-                        <input type="text" id="obs-city" placeholder="Plaatsnaam">
+                        <label for="obs-city">Plaats</label>
+                        <input type="text" id="obs-city" placeholder="Plaatsnaam" autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label>Beschrijving</label>
-                        <textarea id="obs-description" rows="4" placeholder="Beschrijf wat u heeft waargenomen..."></textarea>
+                        <div class="label-row">
+                            <label for="obs-description">Beschrijving</label>
+                            <button type="button" class="btn-dictate" id="btn-dictate" aria-controls="dictate-hint">
+                                <i class="fas fa-microphone"></i> Inspreken
+                            </button>
+                        </div>
+                        <textarea id="obs-description" rows="5" placeholder="Beschrijf wat u heeft waargenomen, of tik op Inspreken..."></textarea>
+                        <div id="dictate-hint" class="dictate-hint hidden" role="note">
+                            <i class="fas fa-microphone"></i>Tik op het microfoontje van uw toetsenbord en spreek de waarneming in. Tik daarna op Gereed.
+                            De omzetting naar tekst doet uw telefoon: op het toestel zelf of via Apple of Google, afhankelijk van uw toestel en de instellingen van uw organisatie. De app slaat geen geluid op.
+                        </div>
                     </div>
-                    <button class="btn btn-primary" onclick="Observations.save()">
+                    <button class="btn btn-primary" id="btn-save" onclick="Observations.save()">
                         <i class="fas fa-save"></i> Waarneming opslaan
                     </button>
                 </div>
@@ -619,6 +701,9 @@
                     <button class="btn btn-secondary" onclick="App.exportJSON()">
                         <i class="fas fa-download"></i> Exporteer JSON
                     </button>
+                    <p class="export-note">
+                        In te lezen in Analyst Pro (Medewerker Dossiers) en in de medewerkersapp van Analyst Pro (Importeren).
+                    </p>
                 </div>
                 <div class="card">
                     <div class="card-title">Gegevens</div>
@@ -631,7 +716,7 @@
                     <div class="setting-item">
                         <div class="setting-info">
                             <h4>Versie</h4>
-                            <p>1.2.0</p>
+                            <p>2.0.0</p>
                         </div>
                     </div>
                     <div class="setting-item">
@@ -645,16 +730,49 @@
         </main>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script>
         'use strict';
 
+        /* De opslagsleutels heten nog naar AP Straat: zo blijven PIN, naam en bestaande waarnemingen behouden na de naamswijziging. */
         const K = {
             PIN: 'apstraat_pin',
             USER: 'apstraat_user',
             DATA: 'apstraat_data'
         };
+
+        const APP_NAAM = 'Waarnemingen';
+        const APP_VERSIE = '2.0.0';
+        const BRON = 'Waarnemingen-app';
+        const FOTO_MAX_BRON_BYTES = 30 * 1024 * 1024;
+        const FOTO_MAX_ONVERKLEIND_BYTES = 5 * 1024 * 1024;
+        const FOTO_MAX_ZIJDE = 2048;
+        const FOTO_JPEG_KWALITEIT = 0.85;
+        const GPS_TIMEOUT_MS = 15000;
+        const GPS_MAX_LEEFTIJD_MS = 30000;
+        const TOAST_MS = 3000;
+        const TOAST_LANG_MS = 6000;
+
+        /* Type waarneming: label in de app en thema in Analyst Pro. Alleen waar het thema van Analyst Pro eenduidig is,
+           wordt ook de categorie gezet; de overige types tellen daar als "Zonder thema". */
+        const TYPES = {
+            verdacht:     { label: 'Verdachte situatie', kort: 'Verdacht' },
+            hennep:       { label: 'Hennepkwekerij', kort: 'Hennep', categorie: 'Hennep en drugslaboratoria' },
+            drugs:        { label: 'Drugshandel', kort: 'Drugs', categorie: 'Drugshandel' },
+            overlast:     { label: 'Overlast', kort: 'Overlast' },
+            vervuiling:   { label: 'Vervuiling', kort: 'Vervuiling' },
+            illegaal:     { label: 'Illegale bewoning', kort: 'Illegaal' },
+            ondermijning: { label: 'Ondermijning', kort: 'Ondermijning', categorie: 'Onverklaarbare ondermijnende activiteiten' },
+            overig:       { label: 'Overig', kort: 'Overig', categorie: 'Overig' }
+        };
+
+        /* "Havenstraat 12a" -> { straat: 'Havenstraat', huisnummer: '12a' }; zonder huisnummer blijft alles straat. */
+        function splitsAdres(adres) {
+            const tekst = String(adres || '').trim();
+            const m = /^(.*?\S)\s+(\d+(?:\s*[-/]?\s*[A-Za-z0-9]{1,4})?)$/.exec(tekst);
+            return m ? { straat: m[1].trim(), huisnummer: m[2].replace(/\s+/g, ' ').trim() } : { straat: tekst, huisnummer: '' };
+        }
 
         const Auth = {
             pin: '',
@@ -732,7 +850,7 @@
 
                 localStorage.setItem(K.PIN, pin);
                 localStorage.setItem(K.USER, name);
-                localStorage.setItem(K.DATA, JSON.stringify([]));
+                if (localStorage.getItem(K.DATA) === null) localStorage.setItem(K.DATA, JSON.stringify([]));   /* bestaande waarnemingen nooit wissen */
                 this.showApp();
             },
 
@@ -746,6 +864,10 @@
             logout() {
                 this.pin = '';
                 this.updateDots();
+                /* na de eerste keer inloggen stond hier nog het formulier "Account aanmaken"; dat zette de waarnemingen op leeg */
+                document.getElementById('setup-section').classList.add('hidden');
+                document.getElementById('login-section').classList.remove('hidden');
+                document.getElementById('auth-subtitle').textContent = 'Voer uw PIN in';
                 document.getElementById('app').classList.remove('active');
                 document.getElementById('auth-screen').style.display = 'flex';
             }
@@ -754,10 +876,13 @@
         const Observations = {
             photos: [],
             gpsCoords: null,
+            gpsVerzoek: 0,
+            pending: 0,
 
             init() {
                 this.initGPS();
                 this.initPhotoInput();
+                Dictate.init();
             },
 
             initGPS() {
@@ -765,8 +890,12 @@
                     this.setGPSStatus('error', 'GPS niet ondersteund');
                     return;
                 }
+                const verzoek = ++this.gpsVerzoek;   /* alleen het laatste verzoek telt */
+                this.gpsCoords = null;
+                this.setGPSStatus('searching', 'GPS zoeken...');
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
+                        if (verzoek !== this.gpsVerzoek) return;
                         this.gpsCoords = {
                             lat: pos.coords.latitude,
                             lng: pos.coords.longitude,
@@ -774,8 +903,11 @@
                         };
                         this.setGPSStatus('active', 'GPS actief (' + this.gpsCoords.accuracy + 'm)');
                     },
-                    (err) => this.setGPSStatus('error', 'GPS fout: ' + err.message),
-                    { enableHighAccuracy: true, timeout: 15000 }
+                    (err) => {
+                        if (verzoek !== this.gpsVerzoek) return;
+                        this.setGPSStatus('error', 'GPS fout: ' + err.message);
+                    },
+                    { enableHighAccuracy: true, timeout: GPS_TIMEOUT_MS, maximumAge: GPS_MAX_LEEFTIJD_MS }
                 );
             },
 
@@ -784,35 +916,101 @@
                 el.className = 'gps-bar ' + status;
                 const icon = status === 'active' ? 'fa-check-circle' : 
                              status === 'error' ? 'fa-times-circle' : 'fa-satellite-dish';
-                el.innerHTML = '<i class="fas ' + icon + '"></i><span>' + text + '</span>';
+                const i = document.createElement('i');
+                i.className = 'fas ' + icon;
+                const span = document.createElement('span');
+                span.textContent = text;
+                el.replaceChildren(i, span);
             },
 
+            /* Twee bronnen: de fotobibliotheek (standaard, meerdere tegelijk) en de camera. */
             initPhotoInput() {
-                document.getElementById('photo-input').addEventListener('change', (e) => {
-                    this.handlePhotos(e.target.files);
+                document.querySelectorAll('[data-photo-source]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (this.pending > 0) return;
+                        document.getElementById(btn.dataset.photoSource).click();
+                    });
+                });
+                ['photo-library', 'photo-camera'].forEach(id => {
+                    const input = document.getElementById(id);
+                    input.addEventListener('change', async () => {
+                        const files = Array.from(input.files || []);
+                        input.value = '';
+                        await this.handlePhotos(files);
+                    });
                 });
             },
 
-            handlePhotos(files) {
-                const maxSize = 5 * 1024 * 1024; // 5MB
-                
-                Array.from(files).forEach(file => {
-                    if (file.size > maxSize) {
-                        Toast.show('Foto te groot (max 5MB)', 'error');
-                        return;
-                    }
+            setBusy(busy) {
+                document.getElementById('photo-busy').classList.toggle('hidden', !busy);
+                document.querySelectorAll('[data-photo-source]').forEach(b => { b.disabled = busy; });
+                document.getElementById('btn-save').disabled = busy;
+            },
 
+            async handlePhotos(files) {
+                if (!files.length) return;
+                this.pending += files.length;
+                this.setBusy(true);
+                let mislukt = 0;
+                for (const file of files) {
+                    try {
+                        const foto = await this.leesFoto(file);
+                        if (foto) this.photos.push(foto); else mislukt++;
+                    } catch (e) {
+                        mislukt++;
+                    } finally {
+                        this.pending--;
+                    }
+                }
+                this.setBusy(this.pending > 0);
+                this.renderPhotos();
+                if (mislukt) Toast.show(mislukt === 1 ? 'Eén foto kon niet worden gelezen' : mislukt + " foto's konden niet worden gelezen", 'error');
+            },
+
+            /* Verkleint naar maximaal 2048 pixels aan de lange zijde (JPEG): een foto uit de bibliotheek is vaak
+               meerdere MB's en de opslag van de browser is beperkt. Lukt verkleinen niet, dan het origineel tot 5 MB. */
+            async leesFoto(file) {
+                if (!file || !/^image\//.test(file.type || 'image/')) return null;
+                if (file.size > FOTO_MAX_BRON_BYTES) throw new Error('te groot');
+                const verkleind = await this.verklein(file).catch(() => null);
+                if (verkleind) return { data: verkleind, name: file.name, size: Math.round(verkleind.length * 0.75), type: 'image/jpeg', origineleGrootte: file.size };
+                if (file.size > FOTO_MAX_ONVERKLEIND_BYTES) throw new Error('te groot');
+                const data = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.photos.push({
-                            data: e.target.result,
-                            name: file.name,
-                            size: file.size,
-                            type: file.type
-                        });
-                        this.renderPhotos();
-                    };
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = () => reject(reader.error);
                     reader.readAsDataURL(file);
+                });
+                return { data: data, name: file.name, size: file.size, type: file.type };
+            },
+
+            verklein(file) {
+                return new Promise((resolve, reject) => {
+                    const url = URL.createObjectURL(file);
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            const w = img.naturalWidth, h = img.naturalHeight;
+                            if (!w || !h) throw new Error('leeg beeld');
+                            const schaal = Math.min(1, FOTO_MAX_ZIJDE / Math.max(w, h));
+                            const canvas = document.createElement('canvas');
+                            canvas.width = Math.round(w * schaal);
+                            canvas.height = Math.round(h * schaal);
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = '#ffffff';   /* doorzichtige delen (png) worden wit in plaats van zwart */
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            const data = canvas.toDataURL('image/jpeg', FOTO_JPEG_KWALITEIT);
+                            if (!/^data:image\/jpeg;base64,/.test(data)) throw new Error('geen jpeg');
+                            resolve(data);
+                        } catch (e) {
+                            reject(e);
+                        } finally {
+                            URL.revokeObjectURL(url);
+                        }
+                    };
+                    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('niet leesbaar')); };
+                    img.src = url;
                 });
             },
 
@@ -832,6 +1030,10 @@
             },
 
             save() {
+                if (this.pending > 0) {
+                    Toast.show("Wacht tot de foto's zijn verwerkt", 'error');
+                    return;
+                }
                 const type = document.getElementById('obs-type').value;
                 const address = document.getElementById('obs-address').value.trim();
                 const city = document.getElementById('obs-city').value.trim();
@@ -858,9 +1060,14 @@
                     melder: localStorage.getItem(K.USER)
                 };
 
-                const data = JSON.parse(localStorage.getItem(K.DATA) || '[]');
+                const data = App.lees();
                 data.unshift(obs);
-                localStorage.setItem(K.DATA, JSON.stringify(data));
+                try {
+                    localStorage.setItem(K.DATA, JSON.stringify(data));
+                } catch (e) {
+                    Toast.show('Opslag van de telefoon is vol. Exporteer eerst uw waarnemingen en wis ze daarna, of verwijder een foto.', 'error', TOAST_LANG_MS);
+                    return;
+                }
 
                 // Reset form
                 document.getElementById('obs-address').value = '';
@@ -868,18 +1075,57 @@
                 document.getElementById('obs-description').value = '';
                 this.photos = [];
                 this.renderPhotos();
-                document.getElementById('photo-input').value = '';
+                Dictate.verberg();
 
                 App.updateStats();
                 Toast.show('Waarneming opgeslagen', 'success');
             }
         };
 
-        const App = {
+        /* Inspreken: de app zet de cursor in de beschrijving en wijst op de microfoon van het toetsenbord.
+           De spraakherkenning van de browser zelf werkt niet in een app op het beginscherm van de iPhone. */
+        const Dictate = {
             init() {
-                this.initTabs();
-                Observations.init();
+                document.getElementById('btn-dictate').addEventListener('click', () => this.start());
+            },
+
+            start() {
+                const veld = document.getElementById('obs-description');
+                const hint = document.getElementById('dictate-hint');
+                hint.classList.remove('hidden');
+                veld.focus();
+                const einde = veld.value.length;
+                try { veld.setSelectionRange(einde, einde); } catch (e) { /* niet elk veldtype ondersteunt een selectie */ }
+                if (veld.value && !/\s$/.test(veld.value)) {
+                    veld.value += ' ';
+                    try { veld.setSelectionRange(veld.value.length, veld.value.length); } catch (e) { /* idem */ }
+                }
+            },
+
+            verberg() {
+                document.getElementById('dictate-hint').classList.add('hidden');
+            }
+        };
+
+        const App = {
+            initialized: false,
+
+            init() {
+                if (!this.initialized) {
+                    this.initTabs();
+                    Observations.init();
+                    this.initialized = true;
+                }
                 this.updateStats();
+            },
+
+            lees() {
+                try {
+                    const data = JSON.parse(localStorage.getItem(K.DATA) || '[]');
+                    return Array.isArray(data) ? data : [];
+                } catch (e) {
+                    return [];
+                }
             },
 
             initTabs() {
@@ -889,12 +1135,14 @@
                         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                         tab.classList.add('active');
                         document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+                        /* verse GPS-positie voor een nieuwe waarneming (niet die van het moment van inloggen) */
+                        if (tab.dataset.tab === 'new') Observations.initGPS();
                     });
                 });
             },
 
             updateStats() {
-                const data = JSON.parse(localStorage.getItem(K.DATA) || '[]');
+                const data = this.lees();
                 
                 const withPhotos = data.filter(o => o.fotos && o.fotos.length > 0).length;
                 const withGPS = data.filter(o => o.gps).length;
@@ -922,11 +1170,8 @@
             obsHTML(o) {
                 const date = new Date(o.datum);
                 const dateStr = date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-                const typeLabels = {
-                    verdacht: 'Verdacht', hennep: 'Hennep', drugs: 'Drugs', overlast: 'Overlast',
-                    vervuiling: 'Vervuiling', illegaal: 'Illegaal', ondermijning: 'Ondermijning', overig: 'Overig'
-                };
-                
+                const soort = TYPES[o.type];
+
                 let meta = '';
                 if (o.fotos && o.fotos.length > 0) {
                     meta += '<span><i class="fas fa-camera"></i> ' + o.fotos.length + '</span>';
@@ -937,11 +1182,11 @@
 
                 return '<div class="obs-item">' +
                     '<div class="obs-header">' +
-                        '<span class="obs-type">' + (typeLabels[o.type] || o.type) + '</span>' +
+                        '<span class="obs-type">' + this.esc(soort ? soort.kort : o.type) + '</span>' +
                         '<span class="obs-date">' + dateStr + '</span>' +
                     '</div>' +
                     '<div class="obs-address">' + this.esc(o.adres) + ', ' + this.esc(o.plaats) + '</div>' +
-                    '<div class="obs-desc">' + this.esc(o.beschrijving).substring(0, 100) + (o.beschrijving.length > 100 ? '...' : '') + '</div>' +
+                    '<div class="obs-desc">' + this.esc(String(o.beschrijving || '').substring(0, 100)) + (String(o.beschrijving || '').length > 100 ? '...' : '') + '</div>' +
                     (meta ? '<div class="obs-meta">' + meta + '</div>' : '') +
                 '</div>';
             },
@@ -953,21 +1198,58 @@
                 return div.innerHTML;
             },
 
-            exportJSON() {
-                const data = {
-                    app: 'AP Straat',
-                    version: '1.2.0',
-                    exported: new Date().toISOString(),
-                    user: localStorage.getItem(K.USER),
-                    observations: JSON.parse(localStorage.getItem(K.DATA) || '[]')
+            /* Eén waarneming in het formaat dat Analyst Pro (Medewerker Dossiers) en de medewerkersapp inlezen.
+               Ook waarnemingen die nog met AP Straat 1.x zijn vastgelegd, gaan zo mee. */
+            naarExport(o, gebruiker) {
+                const soort = TYPES[o.type];
+                const adres = splitsAdres(o.adres);
+                const w = {
+                    id: o.id,
+                    datum: o.datum,
+                    thema: soort ? soort.label : (o.type || 'Waarneming'),
+                    type: o.type || 'overig',
+                    beschrijving: o.beschrijving || '',
+                    medewerker: o.melder || gebruiker,
+                    locatie: o.gps && typeof o.gps.lat === 'number' && typeof o.gps.lng === 'number'
+                        ? { lat: o.gps.lat, lng: o.gps.lng, accuracy: o.gps.accuracy }
+                        : null,
+                    adres: o.adres || '',
+                    straat: adres.straat,
+                    huisnummer: adres.huisnummer,
+                    plaats: o.plaats || '',
+                    fotos: Array.isArray(o.fotos) ? o.fotos : [],
+                    bron: BRON
                 };
+                if (soort && soort.categorie) w.categorie = soort.categorie;
+                return w;
+            },
+
+            exportJSON() {
+                const gebruiker = localStorage.getItem(K.USER) || 'Onbekend';
+                const nu = new Date().toISOString();
+                const data = {
+                    app: APP_NAAM,
+                    appVersie: APP_VERSIE,
+                    type: 'medewerker_export',
+                    version: '2.0',
+                    generated: nu,
+                    medewerker: gebruiker,
+                    bron: BRON,
+                    waarnemingen: this.lees().map(o => this.naarExport(o, gebruiker))
+                };
+                if (!data.waarnemingen.length) {
+                    Toast.show('Er zijn nog geen waarnemingen om te exporteren', 'error');
+                    return;
+                }
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'ap-straat-' + new Date().toISOString().split('T')[0] + '.json';
+                a.download = 'waarnemingen-' + nu.split('T')[0] + '.json';
+                document.body.appendChild(a);
                 a.click();
-                URL.revokeObjectURL(url);
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
                 Toast.show('Export gedownload', 'success');
             },
 
@@ -981,11 +1263,13 @@
         };
 
         const Toast = {
-            show(message, type = 'info') {
+            timer: null,
+            show(message, type = 'info', duur = TOAST_MS) {
                 const el = document.getElementById('toast');
                 el.textContent = message;
                 el.className = 'toast ' + type + ' show';
-                setTimeout(() => el.classList.remove('show'), 3000);
+                clearTimeout(this.timer);
+                this.timer = setTimeout(() => el.classList.remove('show'), duur);
             }
         };
 
