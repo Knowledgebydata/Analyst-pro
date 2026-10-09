@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="Meldpunt">
     <title>Meldpunt Ondermijning - Knowledge by Data</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon192x192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         :root {
@@ -356,6 +356,40 @@
         .toast.success { background: var(--success); }
         .toast.error { background: var(--error); }
 
+        .hidden { display: none; }
+
+        /* Opslag van meldingen: gekoppelde map (Chrome/Edge op een computer) */
+        .opslag-card { margin-top: 1rem; }
+        .opslag-status {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+        .opslag-status--ok { color: #047857; }
+        .opslag-status--waarschuwing { color: #b45309; }
+        .opslag-acties {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .btn-secondary {
+            background: var(--card);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        .btn-secondary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .success-waar {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .success-waar--waarschuwing { color: #b45309; }
+
         @media (max-width: 380px) {
             .header-title { font-size: 1.25rem; }
         }
@@ -464,22 +498,23 @@
             </div>
 
             <button class="btn btn-primary" id="submitBtn" disabled>
-                <i class="fas fa-paper-plane"></i>
-                Melding versturen
+                <i class="fas fa-save"></i>
+                Melding opslaan
             </button>
 
             <div class="privacy-notice">
                 <i class="fas fa-shield-alt"></i>
-                Uw melding wordt vertrouwelijk behandeld en veilig opgeslagen. Bij anonieme meldingen worden geen identificeerbare gegevens bewaard.
+                Uw melding wordt opgeslagen op dit apparaat en, als er een map is gekoppeld, als bestand in die map. Bij een anonieme melding worden geen contactgegevens opgeslagen.
             </div>
         </div>
 
         <div class="success-screen" id="successScreen">
             <div class="success-icon"><i class="fas fa-check"></i></div>
-            <h2 class="success-title">Melding ontvangen</h2>
+            <h2 class="success-title">Melding opgeslagen</h2>
             <p class="success-text">
                 Bedankt voor uw melding. Deze wordt vertrouwelijk behandeld en waar mogelijk in onderzoek genomen.
             </p>
+            <p class="success-waar" id="successWaar" role="status"></p>
             <div class="success-ref">
                 <div class="success-ref-label">Uw referentienummer</div>
                 <div class="success-ref-code" id="refCode">MO-000000</div>
@@ -492,6 +527,21 @@
                 Nieuwe melding
             </button>
         </div>
+
+        <section class="card opslag-card" id="opslagCard" aria-labelledby="opslagTitel">
+            <h2 class="card-title" id="opslagTitel"><i class="fas fa-folder-open"></i> Opslag van meldingen</h2>
+            <p class="opslag-status" id="opslagStatus">Meldingen worden op dit apparaat bewaard.</p>
+            <div class="opslag-acties">
+                <button type="button" class="btn btn-secondary hidden" id="kiesMapBtn">
+                    <i class="fas fa-folder-plus"></i>
+                    <span id="kiesMapTekst">Map kiezen</span>
+                </button>
+                <button type="button" class="btn btn-secondary hidden" id="schrijfOpenBtn">
+                    <i class="fas fa-file-export"></i>
+                    <span id="schrijfOpenTekst">Meldingen wegschrijven</span>
+                </button>
+            </div>
+        </section>
     </main>
 
     <footer class="footer">
@@ -499,7 +549,7 @@
         <p>Een initiatief van <a href="#">Knowledge by Data</a></p>
     </footer>
 
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
     'use strict';
@@ -508,23 +558,132 @@
         REPORTS: 'meldpunt_reports'
     };
 
+    const APP_NAAM = 'Meldpunt Ondermijning';
+    const APP_VERSIE = '1.1.0';
+    const TOAST_MS = 3000;
+    const TOAST_LANG_MS = 8000;
+    const DB_NAAM = 'meldpunt';
+    const DB_VERSIE = 1;
+    const DB_STORE = 'instellingen';
+    const DB_SLEUTEL_MAP = 'map';
+    const REF_WILLEKEURIG_TEKENS = 4;
+
+    /* Type melding -> thema in Analyst Pro; alleen waar dat eenduidig is (anders "Zonder thema" in Analyst Pro). */
+    const THEMA = {
+        drugs: 'Drugshandel',
+        hennep: 'Hennep en drugslaboratoria',
+        witwassen: 'Witwassen',
+        vastgoed: 'Vastgoedfraude',
+        overig: 'Overig'
+    };
+
+    /* Kleine sleutel-waardeopslag in IndexedDB: een maptoegang (FileSystemDirectoryHandle) kan niet in localStorage. */
+    const Instellingen = {
+        open() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) { reject(new Error('IndexedDB ontbreekt')); return; }
+                const verzoek = indexedDB.open(DB_NAAM, DB_VERSIE);
+                verzoek.onupgradeneeded = () => verzoek.result.createObjectStore(DB_STORE);
+                verzoek.onsuccess = () => resolve(verzoek.result);
+                verzoek.onerror = () => reject(verzoek.error);
+            });
+        },
+        async actie(modus, werk) {
+            const db = await this.open();
+            try {
+                return await new Promise((resolve, reject) => {
+                    const t = db.transaction(DB_STORE, modus);
+                    const verzoek = werk(t.objectStore(DB_STORE));
+                    t.oncomplete = () => resolve(verzoek ? verzoek.result : undefined);
+                    t.onerror = () => reject(t.error);
+                    t.onabort = () => reject(t.error);
+                });
+            } finally {
+                db.close();
+            }
+        },
+        lees(sleutel) { return this.actie('readonly', store => store.get(sleutel)); },
+        zet(sleutel, waarde) { return this.actie('readwrite', store => store.put(waarde, sleutel)); }
+    };
+
+    /* Gekoppelde map (File System Access API: Chrome en Edge op een computer). In een geïnstalleerde app onthoudt
+       Chrome de toestemming; in een tabblad vraagt Chrome bij een volgend bezoek opnieuw. */
+    const Doelmap = {
+        handle: null,
+        ondersteund: typeof window.showDirectoryPicker === 'function',
+
+        async init() {
+            if (!this.ondersteund) return;
+            try {
+                this.handle = (await Instellingen.lees(DB_SLEUTEL_MAP)) || null;
+            } catch (e) {
+                this.handle = null;
+            }
+        },
+
+        naam() {
+            return this.handle ? this.handle.name : '';
+        },
+
+        async kies() {
+            const handle = await window.showDirectoryPicker({ id: 'meldpunt-ondermijning', mode: 'readwrite' });
+            await Instellingen.zet(DB_SLEUTEL_MAP, handle);
+            this.handle = handle;
+        },
+
+        /* vragen = true alleen direct na een klik (de browser vraagt dan zo nodig toestemming) */
+        async toegang(vragen) {
+            if (!this.handle) return false;
+            const opties = { mode: 'readwrite' };
+            let stand = await this.handle.queryPermission(opties);
+            if (stand === 'granted') return true;
+            if (!vragen) return false;
+            stand = await this.handle.requestPermission(opties);
+            return stand === 'granted';
+        },
+
+        async schrijf(bestandsnaam, inhoud) {
+            const bestand = await this.handle.getFileHandle(bestandsnaam, { create: true });
+            const schrijver = await bestand.createWritable();
+            try {
+                await schrijver.write(inhoud);
+                await schrijver.close();
+            } catch (e) {
+                try { await schrijver.abort(); } catch (x) { /* al gesloten */ }
+                throw e;
+            }
+        }
+    };
+
     const App = {
         isAnonymous: true,
         reports: [],
+        bezig: false,
 
-        init() {
+        async init() {
             this.loadData();
             this.bindEvents();
             this.updateSubmitButton();
+            await Doelmap.init();
+            this.updateOpslag();
         },
 
         loadData() {
-            const stored = localStorage.getItem(K.REPORTS);
-            this.reports = stored ? JSON.parse(stored) : [];
+            try {
+                const stored = JSON.parse(localStorage.getItem(K.REPORTS) || '[]');
+                this.reports = Array.isArray(stored) ? stored : [];
+            } catch (e) {
+                this.reports = [];
+            }
         },
 
         saveData() {
-            localStorage.setItem(K.REPORTS, JSON.stringify(this.reports));
+            try {
+                localStorage.setItem(K.REPORTS, JSON.stringify(this.reports));
+                return true;
+            } catch (e) {
+                return false;
+            }
         },
 
         bindEvents() {
@@ -534,6 +693,8 @@
             };
             document.getElementById('submitBtn').onclick = () => this.submitReport();
             document.getElementById('newMeldBtn').onclick = () => this.resetForm();
+            document.getElementById('kiesMapBtn').onclick = () => this.kiesMap();
+            document.getElementById('schrijfOpenBtn').onclick = () => this.schrijfOpenstaande(true);
 
             // Form validation
             ['meldAddress', 'meldCity', 'meldType', 'meldDesc', 'checkTruth', 'checkPrivacy'].forEach(id => {
@@ -572,45 +733,206 @@
             const checkPrivacy = document.getElementById('checkPrivacy').checked;
 
             const isValid = address && city && type && desc && checkTruth && checkPrivacy;
-            document.getElementById('submitBtn').disabled = !isValid;
+            document.getElementById('submitBtn').disabled = !isValid || this.bezig;
         },
 
         generateRefCode() {
             const timestamp = Date.now().toString(36).toUpperCase();
-            const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-            return `MO-${timestamp}${random}`;
+            let random = '';
+            if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+                const getallen = new Uint32Array(1);
+                window.crypto.getRandomValues(getallen);
+                random = getallen[0].toString(36);
+            } else {
+                random = Math.random().toString(36).substring(2);
+            }
+            return 'MO-' + timestamp + random.padStart(REF_WILLEKEURIG_TEKENS, '0').slice(-REF_WILLEKEURIG_TEKENS).toUpperCase();
         },
 
-        submitReport() {
-            const report = {
-                id: Date.now().toString(),
-                refCode: this.generateRefCode(),
-                date: new Date().toISOString(),
-                address: document.getElementById('meldAddress').value.trim(),
-                city: document.getElementById('meldCity').value.trim(),
-                type: document.getElementById('meldType').value,
-                typeLabel: document.getElementById('meldType').options[document.getElementById('meldType').selectedIndex].text,
-                description: document.getElementById('meldDesc').value.trim(),
-                persons: document.getElementById('meldPersons').value.trim(),
-                anonymous: this.isAnonymous
+        /* Eén melding als bestand dat Analyst Pro inleest (Medewerker Dossiers, uitwisselmap/postvak). Contactgegevens alleen
+           bij een niet-anonieme melding, in melderGegevens (in Analyst Pro afgeschermd). */
+        bestandVoor(r) {
+            const tekst = [r.description];
+            if (r.persons) tekst.push('', 'Betrokken personen of voertuigen: ' + r.persons);
+            const m = {
+                id: r.refCode,
+                referentie: r.refCode,
+                type: 'signalen',
+                datum: r.date,
+                onderwerp: r.typeLabel,
+                inhoud: tekst.join('\n'),
+                locatie: [r.address, r.city].filter(Boolean).join(', '),
+                plaats: r.city,
+                melder: r.anonymous ? 'Anonieme melder (Meldpunt Ondermijning)' : 'Melder via Meldpunt Ondermijning',
+                bron: APP_NAAM
             };
-
-            if (!this.isAnonymous) {
-                report.contact = {
-                    name: document.getElementById('meldName').value.trim(),
-                    phone: document.getElementById('meldPhone').value.trim(),
-                    email: document.getElementById('meldEmail').value.trim()
-                };
+            if (THEMA[r.type]) m.categorie = THEMA[r.type];
+            if (!r.anonymous && r.contact) {
+                const g = {};
+                if (r.contact.name) g.naam = r.contact.name;
+                if (r.contact.phone) g.telefoon = r.contact.phone;
+                if (r.contact.email) g.email = r.contact.email;
+                if (Object.keys(g).length) m.melderGegevens = g;
             }
+            return {
+                app: APP_NAAM,
+                appVersie: APP_VERSIE,
+                type: 'medewerker_export',
+                version: '2.0',
+                generated: new Date().toISOString(),
+                medewerker: APP_NAAM,
+                bron: APP_NAAM,
+                meldingen: [m]
+            };
+        },
 
-            this.reports.push(report);
+        bestandsnaam(r) {
+            return 'meldpunt_' + r.refCode + '.json';
+        },
+
+        async schrijfMelding(r) {
+            const naam = this.bestandsnaam(r);
+            await Doelmap.schrijf(naam, JSON.stringify(this.bestandVoor(r), null, 2));
+            r.geschreven = { bestand: naam, map: Doelmap.naam(), op: new Date().toISOString() };
             this.saveData();
+            return naam;
+        },
 
-            document.getElementById('refCode').textContent = report.refCode;
-            document.getElementById('formScreen').classList.add('hide');
-            document.getElementById('successScreen').classList.add('show');
+        openstaand() {
+            return this.reports.filter(r => r && r.refCode && !r.geschreven);
+        },
 
-            this.toast('Melding succesvol verzonden', 'success');
+        async submitReport() {
+            if (this.bezig) return;
+            this.bezig = true;
+            this.updateSubmitButton();
+            try {
+                const report = {
+                    id: Date.now().toString(),
+                    refCode: this.generateRefCode(),
+                    date: new Date().toISOString(),
+                    address: document.getElementById('meldAddress').value.trim(),
+                    city: document.getElementById('meldCity').value.trim(),
+                    type: document.getElementById('meldType').value,
+                    typeLabel: document.getElementById('meldType').options[document.getElementById('meldType').selectedIndex].text,
+                    description: document.getElementById('meldDesc').value.trim(),
+                    persons: document.getElementById('meldPersons').value.trim(),
+                    anonymous: this.isAnonymous
+                };
+
+                if (!this.isAnonymous) {
+                    report.contact = {
+                        name: document.getElementById('meldName').value.trim(),
+                        phone: document.getElementById('meldPhone').value.trim(),
+                        email: document.getElementById('meldEmail').value.trim()
+                    };
+                }
+
+                this.reports.push(report);
+                if (!this.saveData()) {
+                    this.reports.pop();
+                    this.toast('De melding kon niet worden opgeslagen: de opslag van dit apparaat is vol.', 'error', TOAST_LANG_MS);
+                    return;
+                }
+
+                const waar = await this.naarMap(report);
+                document.getElementById('refCode').textContent = report.refCode;
+                const regel = document.getElementById('successWaar');
+                regel.textContent = waar.tekst;
+                regel.classList.toggle('success-waar--waarschuwing', !waar.goed);
+                document.getElementById('formScreen').classList.add('hide');
+                document.getElementById('successScreen').classList.add('show');
+                this.toast(waar.goed ? 'Melding opgeslagen' : 'Melding opgeslagen op dit apparaat', waar.goed ? 'success' : 'error', waar.goed ? TOAST_MS : TOAST_LANG_MS);
+            } finally {
+                this.bezig = false;
+                this.updateSubmitButton();
+                this.updateOpslag();
+            }
+        },
+
+        /* Na het opslaan op het apparaat: ook naar de gekoppelde map. Lukt dat niet, dan blijft de melding staan om later weg te schrijven. */
+        async naarMap(report) {
+            if (!Doelmap.handle) {
+                return { goed: true, tekst: Doelmap.ondersteund
+                    ? 'Opgeslagen op dit apparaat. Er is nog geen map gekoppeld; kies hieronder een map om meldingen ook als bestand te bewaren.'
+                    : 'Opgeslagen op dit apparaat.' };
+            }
+            try {
+                if (!(await Doelmap.toegang(true))) {
+                    return { goed: false, tekst: 'Opgeslagen op dit apparaat, maar niet in de map "' + Doelmap.naam() + '": er is geen toestemming gegeven. Gebruik hieronder "Meldingen wegschrijven".' };
+                }
+                const naam = await this.schrijfMelding(report);
+                return { goed: true, tekst: 'Opgeslagen in de map "' + Doelmap.naam() + '" als ' + naam + '.' };
+            } catch (e) {
+                return { goed: false, tekst: 'Opgeslagen op dit apparaat, maar niet in de map "' + Doelmap.naam() + '" (' + ((e && e.message) || e) + '). Gebruik hieronder "Meldingen wegschrijven".' };
+            }
+        },
+
+        async kiesMap() {
+            try {
+                await Doelmap.kies();
+            } catch (e) {
+                if (!e || e.name !== 'AbortError') this.toast('De map kon niet worden gekoppeld: ' + ((e && e.message) || e), 'error', TOAST_LANG_MS);
+                this.updateOpslag();
+                return;
+            }
+            const n = this.openstaand().length;
+            if (n) {
+                await this.schrijfOpenstaande(false);
+            } else {
+                this.toast('Map "' + Doelmap.naam() + '" gekoppeld', 'success');
+            }
+            this.updateOpslag();
+        },
+
+        async schrijfOpenstaande(vragen) {
+            const lijst = this.openstaand();
+            if (!lijst.length || !Doelmap.handle) { this.updateOpslag(); return; }
+            let goed = 0, fout = '';
+            try {
+                if (!(await Doelmap.toegang(vragen !== false))) throw new Error('geen toestemming voor de map');
+                for (const r of lijst) {
+                    try {
+                        await this.schrijfMelding(r);
+                        goed++;
+                    } catch (e) {
+                        fout = (e && e.message) || String(e);
+                    }
+                }
+            } catch (e) {
+                fout = (e && e.message) || String(e);
+            }
+            const rest = this.openstaand().length;
+            if (rest) {
+                this.toast(goed + ' van ' + lijst.length + ' meldingen weggeschreven naar "' + Doelmap.naam() + '"' + (fout ? ' (' + fout + ')' : ''), 'error', TOAST_LANG_MS);
+            } else {
+                this.toast(goed === 1 ? '1 melding weggeschreven naar "' + Doelmap.naam() + '"' : goed + ' meldingen weggeschreven naar "' + Doelmap.naam() + '"', 'success');
+            }
+            this.updateOpslag();
+        },
+
+        updateOpslag() {
+            const status = document.getElementById('opslagStatus');
+            const kies = document.getElementById('kiesMapBtn');
+            const open = document.getElementById('schrijfOpenBtn');
+            const n = this.openstaand().length;
+            status.classList.remove('opslag-status--ok', 'opslag-status--waarschuwing');
+            if (!Doelmap.ondersteund) {
+                status.textContent = 'Meldingen worden alleen op dit apparaat bewaard. Een map koppelen kan in Chrome of Edge op een computer.';
+                kies.classList.add('hidden');
+                open.classList.add('hidden');
+                return;
+            }
+            kies.classList.remove('hidden');
+            document.getElementById('kiesMapTekst').textContent = Doelmap.handle ? 'Andere map kiezen' : 'Map kiezen';
+            if (Doelmap.handle) {
+                status.textContent = 'Meldingen worden ook als bestand bewaard in de map "' + Doelmap.naam() + '".' + (n ? ' ' + (n === 1 ? '1 melding staat' : n + ' meldingen staan') + ' nog alleen op dit apparaat.' : '');
+                status.classList.add(n ? 'opslag-status--waarschuwing' : 'opslag-status--ok');
+            } else {
+                status.textContent = 'Meldingen worden op dit apparaat bewaard. Kies een map om elke melding ook als bestand te bewaren (in te lezen in Analyst Pro).' + (n ? ' Bij het kiezen worden de ' + (n === 1 ? 'bestaande melding' : n + ' bestaande meldingen') + ' er ook in gezet.' : '');
+            }
+            open.classList.toggle('hidden', !(Doelmap.handle && n));
+            document.getElementById('schrijfOpenTekst').textContent = 'Meldingen wegschrijven (' + n + ')';
         },
 
         resetForm() {
@@ -636,11 +958,13 @@
             window.scrollTo(0, 0);
         },
 
-        toast(msg, type = 'success') {
+        toastTimer: null,
+        toast(msg, type = 'success', duur = TOAST_MS) {
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.className = `toast ${type} show`;
-            setTimeout(() => t.classList.remove('show'), 3000);
+            clearTimeout(this.toastTimer);
+            this.toastTimer = setTimeout(() => t.classList.remove('show'), duur);
         }
     };
 
@@ -648,7 +972,7 @@
         navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
     }
 
-    document.addEventListener('DOMContentLoaded', () => App.init());
+    document.addEventListener('DOMContentLoaded', () => { App.init().catch(e => console.error('Meldpunt:', e)); });
     </script>
 </body>
 </html>
